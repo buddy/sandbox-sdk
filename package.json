@@ -40,5 +40,9 @@
 		"knip": "^5.80.0",
 		"tsdown": "0.18.4",
 		"typescript": "5.9.3"
+	},
+	"dependencies": {
+		"p-retry": "7.1.1",
+		"zod": "4.3.5"
 	}
 }
