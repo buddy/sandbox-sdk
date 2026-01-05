@@ -12,18 +12,15 @@
 		}
 	},
 	"files": [
-		"dist",
-		"README.md",
-		"LICENSE"
+		"dist"
 	],
 	"scripts": {
 		"build": "tsdown",
-		"lint:check": "biome check",
-		"lint:fix": "biome check --write",
+		"lint:check": "tsc --skipLibCheck --noEmit && biome check",
+		"lint:fix": "tsc --skipLibCheck --noEmit && biome check --write",
 		"knip": "knip"
 	},
 	"keywords": [
-		"buddy",
 		"sandbox",
 		"api",
 		"sdk",
