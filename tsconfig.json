@@ -1,14 +1,18 @@
 {
 	"extends": [
-		"@tsconfig/node20/tsconfig.json",
-		"@tsconfig/strictest/tsconfig.json"
+		"@tsconfig/strictest/tsconfig.json",
+		"@tsconfig/node20/tsconfig.json"
 	],
 	"compilerOptions": {
-		"outDir": "dist",
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"rootDir": "./src",
+		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"~/*": ["./*"]
 		}
 	},
-	"include": ["src"],
+	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules", "dist"]
 }
