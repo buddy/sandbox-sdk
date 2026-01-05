@@ -28,7 +28,7 @@ importers:
         specifier: '20'
         version: 20.19.27
       knip:
-        specifier: ^5.80.0
+        specifier: 5.80.0
         version: 5.80.0(@types/node@20.19.27)(typescript@5.9.3)
       tsdown:
         specifier: 0.18.4
