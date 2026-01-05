@@ -19,7 +19,8 @@
 	"scripts": {
 		"build": "tsdown",
 		"lint:check": "biome check --write",
-		"lint:fix": "biome check --write"
+		"lint:fix": "biome check --write",
+		"knip": "knip"
 	},
 	"keywords": [],
 	"author": "Cyprian Zdebski <cyprian.zdebski@buddy.works>",
@@ -36,6 +37,7 @@
 		"@tsconfig/node20": "20",
 		"@tsconfig/strictest": "2.0.8",
 		"@types/node": "20",
+		"knip": "^5.80.0",
 		"tsdown": "0.18.4",
 		"typescript": "5.9.3"
 	}
