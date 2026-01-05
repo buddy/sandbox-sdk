@@ -2,7 +2,7 @@
 	"name": "@buddy-works/sandbox-sdk",
 	"version": "0.0.1",
 	"type": "module",
-	"description": "",
+	"description": "TypeScript SDK for managing sandboxes through the Buddy API",
 	"main": "./dist/index.mjs",
 	"types": "./dist/index.d.mts",
 	"exports": {
@@ -22,7 +22,21 @@
 		"lint:fix": "biome check --write",
 		"knip": "knip"
 	},
-	"keywords": [],
+	"keywords": [
+		"buddy",
+		"sandbox",
+		"api",
+		"sdk",
+		"ci",
+		"cd",
+		"devops",
+		"cloud",
+		"typescript"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"sideEffects": false,
 	"author": "Cyprian Zdebski <cyprian.zdebski@buddy.works>",
 	"homepage": "https://github.com/buddy/sandbox-sdk#readme",
 	"bugs": "https://github.com/buddy/sandbox-sdk/issues",
