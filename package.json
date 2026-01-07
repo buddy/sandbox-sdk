@@ -15,6 +15,7 @@
 		"dist"
 	],
 	"scripts": {
+		"fetch:schemas": "orval",
 		"build": "tsdown",
 		"lint:check": "tsc --skipLibCheck --noEmit && biome check",
 		"lint:fix": "tsc --skipLibCheck --noEmit && biome check --write",
@@ -49,6 +50,8 @@
 		"@tsconfig/strictest": "2.0.8",
 		"@types/node": "20",
 		"knip": "5.80.0",
+		"openapi-typescript": "7.10.1",
+		"orval": "7.17.2",
 		"tsdown": "0.18.4",
 		"typescript": "5.9.3"
 	},
