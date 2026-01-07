@@ -90,23 +90,6 @@ function loadEnvironment(): EnvironmentResult {
 	};
 }
 
-function setEnvironmentVariable<K extends keyof typeof environmentConfig>(
-	key: K,
-	value: EnvironmentConfig[K],
-): void {
-	const config = environmentConfig[key];
-
-	if (config.type === "boolean") {
-		process.env[key as string] = value ? "1" : "0";
-	} else {
-		if (value === undefined) {
-			process.env[key as string] = "";
-		} else {
-			process.env[key as string] = value as string;
-		}
-	}
-}
-
 function getEnvironment(key: string, required: true): string;
 function getEnvironment(key: string, required?: false): string | undefined;
 function getEnvironment(key: string, required = false): string | undefined {
@@ -148,6 +131,3 @@ function getEnvironmentFlag(key: string, defaultValue = false): boolean {
 
 const environmentResult = loadEnvironment();
 export default environmentResult.variables;
-export const environmentError = environmentResult.error;
-
-export { setEnvironmentVariable, environmentConfig, type EnvironmentResult };
