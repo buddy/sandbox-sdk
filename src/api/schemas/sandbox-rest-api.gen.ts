@@ -101,6 +101,7 @@ export const addSandboxBody = zod.union([
 			),
 		os: zod
 			.string()
+			.optional()
 			.describe(
 				'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
 			),
@@ -163,7 +164,7 @@ export const addSandboxBody = zod.union([
 						.enum(["TCP", "TLS", "HTTP", "SSH"])
 						.describe("The type of the tunnel"),
 					region: zod
-						.enum(["US", "EU"])
+						.enum(["US", "EU", "AS"])
 						.describe("The region where the tunnel is deployed"),
 					whitelist: zod
 						.array(zod.string())
@@ -458,7 +459,7 @@ export const addSandboxBody = zod.union([
 						.enum(["TCP", "TLS", "HTTP", "SSH"])
 						.describe("The type of the tunnel"),
 					region: zod
-						.enum(["US", "EU"])
+						.enum(["US", "EU", "AS"])
 						.describe("The region where the tunnel is deployed"),
 					whitelist: zod
 						.array(zod.string())
@@ -776,7 +777,7 @@ export const getSandboxResponse = zod.object({
 					.enum(["TCP", "TLS", "HTTP", "SSH"])
 					.describe("The type of the tunnel"),
 				region: zod
-					.enum(["US", "EU"])
+					.enum(["US", "EU", "AS"])
 					.describe("The region where the tunnel is deployed"),
 				whitelist: zod
 					.array(zod.string())
@@ -1322,7 +1323,7 @@ export const updateSandboxBody = zod.object({
 					.enum(["TCP", "TLS", "HTTP", "SSH"])
 					.describe("The type of the tunnel"),
 				region: zod
-					.enum(["US", "EU"])
+					.enum(["US", "EU", "AS"])
 					.describe("The region where the tunnel is deployed"),
 				whitelist: zod
 					.array(zod.string())
@@ -1621,7 +1622,7 @@ export const updateSandboxResponse = zod.object({
 					.enum(["TCP", "TLS", "HTTP", "SSH"])
 					.describe("The type of the tunnel"),
 				region: zod
-					.enum(["US", "EU"])
+					.enum(["US", "EU", "AS"])
 					.describe("The region where the tunnel is deployed"),
 				whitelist: zod
 					.array(zod.string())
@@ -2388,7 +2389,7 @@ export const restartSandboxResponse = zod.object({
 					.enum(["TCP", "TLS", "HTTP", "SSH"])
 					.describe("The type of the tunnel"),
 				region: zod
-					.enum(["US", "EU"])
+					.enum(["US", "EU", "AS"])
 					.describe("The region where the tunnel is deployed"),
 				whitelist: zod
 					.array(zod.string())
@@ -3074,7 +3075,7 @@ export const startSandboxResponse = zod.object({
 					.enum(["TCP", "TLS", "HTTP", "SSH"])
 					.describe("The type of the tunnel"),
 				region: zod
-					.enum(["US", "EU"])
+					.enum(["US", "EU", "AS"])
 					.describe("The region where the tunnel is deployed"),
 				whitelist: zod
 					.array(zod.string())
@@ -3636,7 +3637,7 @@ export const stopSandboxResponse = zod.object({
 					.enum(["TCP", "TLS", "HTTP", "SSH"])
 					.describe("The type of the tunnel"),
 				region: zod
-					.enum(["US", "EU"])
+					.enum(["US", "EU", "AS"])
 					.describe("The region where the tunnel is deployed"),
 				whitelist: zod
 					.array(zod.string())
@@ -4227,7 +4228,7 @@ export const updateSandboxByYamlResponse = zod.object({
 					.enum(["TCP", "TLS", "HTTP", "SSH"])
 					.describe("The type of the tunnel"),
 				region: zod
-					.enum(["US", "EU"])
+					.enum(["US", "EU", "AS"])
 					.describe("The region where the tunnel is deployed"),
 				whitelist: zod
 					.array(zod.string())
