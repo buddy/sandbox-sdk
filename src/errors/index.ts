@@ -1,4 +1,18 @@
+import { ZodError, prettifyError } from "zod";
 import type { HttpError } from "@/core/http-client";
+
+export class ValidationError extends Error {
+	constructor(zodError: ZodError) {
+		const prettyError = prettifyError(zodError);
+		super(`Validation failed:\n${prettyError}`);
+		this.name = "ValidationError";
+		Object.setPrototypeOf(this, ValidationError.prototype);
+	}
+
+	[Symbol.for("nodejs.util.inspect.custom")](): string {
+		return this.stack ?? `${this.name}: ${this.message}`;
+	}
+}
 
 export class SandboxError extends Error {
 	public override readonly cause: Error | undefined;

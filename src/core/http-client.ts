@@ -1,3 +1,4 @@
+import { inspect } from "node:util";
 import pRetry, { type Options as RetryOptions } from "p-retry";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
@@ -56,9 +57,25 @@ export class HttpError extends Error {
 		super(fullMessage);
 		this.name = "HttpError";
 		this.status = status;
-		this.response = response;
-		this.errors = apiErrors;
+
+		Object.defineProperty(this, "response", {
+			value: response,
+			enumerable: false,
+			writable: false,
+			configurable: true,
+		});
+		Object.defineProperty(this, "errors", {
+			value: apiErrors,
+			enumerable: false,
+			writable: false,
+			configurable: true,
+		});
+
 		Object.setPrototypeOf(this, HttpError.prototype);
+	}
+
+	[inspect.custom](): string {
+		return this.stack ?? `${this.name}: ${this.message}`;
 	}
 }
 

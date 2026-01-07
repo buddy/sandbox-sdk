@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { prettifyError, ZodError, type z } from "zod";
 import {
 	AddSandboxRequestSchema,
 	ExecuteSandboxCommandRequestSchema,
@@ -13,6 +13,7 @@ import {
 	HttpError,
 	type HttpResponse,
 } from "@/core/http-client";
+import { ValidationError } from "@/errors";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
 
@@ -22,12 +23,24 @@ export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 	apiUrl?: string;
 }
 
+function validateInput<T>(schema: z.ZodType<T>, data: unknown): T {
+	try {
+		return schema.parse(data);
+	} catch (error) {
+		if (error instanceof ZodError) {
+			throw new ValidationError(error);
+		}
+		throw error;
+	}
+}
+
 function parseResponse<T>(schema: z.ZodType<T>, response: HttpResponse): T {
 	const result = schema.safeParse(response.data);
 
 	if (!result.success) {
+		const prettyError = prettifyError(result.error);
 		throw new HttpError(
-			`Response validation failed: ${result.error.message}`,
+			`Response validation failed:\n${prettyError}`,
 			response.status,
 			response,
 		);
@@ -52,9 +65,7 @@ function parseLogEntry(line: string): {
 	const result = SandboxCommandLogSchema.safeParse(parsed);
 
 	if (!result.success) {
-		throw new Error(
-			`Invalid log entry format: ${result.error.message}. Line: ${line}`,
-		);
+		throw new ValidationError(result.error);
 	}
 
 	const logEntry = result.data;
@@ -131,7 +142,10 @@ export class BuddyApiClient extends HttpClient {
 	) {
 		const url = `/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands`;
 
-		const validatedCommand = ExecuteSandboxCommandRequestSchema.parse(command);
+		const validatedCommand = validateInput(
+			ExecuteSandboxCommandRequestSchema,
+			command,
+		);
 		const response = await this.post(url, validatedCommand);
 		return parseResponse(ExecuteSandboxCommandResponseSchema, response);
 	}

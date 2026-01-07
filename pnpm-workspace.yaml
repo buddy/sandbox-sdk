@@ -1,2 +1,12 @@
+packages:
+  - "."
+  - "examples"
+
 onlyBuiltDependencies:
   - esbuild
+
+catalog:
+  "@tsconfig/node20": "20"
+  "@tsconfig/strictest": "2.0.8"
+  "@types/node": "20"
+  typescript: "5.9.3"

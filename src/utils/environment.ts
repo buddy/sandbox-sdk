@@ -19,7 +19,6 @@ const environmentConfig = {
 	BUDDY_PROJECT_NAME: { type: "string" },
 	BUDDY_LOGGER_LEVEL: { type: "string" },
 	DEBUG_HTTP: { type: "boolean", defaultValue: false },
-	NO_COLOR: { type: "boolean", defaultValue: false },
 } as const satisfies EnvironmentConfigSchema;
 
 type EnvironmentConfig = {

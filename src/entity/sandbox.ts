@@ -192,10 +192,8 @@ export class Sandbox {
 	async runCommand(
 		options: RunCommandOptions,
 	): Promise<Command | CommandFinished> {
-		// Destructure SDK-specific options from API fields
 		const { stdout, stderr, detached, ...commandRequest } = options;
 
-		// Set defaults for SDK-specific options
 		const outputStdout = stdout ?? process.stdout;
 		const outputStderr = stderr ?? process.stderr;
 
