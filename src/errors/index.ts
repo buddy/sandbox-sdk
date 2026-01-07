@@ -1,4 +1,4 @@
-import { ZodError, prettifyError } from "zod";
+import { prettifyError, type ZodError } from "zod";
 import type { HttpError } from "@/core/http-client";
 
 export class ValidationError extends Error {
