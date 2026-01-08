@@ -331,25 +331,11 @@ export class BuddyApiClient extends HttpClient {
 
 			const contentType = response.headers.get("content-type");
 			if (!contentType?.includes("application/jsonl")) {
-				// Fallback: if not JSONL, read as text and parse
-				const text = await response.text();
-				if (this.debugMode) {
-					logger.debug("[HTTP RESPONSE - Non-streaming]", {
-						status: response.status,
-						contentType,
-						body: text,
-					});
-				}
-
-				// Parse as before for backwards compatibility
-				const lines = text.split("\n").filter((line) => line.trim());
-				for (const line of lines) {
-					yield this.#parseLogEntry(line);
-				}
-				return;
+				throw new Error(
+					`Expected application/jsonl content type, got: ${contentType ?? "none"}`,
+				);
 			}
 
-			// Stream the response body
 			if (!response.body) {
 				throw new Error("No response body available for streaming");
 			}

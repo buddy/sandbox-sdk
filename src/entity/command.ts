@@ -90,10 +90,10 @@ export class Command {
 }
 
 export class CommandFinished extends Command {
-	private readonly _exitCode: number;
+	readonly #_exitCode: number;
 
 	override get exitCode(): number {
-		return this._exitCode;
+		return this.#_exitCode;
 	}
 
 	constructor({
@@ -106,7 +106,7 @@ export class CommandFinished extends Command {
 		sandboxId: string;
 	}) {
 		super({ commandResponse, client, sandboxId });
-		this._exitCode = commandResponse.exit_code ?? 0;
+		this.#_exitCode = commandResponse.exit_code ?? 0;
 	}
 
 	override wait(): Promise<CommandFinished> {

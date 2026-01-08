@@ -80,27 +80,27 @@ export class HttpError extends Error {
 }
 
 export class HttpClient {
-	private readonly baseURL: string;
-	private readonly timeout: number;
-	private readonly defaultHeaders: Record<string, string>;
+	readonly #baseURL: string;
+	readonly #timeout: number;
+	readonly #defaultHeaders: Record<string, string>;
 	protected readonly debugMode: boolean;
-	private authToken?: string;
+	#authToken?: string;
 
 	constructor(config: HttpClientConfig = {}) {
-		this.debugMode = config.debugMode ?? false;
-		this.baseURL = config.baseURL ?? "";
-		this.timeout = config.timeout ?? 30_000;
-		this.defaultHeaders = {
+		this.debugMode = config.debugMode ?? environment.DEBUG_HTTP;
+		this.#baseURL = config.baseURL ?? "";
+		this.#timeout = config.timeout ?? 30_000;
+		this.#defaultHeaders = {
 			"Content-Type": "application/json",
 			...config.headers,
 		};
 	}
 
-	private buildUrl(
+	#buildUrl(
 		path: string,
 		queryParameters?: Record<string, string | number | boolean | undefined>,
 	): string {
-		const url = new URL(path, this.baseURL);
+		const url = new URL(path, this.#baseURL);
 
 		if (queryParameters) {
 			for (const [key, value] of Object.entries(queryParameters)) {
@@ -113,22 +113,22 @@ export class HttpClient {
 		return url.toString();
 	}
 
-	private getHeaders(
+	#getHeaders(
 		additionalHeaders?: Record<string, string>,
 	): Record<string, string> {
 		const headers: Record<string, string> = {
-			...this.defaultHeaders,
+			...this.#defaultHeaders,
 			...additionalHeaders,
 		};
 
-		if (this.authToken) {
-			headers["Authorization"] = `Bearer ${this.authToken}`;
+		if (this.#authToken) {
+			headers["Authorization"] = `Bearer ${this.#authToken}`;
 		}
 
 		return headers;
 	}
 
-	private async executeWithRetry<T>(
+	async #executeWithRetry<T>(
 		requestFunction: () => Promise<HttpResponse<T>>,
 		skipRetry = false,
 	): Promise<HttpResponse<T>> {
@@ -165,17 +165,17 @@ export class HttpClient {
 			headers: additionalHeaders,
 			responseType = "json",
 		} = config ?? {};
-		const fullUrl = this.buildUrl(url, queryParams);
-		const headers = this.getHeaders(additionalHeaders);
+		const fullUrl = this.#buildUrl(url, queryParams);
+		const headers = this.#getHeaders(additionalHeaders);
 
 		const makeRequest = async (): Promise<HttpResponse<T>> => {
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => {
 				controller.abort();
-			}, this.timeout);
+			}, this.#timeout);
 
 			try {
-				if (this.debugMode && environment.DEBUG_HTTP) {
+				if (this.debugMode) {
 					logger.debug("[HTTP REQUEST]", {
 						method,
 						url: fullUrl,
@@ -214,7 +214,7 @@ export class HttpClient {
 					headers: response.headers,
 				};
 
-				if (this.debugMode && environment.DEBUG_HTTP) {
+				if (this.debugMode) {
 					logger.debug("[HTTP RESPONSE]", {
 						status: response.status,
 						body: responseData,
@@ -247,7 +247,7 @@ export class HttpClient {
 			}
 		};
 
-		return this.executeWithRetry(makeRequest, skipRetry);
+		return this.#executeWithRetry(makeRequest, skipRetry);
 	}
 
 	async get<T = unknown>(
@@ -273,6 +273,6 @@ export class HttpClient {
 	}
 
 	setAuthToken(token: string): void {
-		this.authToken = token;
+		this.#authToken = token;
 	}
 }

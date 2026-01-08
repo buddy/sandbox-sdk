@@ -10,7 +10,7 @@ async function main() {
 	let sandbox: Sandbox;
 	try {
 		sandbox = await Sandbox.get(identifier);
-		log(`Found existing sandbox: ${sandbox.sandboxId}`);
+		log(`Found existing sandbox: ${sandbox.id}`);
 	} catch {
 		log("Creating new sandbox...");
 		sandbox = await Sandbox.create({
@@ -20,7 +20,7 @@ async function main() {
 				os: "ubuntu:24.04",
 			},
 		});
-		log(`Created sandbox: ${sandbox.sandboxId}`);
+		log(`Created sandbox: ${sandbox.id}`);
 	}
 
 	log("Starting ping");

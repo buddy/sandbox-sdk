@@ -10,11 +10,15 @@ import { HttpError } from "@/core/http-client";
 import { Command, type CommandFinished } from "@/entity/command";
 import {
 	SandboxCreationError,
+	SandboxError,
 	SandboxNotFoundError,
 	SandboxNotReadyError,
 } from "@/errors";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
+
+// Symbol for private constructor protection
+const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
 
 export interface CreateSandboxConfig {
 	workspace?: string;
@@ -76,6 +80,15 @@ export class Sandbox {
 		return this.#sandboxData?.setup_status;
 	}
 
+	#ensureId(): string {
+		if (!this.id) {
+			throw new SandboxError(
+				"Sandbox ID is missing. The sandbox may have been deleted or not properly initialized.",
+			);
+		}
+		return this.id;
+	}
+
 	static async create(config?: CreateSandboxConfig) {
 		const { workspace, projectName, token, apiUrl } = getConfig(config);
 
@@ -95,7 +108,7 @@ export class Sandbox {
 				logger.debug(
 					`Found existing sandbox with identifier: ${config.sandbox.identifier}`,
 				);
-				return new Sandbox(existing, client);
+				return new Sandbox(existing, client, PRIVATE_CONSTRUCTOR_KEY);
 			}
 		}
 
@@ -119,7 +132,11 @@ export class Sandbox {
 			}
 			throw error;
 		}
-		const sandbox = new Sandbox(sandboxResponse, client);
+		const sandbox = new Sandbox(
+			sandboxResponse,
+			client,
+			PRIVATE_CONSTRUCTOR_KEY,
+		);
 
 		logger.debug(`Waiting for sandbox ${sandbox.id} to be ready...`);
 
@@ -149,7 +166,7 @@ export class Sandbox {
 			throw new SandboxNotFoundError(identifier);
 		}
 
-		return new Sandbox(sandboxResponse, client);
+		return new Sandbox(sandboxResponse, client, PRIVATE_CONSTRUCTOR_KEY);
 	}
 
 	static async list(config?: CreateSandboxConfig) {
@@ -173,7 +190,7 @@ export class Sandbox {
 
 				return {
 					get: () => {
-						return new Sandbox(fullData, client);
+						return new Sandbox(fullData, client, PRIVATE_CONSTRUCTOR_KEY);
 					},
 				};
 			}) ?? []
@@ -203,14 +220,14 @@ export class Sandbox {
 		logger.debug(`Executing command: $ ${commandRequest.command}`);
 
 		const commandResponse = await this.#client.executeCommand(
-			this.id,
+			this.#ensureId(),
 			commandRequest,
 		);
 
 		const command = new Command({
 			commandResponse,
 			client: this.#client,
-			sandboxId: this.id,
+			sandboxId: this.#ensureId(),
 		});
 
 		if (outputStdout || outputStderr) {
@@ -229,16 +246,18 @@ export class Sandbox {
 	}
 
 	async destroy(): Promise<void> {
-		await this.#client.deleteSandbox(this.id);
+		await this.#client.deleteSandbox(this.#ensureId());
 	}
 
 	async getStatus(): Promise<string> {
-		const sandboxResponse = await this.#client.getSandboxById(this.id);
+		const sandboxResponse = await this.#client.getSandboxById(this.#ensureId());
 		return sandboxResponse?.status ?? "unknown";
 	}
 
 	async refresh(): Promise<void> {
-		this.#sandboxData = await this.#client.getSandboxById(this.id);
+		this.#sandboxData = (await this.#client.getSandboxById(
+			this.#ensureId(),
+		)) as ISandbox;
 	}
 
 	async waitUntilReady(pollIntervalMs = 1000): Promise<void> {
@@ -250,7 +269,7 @@ export class Sandbox {
 			}
 
 			if (this.setupStatus === "FAILED") {
-				throw new SandboxNotReadyError(this.id, this.setupStatus);
+				throw new SandboxNotReadyError(this.#ensureId(), this.setupStatus);
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
@@ -271,12 +290,12 @@ export class Sandbox {
 			}
 
 			if (this.status === "FAILED") {
-				throw new SandboxNotReadyError(this.id, this.status);
+				throw new SandboxNotReadyError(this.#ensureId(), this.status);
 			}
 
 			if (Date.now() - startTime > maxWaitMs) {
 				throw new SandboxNotReadyError(
-					this.id,
+					this.#ensureId(),
 					`Timeout waiting for RUNNING status. Current: ${this.status}`,
 				);
 			}
@@ -299,12 +318,12 @@ export class Sandbox {
 			}
 
 			if (this.status === "FAILED") {
-				throw new SandboxNotReadyError(this.id, this.status);
+				throw new SandboxNotReadyError(this.#ensureId(), this.status);
 			}
 
 			if (Date.now() - startTime > maxWaitMs) {
 				throw new SandboxNotReadyError(
-					this.id,
+					this.#ensureId(),
 					`Timeout waiting for STOPPED status. Current: ${this.status}`,
 				);
 			}
@@ -316,7 +335,9 @@ export class Sandbox {
 	async start(): Promise<void> {
 		logger.debug(`Starting sandbox ${this.id}...`);
 
-		this.#sandboxData = await this.#client.startSandbox(this.id);
+		this.#sandboxData = (await this.#client.startSandbox(
+			this.#ensureId(),
+		)) as ISandbox;
 
 		await this.waitUntilRunning();
 
@@ -326,7 +347,9 @@ export class Sandbox {
 	async stop(): Promise<void> {
 		logger.debug(`Stopping sandbox ${this.id}...`);
 
-		this.#sandboxData = await this.#client.stopSandbox(this.id);
+		this.#sandboxData = (await this.#client.stopSandbox(
+			this.#ensureId(),
+		)) as ISandbox;
 
 		await this.waitUntilStopped();
 
@@ -336,7 +359,9 @@ export class Sandbox {
 	async restart(): Promise<void> {
 		logger.debug(`Restarting sandbox ${this.id}...`);
 
-		this.#sandboxData = await this.#client.restartSandbox(this.id);
+		this.#sandboxData = (await this.#client.restartSandbox(
+			this.#ensureId(),
+		)) as ISandbox;
 
 		await this.waitUntilRunning();
 		await this.waitUntilReady();
@@ -349,7 +374,13 @@ export class Sandbox {
 	private constructor(
 		sandboxData: NonNullable<IGetSandboxResponse>,
 		client: BuddyApiClient,
+		constructorKey: symbol,
 	) {
+		if (constructorKey !== PRIVATE_CONSTRUCTOR_KEY) {
+			throw new Error(
+				"Cannot construct Sandbox directly. Use Sandbox.create(), Sandbox.get(), or Sandbox.list()",
+			);
+		}
 		this.#sandboxData = sandboxData;
 		this.#client = client;
 	}
