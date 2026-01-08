@@ -1,11 +1,8 @@
-import type { z } from "zod";
-import type { ExecuteSandboxCommandResponseSchema } from "@/api/schemas";
+import type { IExecuteSandboxCommandResponse } from "@/api/schemas";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 
 export class Command {
-	protected readonly commandResponse: z.infer<
-		typeof ExecuteSandboxCommandResponseSchema
-	>;
+	protected readonly commandResponse: IExecuteSandboxCommandResponse;
 	protected readonly client: BuddyApiClient;
 	protected readonly sandboxId: string;
 	protected readonly commandId: string;
@@ -15,7 +12,7 @@ export class Command {
 		client,
 		sandboxId,
 	}: {
-		commandResponse: z.infer<typeof ExecuteSandboxCommandResponseSchema>;
+		commandResponse: IExecuteSandboxCommandResponse;
 		client: BuddyApiClient;
 		sandboxId: string;
 	}) {
@@ -73,7 +70,7 @@ export class Command {
 
 	protected async pollForCommandCompletion(
 		pollIntervalMs = 1000,
-	): Promise<z.infer<typeof ExecuteSandboxCommandResponseSchema>> {
+	): Promise<IExecuteSandboxCommandResponse> {
 		while (true) {
 			const commandResponse = await this.client.getCommand(
 				this.sandboxId,
@@ -104,7 +101,7 @@ export class CommandFinished extends Command {
 		client,
 		sandboxId,
 	}: {
-		commandResponse: z.infer<typeof ExecuteSandboxCommandResponseSchema>;
+		commandResponse: IExecuteSandboxCommandResponse;
 		client: BuddyApiClient;
 		sandboxId: string;
 	}) {

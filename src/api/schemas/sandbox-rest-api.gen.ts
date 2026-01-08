@@ -2287,6 +2287,89 @@ export const terminateSandboxCommandResponse = zod.object({
 });
 
 /**
+ * Get the contents of a directory or file metadata at the specified path in a sandbox. The sandbox must be running.
+ * @summary Get sandbox content by path
+ */
+export const getSandboxContentPathPathRegExp = /.*/;
+
+export const getSandboxContentParams = zod.object({
+	workspace_domain: zod
+		.string()
+		.describe("The human-readable ID of the workspace"),
+	sandbox_id: zod.string().describe("The ID of the sandbox"),
+	path: zod
+		.string()
+		.regex(getSandboxContentPathPathRegExp)
+		.describe(
+			"Absolute path to the file or directory. Recommended directory is `/buddy`",
+		),
+});
+
+export const getSandboxContentResponse = zod
+	.object({
+		url: zod.string().optional().describe("API endpoint to GET this object"),
+		html_url: zod
+			.string()
+			.optional()
+			.describe("Web URL to view this object in Buddy.works"),
+		contents: zod
+			.array(
+				zod
+					.object({
+						url: zod
+							.string()
+							.optional()
+							.describe("API endpoint to GET this object"),
+						html_url: zod
+							.string()
+							.optional()
+							.describe("Web URL to view this object in Buddy.works"),
+						type: zod
+							.enum(["FILE", "DIR"])
+							.optional()
+							.describe("The content type (FILE or DIR)"),
+						name: zod
+							.string()
+							.optional()
+							.describe("The name of the file or directory"),
+						path: zod
+							.string()
+							.optional()
+							.describe("The path to the file or directory"),
+						size: zod
+							.number()
+							.optional()
+							.describe("The size of the file in bytes"),
+					})
+					.describe("Content item in a sandbox"),
+			)
+			.optional()
+			.describe("List of content items in the directory"),
+	})
+	.describe("Sandbox content listing");
+
+/**
+ * Upload a file to a specific path in a sandbox. The sandbox must be running.
+ * @summary Upload a file to a sandbox
+ */
+export const uploadSandboxFilePathPathRegExp = /.*/;
+
+export const uploadSandboxFileParams = zod.object({
+	workspace_domain: zod
+		.string()
+		.describe("The human-readable ID of the workspace"),
+	sandbox_id: zod.string().describe("The ID of the sandbox"),
+	path: zod
+		.string()
+		.regex(uploadSandboxFilePathPathRegExp)
+		.describe(
+			"Absolute path where the file should be uploaded. Recommended directory is `/buddy`",
+		),
+});
+
+export const uploadSandboxFileBody = zod.instanceof(File);
+
+/**
  * @summary Restart a sandbox
  */
 export const restartSandboxParams = zod.object({
@@ -4685,6 +4768,65 @@ export const updateSandboxByYamlResponse = zod.object({
 		)
 		.optional()
 		.describe("The environment variables of the sandbox"),
+});
+
+/**
+ * @summary Get all snapshots for a project
+ */
+export const getProjectSnapshotsParams = zod.object({
+	workspace_domain: zod
+		.string()
+		.describe("The human-readable ID of the workspace"),
+});
+
+export const getProjectSnapshotsQueryParams = zod.object({
+	project_name: zod
+		.string()
+		.describe("The human-readable ID of the project to filter sandboxes"),
+});
+
+export const getProjectSnapshotsResponse = zod.object({
+	url: zod.string().optional().describe("API endpoint to GET this object"),
+	html_url: zod
+		.string()
+		.optional()
+		.describe("Web URL to view this object in Buddy.works"),
+	snapshots: zod
+		.array(
+			zod.object({
+				url: zod
+					.string()
+					.optional()
+					.describe("API endpoint to GET this object"),
+				html_url: zod
+					.string()
+					.optional()
+					.describe("Web URL to view this object in Buddy.works"),
+				id: zod.string().optional().describe("The ID of the snapshot"),
+				name: zod.string().optional().describe("Snapshot name"),
+				size: zod.number().optional().describe("Snapshot size in GB"),
+				status: zod
+					.enum(["CREATING", "CREATED", "DELETING", "FAILED"])
+					.optional()
+					.describe("Snapshot status"),
+				create_date: zod.iso
+					.datetime({})
+					.optional()
+					.describe("Snapshot creation date"),
+			}),
+		)
+		.optional()
+		.describe("Collection of snapshots"),
+});
+
+/**
+ * @summary Delete a snapshot by ID
+ */
+export const deleteSnapshotParams = zod.object({
+	workspace_domain: zod
+		.string()
+		.describe("The human-readable ID of the workspace"),
+	id: zod.string().describe("The ID of the snapshot"),
 });
 
 /**

@@ -1,9 +1,8 @@
 import type { Writable } from "node:stream";
-import type { z } from "zod";
 import type {
-	AddSandboxRequestSchema,
-	ExecuteSandboxCommandRequestSchema,
-	GetSandboxResponseSchema,
+	IAddSandboxRequest,
+	IExecuteSandboxCommandRequest,
+	IGetSandboxResponse,
 } from "@/api/schemas";
 import { BuddyApiClient } from "@/core/buddy-api-client";
 import { HttpError } from "@/core/http-client";
@@ -21,11 +20,10 @@ export interface CreateSandboxConfig {
 	projectName?: string;
 	token?: string;
 	apiUrl?: string;
-	sandbox?: z.infer<typeof AddSandboxRequestSchema>;
+	sandbox?: IAddSandboxRequest;
 }
 
-interface RunCommandOptions
-	extends z.infer<typeof ExecuteSandboxCommandRequestSchema> {
+interface RunCommandOptions extends IExecuteSandboxCommandRequest {
 	// SDK-specific options for output handling
 	stdout?: Writable;
 	stderr?: Writable;
@@ -58,7 +56,7 @@ function getConfig(config?: CreateSandboxConfig) {
 }
 
 export class Sandbox {
-	private sandboxData: z.infer<typeof GetSandboxResponseSchema>;
+	private sandboxData: IGetSandboxResponse;
 	private readonly client: BuddyApiClient;
 
 	public get sandboxId() {
@@ -100,7 +98,7 @@ export class Sandbox {
 			}
 		}
 
-		const defaultParameters: z.infer<typeof AddSandboxRequestSchema> = {
+		const defaultParameters: IAddSandboxRequest = {
 			name: `Sandbox ${new Date().toISOString()}`,
 			identifier:
 				config?.sandbox?.identifier || `sandbox_${String(Date.now())}`,
@@ -111,7 +109,7 @@ export class Sandbox {
 			? config.sandbox
 			: defaultParameters;
 
-		let sandboxResponse: z.infer<typeof GetSandboxResponseSchema>;
+		let sandboxResponse: IGetSandboxResponse;
 		try {
 			sandboxResponse = await client.createSandbox(
 				projectName,
@@ -352,7 +350,7 @@ export class Sandbox {
 	}
 
 	private constructor(
-		sandboxData: z.infer<typeof GetSandboxResponseSchema>,
+		sandboxData: IGetSandboxResponse,
 		client: BuddyApiClient,
 	) {
 		this.sandboxData = sandboxData;

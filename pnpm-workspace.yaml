@@ -10,3 +10,4 @@ catalog:
   "@tsconfig/strictest": "2.0.8"
   "@types/node": "20"
   typescript: "5.9.3"
+  tsx: "4.21.0"

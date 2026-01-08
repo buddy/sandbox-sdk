@@ -20,7 +20,7 @@
 		"@tsconfig/node20": "catalog:",
 		"@tsconfig/strictest": "catalog:",
 		"@types/node": "catalog:",
-		"tsx": "4.21.0",
+		"tsx": "catalog:",
 		"typescript": "catalog:"
 	}
 }

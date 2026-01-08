@@ -5,6 +5,8 @@ import {
 	ExecuteSandboxCommandResponseSchema,
 	GetSandboxesResponseSchema,
 	GetSandboxResponseSchema,
+	type IAddSandboxRequest,
+	type IExecuteSandboxCommandRequest,
 	SandboxCommandLogSchema,
 } from "@/api/schemas";
 import {
@@ -104,10 +106,7 @@ export class BuddyApiClient extends HttpClient {
 		this.setAuthToken(token);
 	}
 
-	async createSandbox(
-		projectName: string,
-		parameters: z.infer<typeof AddSandboxRequestSchema>,
-	) {
+	async createSandbox(projectName: string, parameters: IAddSandboxRequest) {
 		const url = `/workspaces/${this.workspace}/sandboxes`;
 
 		const validatedParameters = AddSandboxRequestSchema.parse(parameters);
@@ -138,7 +137,7 @@ export class BuddyApiClient extends HttpClient {
 
 	async executeCommand(
 		sandboxId: string,
-		command: z.infer<typeof ExecuteSandboxCommandRequestSchema>,
+		command: IExecuteSandboxCommandRequest,
 	) {
 		const url = `/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands`;
 

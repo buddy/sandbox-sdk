@@ -16,5 +16,8 @@ export default defineConfig({
 			biome: true,
 			target: "./src/api/schemas/sandbox-rest-api.gen.ts",
 		},
+		hooks: {
+			afterAllFilesWrite: "tsx scripts/generate-jsdoc-types.ts",
+		},
 	},
 });
