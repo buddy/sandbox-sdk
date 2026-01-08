@@ -9,11 +9,9 @@ async function main() {
 	// Create or get existing sandbox
 	log(`Creating sandbox with identifier: ${identifier}`);
 	const sandbox = await Sandbox.create({
-		sandbox: {
-			identifier,
-			name: "Lifecycle Demo Sandbox",
-			os: "ubuntu:24.04",
-		},
+		identifier,
+		name: "Lifecycle Demo Sandbox",
+		os: "ubuntu:24.04",
 	});
 	log(`Sandbox created: ${sandbox.id}`);
 	log(`Status: ${sandbox.status}, Setup: ${sandbox.setupStatus}\n`);

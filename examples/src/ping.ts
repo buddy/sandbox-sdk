@@ -14,16 +14,15 @@ async function main() {
 	} catch {
 		log("Creating new sandbox...");
 		sandbox = await Sandbox.create({
-			sandbox: {
-				identifier,
-				name: "My Ping Sandbox",
-				os: "ubuntu:24.04",
-			},
+			identifier,
+			name: "My Ping Sandbox",
+			os: "ubuntu:24.04",
 		});
 		log(`Created sandbox: ${sandbox.id}`);
 	}
 
 	log("Starting ping");
+
 	await sandbox.runCommand({
 		command: "ping -c 5 8.8.8.8",
 	});
