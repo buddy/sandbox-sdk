@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 
+import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import ts from "typescript";
@@ -60,3 +61,6 @@ for (const [name, schema] of Object.entries(schemas)) {
 
 fs.writeFileSync(outputPath, typeDefinitions.join("\n"), "utf-8");
 console.log(`✓ Generated TypeScript types at ${outputPath}`);
+
+// Format the generated file with biome
+execSync(`biome format --write ${outputPath}`, { stdio: "inherit" });

@@ -72,7 +72,7 @@ export class Command {
 		pollIntervalMs = 1000,
 	): Promise<IExecuteSandboxCommandResponse> {
 		while (true) {
-			const commandResponse = await this.client.getCommand(
+			const commandResponse = await this.client.getCommandDetails(
 				this.sandboxId,
 				this.commandId,
 			);

@@ -7,7 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!src/api/schemas/*.gen.ts"]
+		"includes": ["**"]
 	},
 	"formatter": {
 		"enabled": true,
@@ -15,6 +15,7 @@
 	},
 	"linter": {
 		"enabled": true,
+		"includes": ["**", "!src/api/schemas/*.gen.ts"],
 		"rules": {
 			"recommended": true,
 			"complexity": {

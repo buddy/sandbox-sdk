@@ -153,7 +153,7 @@ export class HttpClient {
 		return pRetry(requestFunction, retryOptions);
 	}
 
-	private async request<T = unknown>(
+	async #request<T = unknown>(
 		method: string,
 		url: string,
 		data?: unknown,
@@ -254,7 +254,7 @@ export class HttpClient {
 		url: string,
 		config?: RequestConfig,
 	): Promise<HttpResponse<T>> {
-		return this.request<T>("GET", url, undefined, config);
+		return this.#request<T>("GET", url, undefined, config);
 	}
 
 	async post<T = unknown>(
@@ -262,14 +262,14 @@ export class HttpClient {
 		data?: unknown,
 		config?: RequestConfig,
 	): Promise<HttpResponse<T>> {
-		return this.request<T>("POST", url, data ?? {}, config);
+		return this.#request<T>("POST", url, data ?? {}, config);
 	}
 
 	async delete<T = unknown>(
 		url: string,
 		config?: RequestConfig,
 	): Promise<HttpResponse<T>> {
-		return this.request<T>("DELETE", url, undefined, config);
+		return this.#request<T>("DELETE", url, undefined, config);
 	}
 
 	setAuthToken(token: string): void {

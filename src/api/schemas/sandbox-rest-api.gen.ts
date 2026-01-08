@@ -103,7 +103,7 @@ export const addSandboxBody = zod.union([
 			.string()
 			.optional()
 			.describe(
-				'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
+				'The operating system of the sandbox [\"ubuntu:22.04\", \"ubuntu:24.04\"]',
 			),
 		resources: zod
 			.enum([
@@ -398,7 +398,7 @@ export const addSandboxBody = zod.union([
 		os: zod
 			.string()
 			.describe(
-				'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
+				'The operating system of the sandbox [\"ubuntu:22.04\", \"ubuntu:24.04\"]',
 			),
 		resources: zod
 			.enum([
@@ -706,7 +706,7 @@ export const getSandboxResponse = zod.object({
 		.string()
 		.optional()
 		.describe(
-			'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
+			'The operating system of the sandbox [\"ubuntu:22.04\", \"ubuntu:24.04\"]',
 		),
 	resources: zod
 		.enum([
@@ -1551,7 +1551,7 @@ export const updateSandboxResponse = zod.object({
 		.string()
 		.optional()
 		.describe(
-			'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
+			'The operating system of the sandbox [\"ubuntu:22.04\", \"ubuntu:24.04\"]',
 		),
 	resources: zod
 		.enum([
@@ -2290,7 +2290,7 @@ export const terminateSandboxCommandResponse = zod.object({
  * Get the contents of a directory or file metadata at the specified path in a sandbox. The sandbox must be running.
  * @summary Get sandbox content by path
  */
-export const getSandboxContentPathPathRegExp = /.*/;
+export const getSandboxContentPathPathRegExp = new RegExp(".*");
 
 export const getSandboxContentParams = zod.object({
 	workspace_domain: zod
@@ -2352,7 +2352,7 @@ export const getSandboxContentResponse = zod
  * Upload a file to a specific path in a sandbox. The sandbox must be running.
  * @summary Upload a file to a sandbox
  */
-export const uploadSandboxFilePathPathRegExp = /.*/;
+export const uploadSandboxFilePathPathRegExp = new RegExp(".*");
 
 export const uploadSandboxFileParams = zod.object({
 	workspace_domain: zod
@@ -2401,7 +2401,7 @@ export const restartSandboxResponse = zod.object({
 		.string()
 		.optional()
 		.describe(
-			'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
+			'The operating system of the sandbox [\"ubuntu:22.04\", \"ubuntu:24.04\"]',
 		),
 	resources: zod
 		.enum([
@@ -3087,7 +3087,7 @@ export const startSandboxResponse = zod.object({
 		.string()
 		.optional()
 		.describe(
-			'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
+			'The operating system of the sandbox [\"ubuntu:22.04\", \"ubuntu:24.04\"]',
 		),
 	resources: zod
 		.enum([
@@ -3649,7 +3649,7 @@ export const stopSandboxResponse = zod.object({
 		.string()
 		.optional()
 		.describe(
-			'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
+			'The operating system of the sandbox [\"ubuntu:22.04\", \"ubuntu:24.04\"]',
 		),
 	resources: zod
 		.enum([
@@ -4240,7 +4240,7 @@ export const updateSandboxByYamlResponse = zod.object({
 		.string()
 		.optional()
 		.describe(
-			'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
+			'The operating system of the sandbox [\"ubuntu:22.04\", \"ubuntu:24.04\"]',
 		),
 	resources: zod
 		.enum([
