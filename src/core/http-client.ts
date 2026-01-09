@@ -1,6 +1,5 @@
 import { inspect } from "node:util";
 import pRetry, { type Options as RetryOptions } from "p-retry";
-import environment from "@/utils/environment";
 import logger from "@/utils/logger";
 
 export interface HttpClientConfig {
@@ -87,7 +86,8 @@ export class HttpClient {
 	#authToken?: string;
 
 	constructor(config: HttpClientConfig = {}) {
-		this.debugMode = config.debugMode ?? environment.DEBUG_HTTP;
+		// Enable HTTP debugging when logger level is debug
+		this.debugMode = config.debugMode ?? logger.level >= 5; // 5 is LOG_LEVELS.debug
 		this.#baseURL = config.baseURL ?? "";
 		this.#timeout = config.timeout ?? 30_000;
 		this.#defaultHeaders = {

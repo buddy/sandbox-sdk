@@ -3,47 +3,33 @@ interface StringConfig {
 	required?: boolean;
 	secret?: boolean;
 }
-interface BooleanConfig {
-	type: "boolean";
-	defaultValue?: boolean;
-	secret?: boolean;
-}
-type EnvironmentConfigSchema = Readonly<
-	Record<string, StringConfig | BooleanConfig>
->;
+type EnvironmentConfigSchema = Readonly<Record<string, StringConfig>>;
 
 const environmentConfig = {
 	BUDDY_TOKEN: { type: "string", secret: true },
 	BUDDY_API_URL: { type: "string" },
+	BUDDY_REGION: { type: "string" },
 	BUDDY_WORKSPACE: { type: "string" },
-	BUDDY_PROJECT_NAME: { type: "string" },
+	BUDDY_PROJECT: { type: "string" },
 	BUDDY_LOGGER_LEVEL: { type: "string" },
-	DEBUG_HTTP: { type: "boolean", defaultValue: false },
 } as const satisfies EnvironmentConfigSchema;
 
 type EnvironmentConfig = {
-	[K in keyof typeof environmentConfig]: (typeof environmentConfig)[K]["type"] extends "boolean"
-		? boolean
-		: (typeof environmentConfig)[K] extends { required: true }
-			? string
-			: string | undefined;
+	[K in keyof typeof environmentConfig]: (typeof environmentConfig)[K] extends {
+		required: true;
+	}
+		? string
+		: string | undefined;
 };
 
 function processConfigEntry<K extends keyof typeof environmentConfig>(
 	key: K,
 	config: (typeof environmentConfig)[K],
 ): EnvironmentConfig[K] {
-	if (config.type === "boolean") {
-		return getEnvironmentFlag(
-			key as string,
-			(config as BooleanConfig).defaultValue ?? false,
-		) as EnvironmentConfig[K];
-	} else {
-		const stringConfig = config as StringConfig;
-		return stringConfig.required === true
-			? (getEnvironment(key as string, true) as EnvironmentConfig[K])
-			: (getEnvironment(key as string, false) as EnvironmentConfig[K]);
-	}
+	const stringConfig = config as StringConfig;
+	return stringConfig.required === true
+		? (getEnvironment(key as string, true) as EnvironmentConfig[K])
+		: (getEnvironment(key as string, false) as EnvironmentConfig[K]);
 }
 
 interface EnvironmentResult {
@@ -115,17 +101,6 @@ function getEnvironment(key: string, required = false): string | undefined {
 	}
 
 	return trimmedValue;
-}
-
-function getEnvironmentFlag(key: string, defaultValue = false): boolean {
-	const value = process.env[key];
-
-	if (value === undefined) {
-		return defaultValue;
-	}
-
-	const falseValues = ["0", "false", "no", "off", ""];
-	return !falseValues.includes(value.toLowerCase().trim());
 }
 
 const environmentResult = loadEnvironment();

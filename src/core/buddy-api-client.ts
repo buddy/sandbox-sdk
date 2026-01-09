@@ -35,12 +35,13 @@ import {
 import { ValidationError } from "@/errors";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
+import { API_URLS, getApiUrlFromRegion, parseRegion } from "@/utils/regions";
 
 export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 	workspace: string;
 	project_name: string;
 	token?: string;
-	apiUrl?: string;
+	apiUrl: string;
 }
 
 export class BuddyApiClient extends HttpClient {
@@ -149,7 +150,7 @@ export class BuddyApiClient extends HttpClient {
 
 		super({
 			...config,
-			baseURL: config.apiUrl ?? "https://api.buddy.works",
+			baseURL: config.apiUrl,
 			headers: {
 				Accept: "application/json",
 				"Content-Type": "application/json",
@@ -292,7 +293,12 @@ export class BuddyApiClient extends HttpClient {
 		unknown
 	> {
 		try {
-			const apiUrl = environment.BUDDY_API_URL ?? "https://api.buddy.works";
+			// Use same resolution logic as constructor
+			const apiUrl =
+				environment.BUDDY_API_URL ??
+				(environment.BUDDY_REGION
+					? getApiUrlFromRegion(parseRegion(environment.BUDDY_REGION))
+					: API_URLS.US);
 			const token = environment.BUDDY_TOKEN;
 			if (!token) {
 				throw new Error("Buddy API token is required for streaming logs");

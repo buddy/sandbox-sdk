@@ -11,6 +11,7 @@ import type {
 	IOpenApiStopSandboxResponse,
 	IOpenApiTerminateSandboxCommandResponse,
 } from "@/api/schemas/types.gen";
+import type { WithRequired } from "@/types/utils";
 import {
 	addSandboxBody,
 	executeSandboxCommandBody,
@@ -41,18 +42,20 @@ export type ISimplifiedSandbox = NonNullable<
 // The exported assert types are used to ensure that the modified types match the schemas
 //
 
-export const GetSandboxResponseSchema = z
-	.object({
-		...getSandboxResponse.shape,
-		id: z.string().describe("The ID of the sandbox"),
+export const GetSandboxResponseSchema = getSandboxResponse
+	.required({
+		id: true,
+		identifier: true,
+		name: true,
+		status: true,
 	})
 	.optional();
 
 export type IGetSandboxResponse =
-	| (IOpenApiGetSandboxResponse & {
-			/** The ID of the sandbox */
-			id: string;
-	  })
+	| WithRequired<
+			IOpenApiGetSandboxResponse,
+			"id" | "identifier" | "name" | "status"
+	  >
 	| undefined;
 
 export const __AssertGetSandboxResponse: AssertTypesMatch<
@@ -62,9 +65,7 @@ export const __AssertGetSandboxResponse: AssertTypesMatch<
 
 //
 
-export const CreateSandboxRequestSchema = z.object({
-	...addSandboxBody.options[2]?.shape,
-});
+export const CreateSandboxRequestSchema = addSandboxBody.options[2];
 
 export type ICreateSandboxRequest = Exclude<
 	IOpenApiAddSandboxBody,
@@ -78,9 +79,7 @@ export const __AssertCreateSandboxRequest: AssertTypesMatch<
 
 //
 
-export const CreateSandboxResponseSchema = z.object({
-	...GetSandboxResponseSchema.unwrap().shape,
-});
+export const CreateSandboxResponseSchema = GetSandboxResponseSchema.unwrap();
 
 export type ICreateSandboxResponse = ISandbox;
 
@@ -91,9 +90,7 @@ export const __AssertCreateSandboxResponse: AssertTypesMatch<
 
 //
 
-export const GetSandboxesResponseSchema = z.object({
-	...getSandboxesResponse.shape,
-});
+export const GetSandboxesResponseSchema = getSandboxesResponse;
 
 export type IGetSandboxesResponse = IOpenApiGetSandboxesResponse & {
 	sandboxes?: ISimplifiedSandbox[] | undefined;
@@ -106,9 +103,7 @@ export const __AssertGetSandboxesResponse: AssertTypesMatch<
 
 //
 
-export const ExecuteSandboxCommandRequestSchema = z.object({
-	...executeSandboxCommandBody.shape,
-});
+export const ExecuteSandboxCommandRequestSchema = executeSandboxCommandBody;
 
 export type IExecuteSandboxCommandRequest = IOpenApiExecuteSandboxCommandBody;
 
@@ -119,9 +114,8 @@ export const __AssertExecuteSandboxCommandRequest: AssertTypesMatch<
 
 //
 
-export const ExecuteSandboxCommandResponseSchema = z.object({
-	...executeSandboxCommandResponse.shape,
-});
+export const ExecuteSandboxCommandResponseSchema =
+	executeSandboxCommandResponse;
 
 export type IExecuteSandboxCommandResponse =
 	IOpenApiExecuteSandboxCommandResponse;
@@ -133,9 +127,7 @@ export const __AssertExecuteSandboxCommandResponse: AssertTypesMatch<
 
 //
 
-export const GetSandboxCommandResponseSchema = z.object({
-	...getSandboxCommandResponse.shape,
-});
+export const GetSandboxCommandResponseSchema = getSandboxCommandResponse;
 
 export type IGetSandboxCommandResponse = IOpenApiGetSandboxCommandResponse;
 
@@ -146,9 +138,8 @@ export const __AssertGetSandboxCommandResponse: AssertTypesMatch<
 
 //
 
-export const TerminateSandboxCommandResponseSchema = z.object({
-	...terminateSandboxCommandResponse.shape,
-});
+export const TerminateSandboxCommandResponseSchema =
+	terminateSandboxCommandResponse;
 
 export type ITerminateSandboxCommandResponse =
 	IOpenApiTerminateSandboxCommandResponse;
@@ -160,9 +151,7 @@ export const __AssertTerminateSandboxCommandResponse: AssertTypesMatch<
 
 //
 
-export const StartSandboxResponseSchema = z.object({
-	...startSandboxResponse.shape,
-});
+export const StartSandboxResponseSchema = startSandboxResponse;
 
 export type IStartSandboxResponse = IOpenApiStartSandboxResponse;
 
@@ -173,9 +162,7 @@ export const __AssertStartSandboxResponse: AssertTypesMatch<
 
 //
 
-export const StopSandboxResponseSchema = z.object({
-	...stopSandboxResponse.shape,
-});
+export const StopSandboxResponseSchema = stopSandboxResponse;
 
 export type IStopSandboxResponse = IOpenApiStopSandboxResponse;
 
@@ -186,9 +173,7 @@ export const __AssertStopSandboxResponse: AssertTypesMatch<
 
 //
 
-export const RestartSandboxResponseSchema = z.object({
-	...restartSandboxResponse.shape,
-});
+export const RestartSandboxResponseSchema = restartSandboxResponse;
 
 export type IRestartSandboxResponse = IOpenApiRestartSandboxResponse;
 

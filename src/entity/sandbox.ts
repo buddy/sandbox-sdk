@@ -16,25 +16,67 @@ import {
 } from "@/errors";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
+import {
+	API_URLS,
+	getApiUrlFromRegion,
+	parseRegion,
+	type Region,
+} from "@/utils/regions";
 
 // Symbol for private constructor protection
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
 
+/**
+ * Connection configuration for workspace and API authentication
+ */
 export interface ConnectionConfig {
+	/** Workspace name/slug (falls back to BUDDY_WORKSPACE env var) */
 	workspace?: string;
-	projectName?: string;
+	/** Project name/slug (falls back to BUDDY_PROJECT env var) */
+	project?: string;
+	/** API authentication token (falls back to BUDDY_TOKEN env var) */
 	token?: string;
+	/** API region: US, EU, or AP (falls back to BUDDY_REGION env var, default: US) */
+	region?: Region;
+	/** Custom API URL for testing (not documented, falls back to BUDDY_API_URL env var) */
 	apiUrl?: string;
 }
 
+/**
+ * Configuration for creating a new sandbox
+ */
 export interface CreateSandboxConfig extends ICreateSandboxRequest {
+	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 }
 
+/**
+ * Configuration for getting an existing sandbox
+ */
+export interface GetSandboxConfig {
+	/** Optional connection configuration to override defaults */
+	connection?: ConnectionConfig;
+}
+
+/**
+ * Configuration for listing sandboxes
+ */
+export interface ListSandboxesConfig {
+	/** Whether to fetch simplified sandbox data (faster, useful for filtering by ID). Default: false */
+	simple?: boolean;
+	/** Optional connection configuration to override defaults */
+	connection?: ConnectionConfig;
+}
+
+/**
+ * Options for running a command in the sandbox
+ */
 interface RunCommandOptions extends IExecuteSandboxCommandRequest {
-	// SDK-specific options for output handling
+	/** Stream to write stdout to (default: process.stdout) */
 	stdout?: Writable;
+	/** Stream to write stderr to (default: process.stderr) */
 	stderr?: Writable;
+	/** Whether to run the command in detached mode (non-blocking) */
 	detached?: boolean;
 }
 
@@ -43,24 +85,51 @@ function getConfig(connection?: ConnectionConfig) {
 
 	if (!workspace) {
 		throw new Error(
-			"Workspace not found. Set workspace name in config.connection or BUDDY_WORKSPACE env var.",
+			"Workspace not found. Set workspace in config.connection or BUDDY_WORKSPACE env var.",
 		);
 	}
 
-	const projectName = connection?.projectName ?? environment.BUDDY_PROJECT_NAME;
+	const project = connection?.project ?? environment.BUDDY_PROJECT;
 
-	if (!projectName) {
+	if (!project) {
 		throw new Error(
-			"Project name not found. Set project name in config.connection or BUDDY_PROJECT_NAME env var.",
+			"Project not found. Set project in config.connection or BUDDY_PROJECT env var.",
 		);
+	}
+
+	let apiUrl: string;
+
+	if (connection?.apiUrl) {
+		apiUrl = connection.apiUrl;
+	} else if (environment.BUDDY_API_URL) {
+		apiUrl = environment.BUDDY_API_URL;
+	} else if (connection?.region) {
+		const region = parseRegion(connection.region);
+		apiUrl = getApiUrlFromRegion(region);
+	} else if (environment.BUDDY_REGION) {
+		const region = parseRegion(environment.BUDDY_REGION);
+		apiUrl = getApiUrlFromRegion(region);
+	} else {
+		apiUrl = API_URLS.US;
 	}
 
 	return {
 		workspace,
-		projectName,
+		projectName: project,
 		token: connection?.token,
-		apiUrl: connection?.apiUrl ?? environment.BUDDY_API_URL,
+		apiUrl,
 	};
+}
+
+function createClient(connection?: ConnectionConfig): BuddyApiClient {
+	const { workspace, projectName, token, apiUrl } = getConfig(connection);
+
+	return new BuddyApiClient({
+		workspace,
+		project_name: projectName,
+		apiUrl,
+		...(token ? { token } : {}),
+	});
 }
 
 export class Sandbox {
@@ -77,12 +146,12 @@ export class Sandbox {
 		return this.#sandboxData?.name;
 	}
 
-	/** The current status of the sandbox (RUNNING, STOPPED, FAILED, etc.) */
+	/** The current status of the sandbox */
 	get status() {
 		return this.#sandboxData?.status;
 	}
 
-	/** The setup status of the sandbox (SUCCESS, FAILED, INPROGRESS) */
+	/** The setup status of the sandbox */
 	get setupStatus() {
 		return this.#sandboxData?.setup_status;
 	}
@@ -98,20 +167,23 @@ export class Sandbox {
 
 	/**
 	 * Create a new sandbox or return an existing one if identifier matches
-	 * @param config - Sandbox configuration (identifier, name, os, etc.) with optional connection overrides
+	 * @param config - Sandbox configuration including identifier, name, os, and optional connection settings
 	 * @returns A ready-to-use Sandbox instance
+	 * @example
+	 * ```typescript
+	 * const sandbox = await Sandbox.create({
+	 *   identifier: "my-sandbox",
+	 *   name: "My Sandbox",
+	 *   os: "ubuntu:24.04",
+	 *   connection: {
+	 *     region: "EU"
+	 *   }
+	 * });
+	 * ```
 	 */
 	static async create(config?: CreateSandboxConfig) {
 		const { connection, ...sandboxConfig } = config ?? {};
-		const { workspace, projectName, token, apiUrl } = getConfig(connection);
-
-		const client = new BuddyApiClient({
-			workspace,
-			project_name: projectName,
-			debugMode: environment.DEBUG_HTTP,
-			...(token ? { token } : {}),
-			...(apiUrl ? { apiUrl } : {}),
-		});
+		const client = createClient(connection);
 
 		if (config?.identifier) {
 			const existing = await client.getSandboxByIdentifier(config.identifier);
@@ -164,20 +236,19 @@ export class Sandbox {
 	/**
 	 * Get an existing sandbox by its identifier
 	 * @param identifier - The unique identifier of the sandbox to retrieve
-	 * @param connection - Optional connection configuration for workspace and authentication
+	 * @param config - Optional configuration including connection settings
 	 * @returns The Sandbox instance
 	 * @throws {SandboxNotFoundError} If no sandbox with the given identifier exists
+	 * @example
+	 * ```typescript
+	 * const sandbox = await Sandbox.get("my-sandbox", {
+	 *   connection: { region: "EU" }
+	 * });
+	 * ```
 	 */
-	static async get(identifier: string, connection?: ConnectionConfig) {
-		const { workspace, projectName, token, apiUrl } = getConfig(connection);
-
-		const client = new BuddyApiClient({
-			workspace,
-			project_name: projectName,
-			debugMode: environment.DEBUG_HTTP,
-			...(token ? { token } : {}),
-			...(apiUrl ? { apiUrl } : {}),
-		});
+	static async get(identifier: string, config?: GetSandboxConfig) {
+		const { connection } = config ?? {};
+		const client = createClient(connection);
 
 		const sandboxResponse = await client.getSandboxByIdentifier(identifier);
 
@@ -190,23 +261,36 @@ export class Sandbox {
 
 	/**
 	 * List all sandboxes in the workspace
-	 * @param connection - Optional connection configuration for workspace and authentication
-	 * @returns Array of objects with a get() method to instantiate each Sandbox
+	 * @param config - Optional configuration including connection settings and simple mode
+	 * @returns Array of sandbox objects (simplified or with get() method depending on simple flag)
+	 * @example
+	 * ```typescript
+	 * // Get full sandbox objects
+	 * const sandboxes = await Sandbox.list({
+	 *   connection: { region: "EU" }
+	 * });
+	 *
+	 * // Get simplified list (faster)
+	 * const simpleSandboxes = await Sandbox.list({
+	 *   simple: true
+	 * });
+	 * ```
 	 */
-	static async list(connection?: ConnectionConfig) {
-		const { workspace, projectName, token, apiUrl } = getConfig(connection);
-
-		const client = new BuddyApiClient({
-			workspace,
-			project_name: projectName,
-			debugMode: environment.DEBUG_HTTP,
-			...(token ? { token } : {}),
-			...(apiUrl ? { apiUrl } : {}),
-		});
+	static async list(config?: ListSandboxesConfig) {
+		const { connection, simple } = config ?? {};
+		const client = createClient(connection);
 
 		const sandboxList = await client.getSandboxes();
 		return (
 			sandboxList?.flatMap(async (item) => {
+				if (simple) {
+					return {
+						get: () => {
+							return item;
+						},
+					};
+				}
+
 				const fullData = await client.getSandboxById(item.id ?? "");
 				if (!fullData) {
 					return [];
