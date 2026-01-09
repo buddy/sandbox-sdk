@@ -37,11 +37,12 @@ export BUDDY_REGION="US"  # Optional: US (default), EU, or AP
 
 Configure the API region:
 
-```typescript
-// Via environment variable (recommended)
-export
-BUDDY_REGION = "EU"
+```bash
+# Via environment variable (recommended)
+export BUDDY_REGION="EU"
+```
 
+```typescript
 // Or via connection config
 const sandbox = await Sandbox.create({
     identifier: "my-sandbox",

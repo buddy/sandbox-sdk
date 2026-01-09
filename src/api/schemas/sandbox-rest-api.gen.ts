@@ -2249,6 +2249,13 @@ export const getSandboxCommandLogsParams = zod.object({
 	command_id: zod.string().describe("The ID of the command"),
 });
 
+export const getSandboxCommandLogsQueryParams = zod.object({
+	follow: zod
+		.boolean()
+		.optional()
+		.describe("If true, streams logs until the command completes"),
+});
+
 /**
  * @summary Terminate a running command in a sandbox
  */
@@ -2349,6 +2356,40 @@ export const getSandboxContentResponse = zod
 	.describe("Sandbox content listing");
 
 /**
+ * Create a directory at the specified path in a sandbox. The sandbox must be running.
+ * @summary Create a directory in a sandbox
+ */
+export const createSandboxDirectoryPathPathRegExp = new RegExp(".*");
+
+export const createSandboxDirectoryParams = zod.object({
+	workspace_domain: zod
+		.string()
+		.describe("The human-readable ID of the workspace"),
+	sandbox_id: zod.string().describe("The ID of the sandbox"),
+	path: zod
+		.string()
+		.regex(createSandboxDirectoryPathPathRegExp)
+		.describe("Absolute path where the directory should be created"),
+});
+
+/**
+ * Delete a file or directory at the specified path in a sandbox. The sandbox must be running.
+ * @summary Delete a file or directory from a sandbox
+ */
+export const deleteSandboxFilePathPathRegExp = new RegExp(".*");
+
+export const deleteSandboxFileParams = zod.object({
+	workspace_domain: zod
+		.string()
+		.describe("The human-readable ID of the workspace"),
+	sandbox_id: zod.string().describe("The ID of the sandbox"),
+	path: zod
+		.string()
+		.regex(deleteSandboxFilePathPathRegExp)
+		.describe("Absolute path to the file or directory to delete"),
+});
+
+/**
  * Upload a file to a specific path in a sandbox. The sandbox must be running.
  * @summary Upload a file to a sandbox
  */
@@ -2368,6 +2409,129 @@ export const uploadSandboxFileParams = zod.object({
 });
 
 export const uploadSandboxFileBody = zod.instanceof(File);
+
+/**
+ * Download a file or directory from a sandbox as a tar.gz archive. The sandbox must be running.
+ * @summary Download sandbox content as archive
+ */
+export const downloadSandboxContentPathPathRegExp = new RegExp(".*");
+
+export const downloadSandboxContentParams = zod.object({
+	workspace_domain: zod
+		.string()
+		.describe("The human-readable ID of the workspace"),
+	sandbox_id: zod.string().describe("The ID of the sandbox"),
+	path: zod
+		.string()
+		.regex(downloadSandboxContentPathPathRegExp)
+		.describe("Absolute path to the file or directory to download"),
+});
+
+export const downloadSandboxContentResponse = zod.object({
+	status_info: zod
+		.object({
+			family: zod
+				.enum([
+					"INFORMATIONAL",
+					"SUCCESSFUL",
+					"REDIRECTION",
+					"CLIENT_ERROR",
+					"SERVER_ERROR",
+					"OTHER",
+				])
+				.optional(),
+			status_code: zod.number().optional(),
+			reason_phrase: zod.string().optional(),
+		})
+		.optional(),
+	allowed_methods: zod.array(zod.string()).optional(),
+	cookies: zod
+		.record(
+			zod.string(),
+			zod.object({
+				name: zod.string().optional(),
+				value: zod.string().optional(),
+				version: zod.number().optional(),
+				path: zod.string().optional(),
+				domain: zod.string().optional(),
+				comment: zod.string().optional(),
+				max_age: zod.number().optional(),
+				expiry: zod.iso.datetime({}).optional(),
+				secure: zod.boolean().optional(),
+				http_only: zod.boolean().optional(),
+				same_site: zod.enum(["NONE", "LAX", "STRICT"]).optional(),
+			}),
+		)
+		.optional(),
+	media_type: zod
+		.object({
+			type: zod.string().optional(),
+			subtype: zod.string().optional(),
+			parameters: zod.record(zod.string(), zod.string()).optional(),
+			wildcard_type: zod.boolean().optional(),
+			wildcard_subtype: zod.boolean().optional(),
+		})
+		.optional(),
+	entity_tag: zod
+		.object({
+			value: zod.string().optional(),
+			weak: zod.boolean().optional(),
+		})
+		.optional(),
+	string_headers: zod
+		.object({
+			empty: zod.boolean().optional(),
+		})
+		.optional(),
+	links: zod
+		.array(
+			zod.object({
+				uri: zod.url().optional(),
+				uri_builder: zod.object({}).optional(),
+				rel: zod.string().optional(),
+				rels: zod.array(zod.string()).optional(),
+				type: zod.string().optional(),
+				params: zod.record(zod.string(), zod.string()).optional(),
+				title: zod.string().optional(),
+			}),
+		)
+		.optional(),
+	closed: zod.boolean().optional(),
+	length: zod.number().optional(),
+	location: zod.url().optional(),
+	language: zod
+		.object({
+			language: zod.string().optional(),
+			display_name: zod.string().optional(),
+			country: zod.string().optional(),
+			variant: zod.string().optional(),
+			script: zod.string().optional(),
+			unicode_locale_attributes: zod.array(zod.string()).optional(),
+			unicode_locale_keys: zod.array(zod.string()).optional(),
+			display_language: zod.string().optional(),
+			display_script: zod.string().optional(),
+			display_country: zod.string().optional(),
+			display_variant: zod.string().optional(),
+			extension_keys: zod.array(zod.string()).optional(),
+			iso3_language: zod.string().optional(),
+			iso3_country: zod.string().optional(),
+		})
+		.optional(),
+	date: zod.iso.datetime({}).optional(),
+	last_modified: zod.iso.datetime({}).optional(),
+	metadata: zod
+		.object({
+			empty: zod.boolean().optional(),
+		})
+		.optional(),
+	status: zod.number().optional(),
+	entity: zod.object({}).optional(),
+	headers: zod
+		.object({
+			empty: zod.boolean().optional(),
+		})
+		.optional(),
+});
 
 /**
  * @summary Restart a sandbox

@@ -395,6 +395,24 @@ export type IOpenApiAddSandboxSnapshotParams = {
 	sandbox_id: string;
 };
 
+export type IOpenApiCreateSandboxDirectoryParams = {
+	/** The human-readable ID of the workspace */
+	workspace_domain: string;
+	/** The ID of the sandbox */
+	sandbox_id: string;
+	/** Absolute path where the directory should be created */
+	path: string;
+};
+
+export type IOpenApiDeleteSandboxFileParams = {
+	/** The human-readable ID of the workspace */
+	workspace_domain: string;
+	/** The ID of the sandbox */
+	sandbox_id: string;
+	/** Absolute path to the file or directory to delete */
+	path: string;
+};
+
 export type IOpenApiDeleteSandboxParams = {
 	/** The human-readable ID of the workspace */
 	workspace_domain: string;
@@ -416,6 +434,126 @@ export type IOpenApiDeleteSnapshotParams = {
 	workspace_domain: string;
 	/** The ID of the snapshot */
 	id: string;
+};
+
+export type IOpenApiDownloadSandboxContentParams = {
+	/** The human-readable ID of the workspace */
+	workspace_domain: string;
+	/** The ID of the sandbox */
+	sandbox_id: string;
+	/** Absolute path to the file or directory to download */
+	path: string;
+};
+
+export type IOpenApiDownloadSandboxContentResponse = {
+	status_info?:
+		| {
+				family?:
+					| (
+							| "INFORMATIONAL"
+							| "SUCCESSFUL"
+							| "REDIRECTION"
+							| "CLIENT_ERROR"
+							| "SERVER_ERROR"
+							| "OTHER"
+					  )
+					| undefined;
+				status_code?: number | undefined;
+				reason_phrase?: string | undefined;
+		  }
+		| undefined;
+	allowed_methods?: string[] | undefined;
+	cookies?:
+		| {
+				[key: string]: {
+					name?: string | undefined;
+					value?: string | undefined;
+					version?: number | undefined;
+					path?: string | undefined;
+					domain?: string | undefined;
+					comment?: string | undefined;
+					max_age?: number | undefined;
+					expiry?: string | undefined;
+					secure?: boolean | undefined;
+					http_only?: boolean | undefined;
+					same_site?: ("NONE" | "LAX" | "STRICT") | undefined;
+				};
+		  }
+		| undefined;
+	media_type?:
+		| {
+				type?: string | undefined;
+				subtype?: string | undefined;
+				parameters?:
+					| {
+							[key: string]: string;
+					  }
+					| undefined;
+				wildcard_type?: boolean | undefined;
+				wildcard_subtype?: boolean | undefined;
+		  }
+		| undefined;
+	entity_tag?:
+		| {
+				value?: string | undefined;
+				weak?: boolean | undefined;
+		  }
+		| undefined;
+	string_headers?:
+		| {
+				empty?: boolean | undefined;
+		  }
+		| undefined;
+	links?:
+		| {
+				uri?: string | undefined;
+				uri_builder?: {} | undefined;
+				rel?: string | undefined;
+				rels?: string[] | undefined;
+				type?: string | undefined;
+				params?:
+					| {
+							[key: string]: string;
+					  }
+					| undefined;
+				title?: string | undefined;
+		  }[]
+		| undefined;
+	closed?: boolean | undefined;
+	length?: number | undefined;
+	location?: string | undefined;
+	language?:
+		| {
+				language?: string | undefined;
+				display_name?: string | undefined;
+				country?: string | undefined;
+				variant?: string | undefined;
+				script?: string | undefined;
+				unicode_locale_attributes?: string[] | undefined;
+				unicode_locale_keys?: string[] | undefined;
+				display_language?: string | undefined;
+				display_script?: string | undefined;
+				display_country?: string | undefined;
+				display_variant?: string | undefined;
+				extension_keys?: string[] | undefined;
+				iso3_language?: string | undefined;
+				iso3_country?: string | undefined;
+		  }
+		| undefined;
+	date?: string | undefined;
+	last_modified?: string | undefined;
+	metadata?:
+		| {
+				empty?: boolean | undefined;
+		  }
+		| undefined;
+	status?: number | undefined;
+	entity?: {} | undefined;
+	headers?:
+		| {
+				empty?: boolean | undefined;
+		  }
+		| undefined;
 };
 
 export type IOpenApiExecuteSandboxCommandBody = {
@@ -517,6 +655,11 @@ export type IOpenApiGetSandboxCommandLogsParams = {
 	sandbox_id: string;
 	/** The ID of the command */
 	command_id: string;
+};
+
+export type IOpenApiGetSandboxCommandLogsQueryParams = {
+	/** If true, streams logs until the command completes */
+	follow?: boolean | undefined;
 };
 
 export type IOpenApiGetSandboxCommandParams = {
