@@ -13,14 +13,21 @@ npm install @buddy-works/sandbox-sdk
 ```typescript
 import {Sandbox} from "@buddy-works/sandbox-sdk";
 
-const sandbox = await Sandbox.create({
-    identifier: "my-sandbox",
-    name: "My Sandbox",
-    os: "ubuntu:24.04",
-});
+const identifier = "my-sandbox";
+
+let sandbox: Sandbox;
+try {
+    sandbox = await Sandbox.get(identifier);
+} catch {
+    sandbox = await Sandbox.create({
+        identifier,
+        name: "My Sandbox",
+        os: "ubuntu:24.04",
+    });
+}
 
 await sandbox.runCommand({
-    command: "ping -c 5 8.8.8.8",
+    command: "ping -c 5 buddy.works",
 });
 ```
 
@@ -71,3 +78,4 @@ await Sandbox.create({
     }
 });
 ```
+

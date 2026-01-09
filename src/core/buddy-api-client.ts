@@ -32,7 +32,6 @@ import {
 	type HttpResponse,
 	type RequestConfig,
 } from "@/core/http-client";
-import { ValidationError } from "@/errors";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
 import { API_URLS, getApiUrlFromRegion, parseRegion } from "@/utils/regions";
@@ -76,7 +75,7 @@ export class BuddyApiClient extends HttpClient {
 		const result = await SandboxCommandLogSchema.safeParseAsync(parsed);
 
 		if (!result.success) {
-			throw new ValidationError(result.error);
+			throw result.error; // Let ZodError bubble up
 		}
 
 		const logEntry = result.data;
@@ -118,10 +117,14 @@ export class BuddyApiClient extends HttpClient {
 
 		switch (method) {
 			case "POST": {
-				const validatedParameters =
-					requestSchema && parameters
-						? await requestSchema.parseAsync(parameters)
-						: {};
+				let validatedParameters: unknown = {};
+				if (requestSchema && parameters) {
+					const result = await requestSchema.safeParseAsync(parameters);
+					if (!result.success) {
+						throw result.error; // Let ZodError bubble up
+					}
+					validatedParameters = result.data;
+				}
 
 				request = this.post(url, validatedParameters, requestConfig);
 				break;
