@@ -1,4 +1,3 @@
-import type { IExecuteSandboxCommandResponse } from "@/api/schemas";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 
 export class Command {

@@ -1,30 +1,50 @@
 import { prettifyError, type z } from "zod";
 import {
-	CreateSandboxRequestSchema,
-	CreateSandboxResponseSchema,
-	ExecuteSandboxCommandRequestSchema,
-	ExecuteSandboxCommandResponseSchema,
-	GetSandboxCommandResponseSchema,
-	GetSandboxesResponseSchema,
-	GetSandboxResponseSchema,
-	type ICreateSandboxRequest,
-	type ICreateSandboxResponse,
-	type IExecuteSandboxCommandRequest,
-	type IExecuteSandboxCommandResponse,
-	type IGetSandboxCommandResponse,
-	type IGetSandboxesResponse,
-	type IGetSandboxResponse,
-	type IRestartSandboxResponse,
-	type ISimplifiedSandbox,
-	type IStartSandboxResponse,
-	type IStopSandboxResponse,
-	type ITerminateSandboxCommandResponse,
-	RestartSandboxResponseSchema,
-	SandboxCommandLogSchema,
-	StartSandboxResponseSchema,
-	StopSandboxResponseSchema,
-	TerminateSandboxCommandResponseSchema,
-} from "@/api/schemas";
+	type AddSandboxData,
+	type AddSandboxResponse,
+	type DeleteSandboxData,
+	type DeleteSandboxResponse,
+	type ExecuteSandboxCommandData,
+	type ExecuteSandboxCommandResponse,
+	type GetSandboxCommandData,
+	type GetSandboxCommandLogsData,
+	type GetSandboxCommandResponse,
+	type GetSandboxData,
+	type GetSandboxesData,
+	type GetSandboxesResponse,
+	type GetSandboxResponse,
+	type RestartSandboxData,
+	type RestartSandboxResponse,
+	type SandboxCommandLog,
+	type StartSandboxData,
+	type StartSandboxResponse,
+	type StopSandboxData,
+	type StopSandboxResponse,
+	type TerminateSandboxCommandData,
+	type TerminateSandboxCommandResponse,
+	zAddSandboxData,
+	zAddSandboxResponse,
+	zDeleteSandboxData,
+	zDeleteSandboxResponse,
+	zExecuteSandboxCommandData,
+	zExecuteSandboxCommandResponse,
+	zGetSandboxCommandData,
+	zGetSandboxCommandLogsData,
+	zGetSandboxCommandResponse,
+	zGetSandboxData,
+	zGetSandboxesData,
+	zGetSandboxesResponse,
+	zGetSandboxResponse,
+	zRestartSandboxData,
+	zRestartSandboxResponse,
+	zSandboxCommandLog,
+	zStartSandboxData,
+	zStartSandboxResponse,
+	zStopSandboxData,
+	zStopSandboxResponse,
+	zTerminateSandboxCommandData,
+	zTerminateSandboxCommandResponse,
+} from "@/api/openapi";
 import {
 	HttpClient,
 	type HttpClientConfig,
@@ -32,9 +52,9 @@ import {
 	type HttpResponse,
 	type RequestConfig,
 } from "@/core/http-client";
+import type { ClientData, Data, DataUrl } from "@/types";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
-import { API_URLS, getApiUrlFromRegion, parseRegion } from "@/utils/regions";
 
 export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 	workspace: string;
@@ -44,6 +64,20 @@ export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 }
 
 export class BuddyApiClient extends HttpClient {
+	#buildUrl<const D extends Pick<Data, "url">>(params: {
+		path?: Record<string, string>;
+		url: DataUrl<D>;
+	}): string {
+		const { path = {}, url } = params;
+		return url.replace(/{(\w+)}/g, (_, key: string) => {
+			const value = path[key];
+			if (value === undefined) {
+				throw new Error(`Missing path parameter: ${key}`);
+			}
+			return value;
+		});
+	}
+
 	async #parseResponse<T>(
 		schema: z.ZodType<T>,
 		response: HttpResponse,
@@ -62,85 +96,86 @@ export class BuddyApiClient extends HttpClient {
 		return result.data;
 	}
 
-	async #parseLogEntry(line: string) {
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(line);
-		} catch (error) {
-			throw new Error(
-				`Failed to parse log entry as JSON: ${error instanceof Error ? error.message : String(error)}. Line: ${line}`,
-			);
-		}
-
-		const result = await SandboxCommandLogSchema.safeParseAsync(parsed);
-
-		if (!result.success) {
-			throw result.error; // Let ZodError bubble up
-		}
-
-		const logEntry = result.data;
-		// Convert STDOUT/STDERR to lowercase for consistency
-		const stream =
-			logEntry.type === "STDOUT" ? ("stdout" as const) : ("stderr" as const);
-
-		return {
-			stream,
-			data: logEntry.data ? `${logEntry.data}\n` : "",
-		};
-	}
-
-	async #requestWithValidation<T>({
+	async #requestWithValidation<const D extends Data, Response>({
 		method,
 		url,
-		parameters,
-		requestSchema,
+		data,
+		dataSchema,
 		responseSchema,
-		requestConfig: overriddenRequestConfig = {},
+		skipRetry,
 	}: {
-		method: "GET" | "POST";
-		url: string;
-		parameters?: unknown;
-		requestSchema?: z.ZodType;
-		responseSchema: z.ZodType<T>;
-		requestConfig?: RequestConfig;
-	}): Promise<T> {
-		const defaultRequestConfig: RequestConfig = {
-			queryParams: { project_name: this.project_name },
+		method: "GET" | "POST" | "DELETE";
+		url: DataUrl<D>;
+		data: ClientData<D>;
+		dataSchema: z.ZodObject<{
+			body: z.ZodType;
+			path: z.ZodObject<Record<string, z.ZodString>>;
+			query:
+				| z.ZodObject<Record<string, z.ZodString>>
+				| z.ZodOptional<z.ZodNever>;
+		}>;
+		responseSchema: z.ZodType<Response>;
+		skipRetry?: boolean;
+	}): Promise<Response> {
+		// Build full data object with defaults
+		const fullData = {
+			body: data.body,
+			path: {
+				workspace_domain: this.workspace,
+				...data.path,
+			},
+			query: {
+				project_name: this.project_name,
+				...data.query,
+			},
 		};
 
-		const requestConfig = {
-			...defaultRequestConfig,
-			...overriddenRequestConfig,
+		// Validate full data
+		const result = await dataSchema.safeParseAsync(fullData);
+		if (!result.success) {
+			throw result.error;
+		}
+		const validatedData = result.data;
+
+		const parameterizedUrl = this.#buildUrl<D>({
+			url,
+			path: validatedData.path,
+		});
+
+		const requestConfig: RequestConfig = {
+			queryParams: validatedData.query,
+			skipRetry,
 		};
 
 		let request: Promise<HttpResponse>;
 
 		switch (method) {
 			case "POST": {
-				let validatedParameters: unknown = {};
-				if (requestSchema && parameters) {
-					const result = await requestSchema.safeParseAsync(parameters);
-					if (!result.success) {
-						throw result.error; // Let ZodError bubble up
-					}
-					validatedParameters = result.data;
-				}
-
-				request = this.post(url, validatedParameters, requestConfig);
+				request = this.post(
+					parameterizedUrl,
+					validatedData.body ?? {},
+					requestConfig,
+				);
 				break;
 			}
 			case "GET": {
-				request = this.get(url, requestConfig);
+				request = this.get(parameterizedUrl, requestConfig);
+				break;
+			}
+			case "DELETE": {
+				request = this.delete(parameterizedUrl, requestConfig);
 				break;
 			}
 		}
 
 		const response = await request;
-		return (await this.#parseResponse(responseSchema, response)) as T;
+		return (await this.#parseResponse(responseSchema, response)) as Response;
 	}
 
 	readonly workspace: string;
 	readonly project_name: string;
+	readonly #apiUrl: string;
+	readonly #token: string;
 
 	constructor(config: BuddyApiConfig) {
 		const token = config.token ?? environment.BUDDY_TOKEN;
@@ -163,236 +198,279 @@ export class BuddyApiClient extends HttpClient {
 
 		this.workspace = config.workspace;
 		this.project_name = config.project_name;
+		this.#apiUrl = config.apiUrl;
+		this.#token = token;
 		this.setAuthToken(token);
 	}
 
 	/** Create a new sandbox */
-	async createSandbox(parameters: ICreateSandboxRequest) {
-		return this.#requestWithValidation<ICreateSandboxResponse>({
+	async addSandbox<const Data extends AddSandboxData>(data: ClientData<Data>) {
+		return this.#requestWithValidation<Data, AddSandboxResponse>({
 			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes`,
-			parameters,
-			requestSchema: CreateSandboxRequestSchema,
-			responseSchema: CreateSandboxResponseSchema,
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes",
+			dataSchema: zAddSandboxData,
+			responseSchema: zAddSandboxResponse,
 		});
 	}
 
 	/** Get a specific sandbox by its ID */
-	async getSandboxById(sandboxId: string) {
-		return this.#requestWithValidation<IGetSandboxResponse>({
+	async getSandboxById<const Data extends GetSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxResponse>({
 			method: "GET",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}`,
-			responseSchema: GetSandboxResponseSchema,
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{id}",
+			dataSchema: zGetSandboxData,
+			responseSchema: zGetSandboxResponse,
 		});
 	}
 
-	/** Get a specific sandbox by its identifier */
-	async getSandboxByIdentifier(identifier: string) {
-		const sandboxes = await this.getSandboxes();
-		const sandbox = sandboxes?.find((s) => s.identifier === identifier);
-
-		if (!sandbox?.id) {
-			return;
-		}
-
-		return this.getSandboxById(sandbox.id);
-	}
-
 	/** Execute a command in a sandbox */
-	async executeCommand(
-		sandboxId: string,
-		parameters: IExecuteSandboxCommandRequest,
+	async executeCommand<const Data extends ExecuteSandboxCommandData>(
+		data: ClientData<Data>,
 	) {
-		return this.#requestWithValidation<IExecuteSandboxCommandResponse>({
+		return this.#requestWithValidation<Data, ExecuteSandboxCommandResponse>({
 			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands`,
-			parameters,
-			requestSchema: ExecuteSandboxCommandRequestSchema,
-			responseSchema: ExecuteSandboxCommandResponseSchema,
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
+			dataSchema: zExecuteSandboxCommandData,
+			responseSchema: zExecuteSandboxCommandResponse,
 		});
 	}
 
 	/** Get a specific command execution details */
-	async getCommandDetails(sandboxId: string, commandId: string) {
-		return this.#requestWithValidation<IGetSandboxCommandResponse>({
+	async getCommandDetails<const Data extends GetSandboxCommandData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxCommandResponse>({
 			method: "GET",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands/${commandId}`,
-			responseSchema: GetSandboxCommandResponseSchema,
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{id}",
+			dataSchema: zGetSandboxCommandData,
+			responseSchema: zGetSandboxCommandResponse,
 		});
 	}
 
 	/** Terminate a running command in a sandbox */
-	async terminateCommand(sandboxId: string, commandId: string) {
-		return this.#requestWithValidation<ITerminateSandboxCommandResponse>({
+	async terminateCommand<const Data extends TerminateSandboxCommandData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, TerminateSandboxCommandResponse>({
 			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands/${commandId}/terminate`,
-			responseSchema: TerminateSandboxCommandResponseSchema,
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/terminate",
+			dataSchema: zTerminateSandboxCommandData,
+			responseSchema: zTerminateSandboxCommandResponse,
 		});
 	}
 
 	/** Delete a sandbox by its ID */
-	async deleteSandbox(sandboxId: string) {
-		const url = `/workspaces/${this.workspace}/sandboxes/${sandboxId}`;
-
+	async deleteSandboxById<const Data extends DeleteSandboxData>(
+		data: ClientData<Data>,
+	) {
 		try {
-			await this.delete(url, {
-				skipRetry: true, // Don't retry delete operations
+			return await this.#requestWithValidation<Data, DeleteSandboxResponse>({
+				method: "DELETE",
+				data,
+				url: "/workspaces/{workspace_domain}/sandboxes/{id}",
+				dataSchema: zDeleteSandboxData,
+				responseSchema: zDeleteSandboxResponse,
+				skipRetry: true,
 			});
 		} catch (error) {
 			// Ignore 404 errors - sandbox already deleted
-			if (
-				error instanceof Error &&
-				"status" in error &&
-				(error as { status: number }).status !== 404
-			) {
-				throw error;
+			if (error instanceof HttpError && error.status === 404) {
+				return;
 			}
+			throw error;
 		}
 	}
 
 	/** Get all sandboxes in the workspace for a specific project */
-	async getSandboxes(): Promise<ISimplifiedSandbox[]> {
-		return this.#requestWithValidation<IGetSandboxesResponse>({
+	async getSandboxes<const Data extends GetSandboxesData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxesResponse>({
 			method: "GET",
-			url: `/workspaces/${this.workspace}/sandboxes`,
-			responseSchema: GetSandboxesResponseSchema,
-		}).then((res) => res.sandboxes ?? []);
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes",
+			dataSchema: zGetSandboxesData,
+			responseSchema: zGetSandboxesResponse,
+		});
 	}
 
 	/** Start a sandbox */
-	async startSandbox(sandboxId: string) {
-		return this.#requestWithValidation<IStartSandboxResponse>({
+	async startSandbox<const Data extends StartSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, StartSandboxResponse>({
 			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/start`,
-			responseSchema: StartSandboxResponseSchema,
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/start",
+			dataSchema: zStartSandboxData,
+			responseSchema: zStartSandboxResponse,
 		});
 	}
 
 	/** Stop a sandbox */
-	async stopSandbox(sandboxId: string) {
-		return this.#requestWithValidation<IStopSandboxResponse>({
+	async stopSandbox<const Data extends StopSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, StopSandboxResponse>({
 			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/stop`,
-			responseSchema: StopSandboxResponseSchema,
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/stop",
+			dataSchema: zStopSandboxData,
+			responseSchema: zStopSandboxResponse,
 		});
 	}
 
 	/** Restart a sandbox */
-	async restartSandbox(sandboxId: string) {
-		return this.#requestWithValidation<IRestartSandboxResponse>({
+	async restartSandbox<const Data extends RestartSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, RestartSandboxResponse>({
 			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/restart`,
-			responseSchema: RestartSandboxResponseSchema,
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/restart",
+			dataSchema: zRestartSandboxData,
+			responseSchema: zRestartSandboxResponse,
 		});
 	}
 
 	/** Stream logs from a specific command execution */
-	async *streamCommandLogs(
-		sandboxId: string,
-		commandId: string,
-	): AsyncGenerator<
-		{ stream: "stdout" | "stderr"; data: string },
-		void,
-		unknown
-	> {
-		try {
-			// Use same resolution logic as constructor
-			const apiUrl =
-				environment.BUDDY_API_URL ??
-				(environment.BUDDY_REGION
-					? getApiUrlFromRegion(parseRegion(environment.BUDDY_REGION))
-					: API_URLS.US);
-			const token = environment.BUDDY_TOKEN;
-			if (!token) {
-				throw new Error("Buddy API token is required for streaming logs");
-			}
+	async *streamCommandLogs<const Data extends GetSandboxCommandLogsData>(
+		data: ClientData<Data>,
+	): AsyncGenerator<SandboxCommandLog, void, unknown> {
+		// Build full data with defaults
+		const fullData = {
+			body: data.body,
+			path: {
+				workspace_domain: this.workspace,
+				...data.path,
+			},
+			query: data.query,
+		};
 
-			const url = `${apiUrl}/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands/${commandId}/logs`;
-
-			const headers = {
-				Accept: "application/jsonl",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
-			};
-
-			// Use fetch for streaming support
-			const response = await fetch(url, {
-				method: "GET",
-				headers,
-			});
-
-			if (this.debugMode) {
-				logger.debug("[HTTP REQUEST - Streaming]", {
-					method: "GET",
-					url,
-					headers: {
-						...headers,
-						Authorization: headers["Authorization"] ? "***" : undefined,
-					},
-				});
-			}
-
-			if (!response.ok) {
-				throw new Error(
-					`Failed to stream logs: ${String(response.status)} ${response.statusText}`,
-				);
-			}
-
-			const contentType = response.headers.get("content-type");
-			if (!contentType?.includes("application/jsonl")) {
-				throw new Error(
-					`Expected application/jsonl content type, got: ${contentType ?? "none"}`,
-				);
-			}
-
-			if (!response.body) {
-				throw new Error("No response body available for streaming");
-			}
-
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
-			let buffer = "";
-
-			try {
-				while (true) {
-					const result = await reader.read();
-					if (result.done) break;
-
-					// Decode the chunk and add to buffer
-					const chunk = result.value as Uint8Array;
-					buffer += decoder.decode(chunk, { stream: true });
-
-					// Process complete lines
-					const lines = buffer.split("\n");
-					buffer = lines.pop() || ""; // Keep incomplete line in buffer
-
-					for (const line of lines) {
-						if (!line.trim()) continue;
-
-						const logEntry = await this.#parseLogEntry(line);
-
-						if (this.debugMode) {
-							logger.debug(`[STREAM] ${logEntry.stream}`, {
-								content: logEntry.data,
-							});
-						}
-
-						yield logEntry;
-					}
-				}
-
-				// Process any remaining data in buffer
-				if (buffer.trim()) {
-					yield this.#parseLogEntry(buffer);
-				}
-			} finally {
-				reader.releaseLock();
-			}
-		} catch (error) {
-			if (this.debugMode) {
-				logger.debug("Log streaming error", error);
-			}
-			throw error;
+		// Validate input data
+		const validationResult =
+			await zGetSandboxCommandLogsData.safeParseAsync(fullData);
+		if (!validationResult.success) {
+			throw validationResult.error;
 		}
+		const validatedData = validationResult.data;
+
+		// Build URL with path params
+		const parameterizedUrl = this.#buildUrl<Data>({
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/logs",
+			path: validatedData.path,
+		});
+
+		// Build full URL with query params
+		const url = new URL(parameterizedUrl, this.#apiUrl);
+		if (validatedData.query?.follow !== undefined) {
+			url.searchParams.set("follow", String(validatedData.query.follow));
+		}
+
+		const headers = {
+			Accept: "application/jsonl",
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${this.#token}`,
+		};
+
+		// Use fetch for streaming support
+		const response = await fetch(url.toString(), {
+			method: "GET",
+			headers,
+		});
+
+		if (this.debugMode) {
+			logger.debug("[HTTP REQUEST - Streaming]", {
+				method: "GET",
+				url: url.toString(),
+				headers: {
+					...headers,
+					Authorization: "***",
+				},
+			});
+		}
+
+		if (!response.ok) {
+			throw new HttpError(
+				`Failed to stream logs: ${response.statusText}`,
+				response.status,
+			);
+		}
+
+		const contentType = response.headers.get("content-type");
+		if (!contentType?.includes("application/jsonl")) {
+			throw new Error(
+				`Expected application/jsonl content type, got: ${contentType ?? "none"}`,
+			);
+		}
+
+		if (!response.body) {
+			throw new Error("No response body available for streaming");
+		}
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+		let buffer = "";
+
+		try {
+			while (true) {
+				const readResult = await reader.read();
+				if (readResult.done) break;
+
+				// Decode the chunk and add to buffer
+				const chunk = readResult.value as Uint8Array;
+				buffer += decoder.decode(chunk, { stream: true });
+
+				// Process complete lines
+				const lines = buffer.split("\n");
+				buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+				for (const line of lines) {
+					if (!line.trim()) continue;
+
+					const logEntry = await this.#parseAndValidateLogEntry(line);
+
+					if (this.debugMode) {
+						logger.debug(`[STREAM] ${logEntry.type}`, {
+							content: logEntry.data,
+						});
+					}
+
+					yield logEntry;
+				}
+			}
+
+			// Process any remaining data in buffer
+			if (buffer.trim()) {
+				yield this.#parseAndValidateLogEntry(buffer);
+			}
+		} finally {
+			reader.releaseLock();
+		}
+	}
+
+	async #parseAndValidateLogEntry(line: string): Promise<SandboxCommandLog> {
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(line);
+		} catch (error) {
+			throw new Error(
+				`Failed to parse log entry as JSON: ${error instanceof Error ? error.message : String(error)}. Line: ${line}`,
+			);
+		}
+
+		const result = await zSandboxCommandLog.safeParseAsync(parsed);
+		if (!result.success) {
+			throw result.error;
+		}
+
+		return result.data;
 	}
 }

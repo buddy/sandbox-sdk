@@ -1,10 +1,4 @@
 import type { Writable } from "node:stream";
-import type {
-	ICreateSandboxRequest,
-	IExecuteSandboxCommandRequest,
-	IGetSandboxResponse,
-	ISandbox,
-} from "@/api/schemas";
 import { BuddyApiClient } from "@/core/buddy-api-client";
 import { Command, type CommandFinished } from "@/entity/command";
 import { withErrorHandler } from "@/errors";
@@ -192,7 +186,7 @@ export class Sandbox {
 				? (sandboxConfig as ICreateSandboxRequest)
 				: defaultParameters;
 
-			const sandboxResponse = await client.createSandbox(sandboxParameters);
+			const sandboxResponse = await client.addSandbox(sandboxParameters);
 			const sandbox = new Sandbox(
 				sandboxResponse,
 				client,

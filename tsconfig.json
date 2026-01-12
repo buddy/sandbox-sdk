@@ -4,6 +4,7 @@
 		"@tsconfig/node20/tsconfig.json"
 	],
 	"compilerOptions": {
+		"exactOptionalPropertyTypes": false,
 		"module": "esnext",
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
