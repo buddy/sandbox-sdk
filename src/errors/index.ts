@@ -66,10 +66,7 @@ export class BuddySDKError extends Error {
 }
 
 // Helper to convert HttpError to BuddySDKError
-export function fromHttpError(
-	operation: string,
-	httpError: HttpError,
-): BuddySDKError {
+function fromHttpError(operation: string, httpError: HttpError): BuddySDKError {
 	const statusText = httpError.status ? ` (HTTP ${httpError.status})` : "";
 	const errorDetails =
 		httpError.errors && httpError.errors.length > 0
@@ -90,10 +87,7 @@ export function fromHttpError(
 }
 
 // Helper to convert ZodError to BuddySDKError
-export function fromZodError(
-	operation: string,
-	zodError: ZodError,
-): BuddySDKError {
+function fromZodError(operation: string, zodError: ZodError): BuddySDKError {
 	const prettyError = prettifyError(zodError);
 	return new BuddySDKError(`${operation}:\n${prettyError}`, {
 		code: ERROR_CODES.VALIDATION_ERROR,

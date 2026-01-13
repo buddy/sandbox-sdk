@@ -52,9 +52,7 @@
 		"@types/node": "catalog:",
 		"knip": "5.80.0",
 		"tsdown": "0.18.4",
-		"tsx": "catalog:",
-		"typescript": "catalog:",
-		"zod-to-ts": "2.0.0"
+		"typescript": "catalog:"
 	},
 	"dependencies": {
 		"p-retry": "7.1.1",

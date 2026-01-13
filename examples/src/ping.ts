@@ -7,21 +7,28 @@ const identifier = "ping-dev-sandbox";
 log(`Getting sandbox with identifier: ${identifier}`);
 
 let sandbox: Sandbox;
-try {
-	sandbox = await Sandbox.get(identifier);
-	log(`Found existing sandbox: ${sandbox.id}`);
-} catch {
+
+const list = await Sandbox.list({ simple: true });
+const id = list.find((s) => s.identifier === identifier)?.id;
+
+if (id) {
+	sandbox = await Sandbox.getById(id);
+	log(
+		`Found existing sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`,
+	);
+} else {
 	log("Creating new sandbox...");
 	sandbox = await Sandbox.create({
 		identifier,
 		name: "My Ping Sandbox",
 		os: "ubuntu:24.04",
 	});
-	log(`Created sandbox: ${sandbox.id}`);
+	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
 }
 
 log("Starting ping");
 
 await sandbox.runCommand({
-	command: "ping -c 5 buddy.works",
+	command: "echo 'Pinging...'; ping -c 4 buddy.works",
+	runtime: "BASH",
 });

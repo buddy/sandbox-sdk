@@ -7,40 +7,47 @@ const identifier = "streaming-demo-sandbox";
 
 // Create or get existing sandbox
 log(`Getting or creating sandbox: ${identifier}`);
+
 let sandbox: Sandbox;
-try {
-	sandbox = await Sandbox.get(identifier);
-	log(`Found existing sandbox: ${sandbox.id}`);
-} catch {
-	log("Creating new sandbox...");
-	sandbox = await Sandbox.create({
-		identifier,
-		name: "Streaming Demo Sandbox",
-		os: "ubuntu:24.04",
-	});
-	log(`Created sandbox: ${sandbox.id}`);
+
+const list = await Sandbox.list({ simple: true });
+const id = list.find((s) => s.identifier === identifier)?.id;
+
+if (id) {
+  sandbox = await Sandbox.getById(id);
+  log(
+    `Found existing sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`
+  );
+} else {
+  log("Creating new sandbox...");
+  sandbox = await Sandbox.create({
+    identifier,
+    name: "Streaming Demo Sandbox",
+    os: "ubuntu:24.04",
+  });
+  log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
 }
 
 // Example 1: Simple streaming with default stdout/stderr
 log("\n=== Example 1: Simple Streaming ===");
 log(
-	"Running: sleep 1 && echo 'Hello from stdout' && sleep 1 && echo 'Error message' >&2",
+  "Running: sleep 1 && echo 'Hello from stdout' && sleep 1 && echo 'Error message' >&2"
 );
 
 await sandbox.runCommand({
-	command:
-		"sleep 1 && echo 'Hello from stdout' && sleep 1 && echo 'Error message' >&2",
+  command:
+    "sleep 1 && echo 'Hello from stdout' && sleep 1 && echo 'Error message' >&2",
 });
 
 // Example 2: Detached command - do other work while it runs
 log("\n=== Example 2: Detached Command - Non-blocking Execution ===");
 log(
-	'Starting detached command: for i in 1 2 3 4 5; do echo "Count: $i"; sleep 1; done',
+  'Starting detached command: for i in 1 2 3 4 5; do echo "Count: $i"; sleep 1; done'
 );
 
 const command = await sandbox.runCommand({
-	command: 'for i in 1 2 3 4 5; do echo "Count: $i"; sleep 1; done',
-	detached: true,
+  command: 'for i in 1 2 3 4 5; do echo "Count: $i"; sleep 1; done',
+  detached: true,
 });
 
 log("Command started in background, continuing with other work...\n");
@@ -48,7 +55,7 @@ log("Command started in background, continuing with other work...\n");
 // Do other work while the command runs in the background
 log("Doing other work (running 'hostname' command):");
 await sandbox.runCommand({
-	command: "hostname",
+  command: "hostname",
 });
 
 log("\nBack to monitoring the detached command...");
@@ -56,8 +63,8 @@ log("Streaming logs from the background command:\n");
 
 // Now stream logs from the background command
 for await (const logEntry of command.logs()) {
-	const prefix = logEntry.stream === "stdout" ? "[OUT]" : "[ERR]";
-	process.stdout.write(`${prefix} ${logEntry.data}`);
+  const prefix = logEntry.type === "STDOUT" ? "[OUT]" : "[ERR]";
+  process.stdout.write(`${prefix} ${logEntry.data}\n`);
 }
 
 // Wait for command to complete
@@ -70,16 +77,18 @@ log("\n=== Example 3: Custom Output Handling ===");
 log("Running: tail -f /var/log/syslog for 5 seconds");
 
 const tailCommand = await sandbox.runCommand({
-	command: "timeout 5 tail -f /var/log/syslog || true",
-	detached: true,
+  command: "timeout 5 tail -f /var/log/syslog || true",
+  detached: true,
 });
 
 let lineCount = 0;
 for await (const logEntry of tailCommand.logs()) {
-	if (logEntry.stream === "stdout") {
-		lineCount++;
-		process.stdout.write(`[Line ${lineCount}] ${logEntry.data}`);
-	}
+  if (logEntry.type === "STDOUT") {
+    lineCount++;
+    const data = logEntry.data ?? "";
+    const output = data.endsWith("\n") ? data : `${data}\n`;
+    process.stdout.write(`[Line ${lineCount}] ${output}`);
+  }
 }
 
 await tailCommand.wait();

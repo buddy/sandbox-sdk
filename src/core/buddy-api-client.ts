@@ -1,4 +1,4 @@
-import { prettifyError, type z } from "zod";
+import { prettifyError, z } from "zod";
 import {
 	type AddSandboxData,
 	type AddSandboxResponse,
@@ -96,6 +96,18 @@ export class BuddyApiClient extends HttpClient {
 		return result.data;
 	}
 
+	#schemaExpectsQuery(schema: z.ZodObject<{ query: z.ZodType }>): boolean {
+		const querySchema = schema.shape.query;
+		// Check if query is z.optional(z.never()) - meaning no query params expected
+		if (querySchema instanceof z.ZodOptional) {
+			const inner = querySchema._def.innerType;
+			if (inner instanceof z.ZodNever) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	async #requestWithValidation<const D extends Data, Response>({
 		method,
 		url,
@@ -111,23 +123,30 @@ export class BuddyApiClient extends HttpClient {
 			body: z.ZodType;
 			path: z.ZodObject<Record<string, z.ZodString>>;
 			query:
-				| z.ZodObject<Record<string, z.ZodString>>
+				| z.ZodObject<Record<string, z.ZodString | z.ZodBoolean>>
 				| z.ZodOptional<z.ZodNever>;
 		}>;
 		responseSchema: z.ZodType<Response>;
 		skipRetry?: boolean;
 	}): Promise<Response> {
 		// Build full data object with defaults
+		// Only add query defaults if the schema expects query params
+		const expectsQuery = this.#schemaExpectsQuery(
+			dataSchema as z.ZodObject<{ query: z.ZodType }>,
+		);
+
 		const fullData = {
 			body: data.body,
 			path: {
 				workspace_domain: this.workspace,
-				...data.path,
+				...(data.path ?? {}),
 			},
-			query: {
-				project_name: this.project_name,
-				...data.query,
-			},
+			query: expectsQuery
+				? {
+						project_name: this.project_name,
+						...(data.query ?? {}),
+					}
+				: undefined,
 		};
 
 		// Validate full data
@@ -349,7 +368,7 @@ export class BuddyApiClient extends HttpClient {
 			body: data.body,
 			path: {
 				workspace_domain: this.workspace,
-				...data.path,
+				...(data.path ?? {}),
 			},
 			query: data.query,
 		};

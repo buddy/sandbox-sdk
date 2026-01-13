@@ -15,7 +15,7 @@
 	},
 	"linter": {
 		"enabled": true,
-		"includes": ["**", "!src/api/schemas/*.gen.ts"],
+		"includes": ["**", "!src/api/openapi/*.gen.ts"],
 		"rules": {
 			"recommended": true,
 			"complexity": {
