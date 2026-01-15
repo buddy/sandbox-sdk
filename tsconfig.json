@@ -4,6 +4,7 @@
 		"@tsconfig/node20/tsconfig.json"
 	],
 	"compilerOptions": {
+		"target": "es2022",
 		"exactOptionalPropertyTypes": false,
 		"module": "esnext",
 		"moduleResolution": "bundler",

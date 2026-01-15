@@ -1,12 +1,14 @@
 import type { ExecuteSandboxCommandResponse } from "@/api/openapi";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 
+/** Represents a running or completed command execution in a sandbox */
 export class Command {
 	protected readonly commandResponse: ExecuteSandboxCommandResponse;
 	protected readonly client: BuddyApiClient;
 	protected readonly sandboxId: string;
 	protected readonly commandId: string;
 
+	/** Create a new Command instance from an API response */
 	constructor({
 		commandResponse,
 		client,
@@ -25,21 +27,14 @@ export class Command {
 		this.commandId = commandResponse.id;
 	}
 
-	/** The current status of the command (RUNNING, SUCCESSFUL, FAILED, etc.) */
-	get status(): string | undefined {
-		return this.commandResponse.status;
-	}
-
-	/** The exit code of the command (undefined if still running) */
-	get exitCode(): number | undefined {
-		return this.commandResponse.exit_code;
+	/** The raw command response data from the API */
+	get data() {
+		return this.commandResponse;
 	}
 
 	/**
 	 * Stream logs from the command in real-time
-	 * @param options - Options for log streaming
-	 * @param options.follow - If true, streams logs until the command completes
-	 * @returns AsyncIterableIterator that yields log entries with stream ("stdout" or "stderr") and data
+	 * @returns AsyncGenerator yielding log entries with type and data
 	 */
 	logs({ follow }: { follow?: boolean } = {}) {
 		return this.client.streamCommandLogs({
@@ -50,11 +45,11 @@ export class Command {
 
 	/**
 	 * Wait for the command to finish execution
-	 * @returns Promise resolving to CommandFinished when the command completes
+	 * @returns Command instance with final response data
 	 */
-	async wait(): Promise<CommandFinished> {
+	async wait(): Promise<Command> {
 		const finalResponse = await this.pollForCommandCompletion();
-		return new CommandFinished({
+		return new Command({
 			commandResponse: finalResponse,
 			client: this.client,
 			sandboxId: this.sandboxId,
@@ -62,39 +57,36 @@ export class Command {
 	}
 
 	/**
-	 * Get all output from the command
-	 * @param stream - Which output stream(s) to capture: "stdout", "stderr", or "both"
-	 * @returns Promise resolving to the complete output as a string
+	 * Get all output from the command (waits for completion)
+	 * @returns Complete output as a string
 	 */
 	async output(stream: "STDOUT" | "STDERR" | "BOTH" = "BOTH") {
 		let data = "";
-		for await (const log of this.logs()) {
+		for await (const log of this.logs({ follow: true })) {
 			if (stream === "BOTH" || log.type === stream) {
-				data += log.data;
+				data += `${log.data ?? ""}\n`;
 			}
 		}
 		return data;
 	}
 
 	/**
-	 * Get all stdout output from the command
-	 * @returns Promise resolving to stdout as a string
+	 * Get all stdout output from the command (waits for completion)
+	 * @returns Stdout as a string
 	 */
 	async stdout() {
 		return this.output("STDOUT");
 	}
 
 	/**
-	 * Get all stderr output from the command
-	 * @returns Promise resolving to stderr as a string
+	 * Get all stderr output from the command (waits for completion)
+	 * @returns Stderr as a string
 	 */
 	async stderr() {
 		return this.output("STDERR");
 	}
 
-	/**
-	 * Terminate the running command
-	 */
+	/** Terminate the running command */
 	async kill() {
 		await this.client.terminateCommand({
 			path: {
@@ -104,6 +96,10 @@ export class Command {
 		});
 	}
 
+	/**
+	 * Poll the API until the command reaches a terminal state
+	 * @returns Final command response
+	 */
 	protected async pollForCommandCompletion(
 		pollIntervalMs = 1000,
 	): Promise<ExecuteSandboxCommandResponse> {
@@ -124,39 +120,5 @@ export class Command {
 
 			await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
 		}
-	}
-}
-
-/**
- * Represents a command that has finished execution
- * Provides the same API as Command but with guaranteed exit code
- */
-export class CommandFinished extends Command {
-	readonly #_exitCode: number;
-
-	/** The exit code of the finished command (always defined) */
-	override get exitCode(): number {
-		return this.#_exitCode;
-	}
-
-	constructor({
-		commandResponse,
-		client,
-		sandboxId,
-	}: {
-		commandResponse: ExecuteSandboxCommandResponse;
-		client: BuddyApiClient;
-		sandboxId: string;
-	}) {
-		super({ commandResponse, client, sandboxId });
-		this.#_exitCode = commandResponse.exit_code ?? 0;
-	}
-
-	/**
-	 * Returns immediately since the command is already finished
-	 * @returns Promise resolving to this CommandFinished instance
-	 */
-	override wait(): Promise<CommandFinished> {
-		return Promise.resolve(this);
 	}
 }

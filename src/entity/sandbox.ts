@@ -6,36 +6,17 @@ import type {
 	GetSandboxResponse,
 	SandboxIdView,
 } from "@/api/openapi";
-import { BuddyApiClient } from "@/core/buddy-api-client";
-import { Command, type CommandFinished } from "@/entity/command";
+import type { BuddyApiClient } from "@/core/buddy-api-client";
+import { Command } from "@/entity/command";
+import { FileSystem } from "@/entity/filesystem";
 import { withErrorHandler } from "@/errors";
-import environment from "@/utils/environment";
+import { type ConnectionConfig, createClient } from "@/utils/client";
 import logger from "@/utils/logger";
-import {
-	API_URLS,
-	getApiUrlFromRegion,
-	parseRegion,
-	type Region,
-} from "@/utils/regions";
+
+export type { ConnectionConfig };
 
 // Symbol for private constructor protection
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
-
-/**
- * Connection configuration for workspace and API authentication
- */
-export interface ConnectionConfig {
-	/** Workspace name/slug (falls back to BUDDY_WORKSPACE env var) */
-	workspace?: string;
-	/** Project name/slug (falls back to BUDDY_PROJECT env var) */
-	project?: string;
-	/** API authentication token (falls back to BUDDY_TOKEN env var) */
-	token?: string;
-	/** API region: US, EU, or AP (falls back to BUDDY_REGION env var, default: US) */
-	region?: Region;
-	/** Custom API URL for testing (not documented, falls back to BUDDY_API_URL env var) */
-	apiUrl?: string;
-}
 
 /**
  * Configuration for creating a new sandbox
@@ -67,73 +48,33 @@ export interface ListSandboxesConfig {
  * Options for running a command in the sandbox
  */
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
-	/** Stream to write stdout to (default: process.stdout) */
-	stdout?: Writable;
-	/** Stream to write stderr to (default: process.stderr) */
-	stderr?: Writable;
+	/** Stream to write stdout to (default: process.stdout, null to disable) */
+	stdout?: Writable | null;
+	/** Stream to write stderr to (default: process.stderr, null to disable) */
+	stderr?: Writable | null;
 	/** Whether to run the command in detached mode (non-blocking) */
 	detached?: boolean;
-}
-
-function getConfig(connection?: ConnectionConfig) {
-	const workspace = connection?.workspace ?? environment.BUDDY_WORKSPACE;
-
-	if (!workspace) {
-		throw new Error(
-			"Workspace not found. Set workspace in config.connection or BUDDY_WORKSPACE env var.",
-		);
-	}
-
-	const project = connection?.project ?? environment.BUDDY_PROJECT;
-
-	if (!project) {
-		throw new Error(
-			"Project not found. Set project in config.connection or BUDDY_PROJECT env var.",
-		);
-	}
-
-	let apiUrl: string;
-
-	if (connection?.apiUrl) {
-		apiUrl = connection.apiUrl;
-	} else if (environment.BUDDY_API_URL) {
-		apiUrl = environment.BUDDY_API_URL;
-	} else if (connection?.region) {
-		const region = parseRegion(connection.region);
-		apiUrl = getApiUrlFromRegion(region);
-	} else if (environment.BUDDY_REGION) {
-		const region = parseRegion(environment.BUDDY_REGION);
-		apiUrl = getApiUrlFromRegion(region);
-	} else {
-		apiUrl = API_URLS.US;
-	}
-
-	return {
-		workspace,
-		projectName: project,
-		token: connection?.token,
-		apiUrl,
-	};
-}
-
-function createClient(connection?: ConnectionConfig): BuddyApiClient {
-	const { workspace, projectName, token, apiUrl } = getConfig(connection);
-
-	return new BuddyApiClient({
-		workspace,
-		project_name: projectName,
-		apiUrl,
-		...(token ? { token } : {}),
-	});
 }
 
 export class Sandbox {
 	#sandboxData?: GetSandboxResponse;
 	readonly #client: BuddyApiClient;
+	#fs?: FileSystem;
 
-	/** The ID of the sandbox */
+	/** The raw sandbox response data from the API */
 	get data() {
 		return this.#sandboxData ?? {};
+	}
+
+	/**
+	 * File system operations for this sandbox.
+	 * Provides methods for listing, uploading, downloading, and managing files.
+	 */
+	get fs(): FileSystem {
+		if (!this.#fs) {
+			this.#fs = new FileSystem(this.#client, this.#ensureId());
+		}
+		return this.#fs;
 	}
 
 	#ensureId(): string {
@@ -255,17 +196,15 @@ export class Sandbox {
 
 	/**
 	 * Execute a command in the sandbox
-	 * @param options - Command execution options including the command string
-	 * @returns Promise resolving to Command (detached) or CommandFinished (blocking)
+	 * @returns Command instance (call wait() for blocking execution)
 	 */
-	async runCommand(
-		options: RunCommandOptions,
-	): Promise<Command | CommandFinished> {
+	async runCommand(options: RunCommandOptions): Promise<Command> {
 		return withErrorHandler("Failed to run command", async () => {
 			const { stdout, stderr, detached, ...commandRequest } = options;
 
-			const outputStdout = stdout ?? process.stdout;
-			const outputStderr = stderr ?? process.stderr;
+			// undefined = use default, null = disable, Writable = use that stream
+			const outputStdout = stdout === null ? null : (stdout ?? process.stdout);
+			const outputStderr = stderr === null ? null : (stderr ?? process.stderr);
 
 			logger.debug(`Executing command: $ ${commandRequest.command}`);
 
@@ -280,23 +219,31 @@ export class Sandbox {
 				sandboxId: this.#ensureId(),
 			});
 
-			if (outputStdout || outputStderr) {
-				void (async () => {
-					for await (const log of command.logs()) {
-						const data = log.data ?? "";
-						// Add newline if data doesn't end with one
-						const output = data.endsWith("\n") ? data : `${data}\n`;
+			const streamingPromise =
+				outputStdout || outputStderr
+					? await (async () => {
+							for await (const log of command.logs({ follow: true })) {
+								const output = `${log.data ?? ""}\n`;
 
-						if (log.type === "STDOUT" && outputStdout) {
-							outputStdout.write(output);
-						} else if (log.type === "STDERR" && outputStderr) {
-							outputStderr.write(output);
-						}
-					}
-				})();
+								if (log.type === "STDOUT" && outputStdout) {
+									outputStdout.write(output);
+								} else if (log.type === "STDERR" && outputStderr) {
+									outputStderr.write(output);
+								}
+							}
+						})()
+					: Promise.resolve();
+
+			if (detached) {
+				return command;
 			}
 
-			return detached ? command : command.wait();
+			// Wait for both streaming and command completion
+			const [finishedCommand] = await Promise.all([
+				command.wait(),
+				streamingPromise,
+			]);
+			return finishedCommand;
 		});
 	}
 

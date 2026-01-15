@@ -28,13 +28,13 @@ export type Response = {
 	cookies?: {
 		[key: string]: NewCookie;
 	};
-	links?: Array<Link>;
 	media_type?: MediaType;
 	entity_tag?: EntityTag;
 	string_headers?: {
 		empty?: boolean;
 		[key: string]: Array<string> | boolean | undefined;
 	};
+	links?: Array<Link>;
 	closed?: boolean;
 	length?: number;
 	location?: string;
@@ -54,9 +54,8 @@ export type Response = {
 		iso3_language?: string;
 		iso3_country?: string;
 	};
-	date?: string;
-	last_modified?: string;
-	status?: number;
+	date?: Date;
+	last_modified?: Date;
 	metadata?: {
 		empty?: boolean;
 		[key: string]:
@@ -66,6 +65,7 @@ export type Response = {
 			| boolean
 			| undefined;
 	};
+	status?: number;
 	entity?: {
 		[key: string]: unknown;
 	};
@@ -78,6 +78,18 @@ export type Response = {
 			| boolean
 			| undefined;
 	};
+};
+
+export type Link = {
+	uri?: string;
+	uri_builder?: UriBuilder;
+	rel?: string;
+	rels?: Array<string>;
+	type?: string;
+	params?: {
+		[key: string]: string;
+	};
+	title?: string;
 };
 
 export type EntityTag = {
@@ -95,18 +107,6 @@ export type MediaType = {
 	wildcard_subtype?: boolean;
 };
 
-export type Link = {
-	uri?: string;
-	uri_builder?: UriBuilder;
-	rel?: string;
-	rels?: Array<string>;
-	type?: string;
-	params?: {
-		[key: string]: string;
-	};
-	title?: string;
-};
-
 export type NewCookie = {
 	name?: string;
 	value?: string;
@@ -115,7 +115,7 @@ export type NewCookie = {
 	domain?: string;
 	comment?: string;
 	max_age?: number;
-	expiry?: string;
+	expiry?: Date;
 	secure?: boolean;
 	http_only?: boolean;
 	same_site?: "NONE" | "LAX" | "STRICT";
@@ -341,7 +341,7 @@ export type ProjectView = {
 	/**
 	 * The creation date of the project
 	 */
-	create_date?: string;
+	create_date?: Date;
 	/**
 	 * Repo slug of the Bitbucket, GitHub or GitLab project. Required when adding the integrated project
 	 */
@@ -527,7 +527,7 @@ export type AddVariableInObjectRequest = {
 	 */
 	key_identifier?: string;
 	/**
-	 * The type of the added variable. Can be one of `VAR` or `SSH_KEY`
+	 * The type of the added variable
 	 */
 	type:
 		| "VAR"
@@ -721,7 +721,7 @@ export type SandboxContentItem = {
 	/**
 	 * The size of the file in bytes
 	 */
-	size?: number;
+	size?: bigint;
 };
 
 export type SandboxCommandsView = {
@@ -773,7 +773,7 @@ export type SandboxCommandView = {
 
 export type SandboxCommandLog = {
 	/**
-	 * The type of command output stream. `STDOUT` for standard output, `STDERR` for error output.
+	 * The type of command output stream
 	 */
 	type?: "STDOUT" | "STDERR";
 	/**
@@ -844,7 +844,7 @@ export type ShortSnapshotView = {
 	/**
 	 * Snapshot creation date
 	 */
-	create_date?: string;
+	create_date?: Date;
 };
 
 export type ExecuteSandboxCommandRequest = {
@@ -893,7 +893,7 @@ export type SnapshotView = {
 	/**
 	 * Snapshot creation date
 	 */
-	create_date?: string;
+	create_date?: Date;
 	created_by?: MemberView;
 };
 
@@ -1053,7 +1053,7 @@ export type EnvironmentVariableView = {
 	 */
 	value?: string;
 	/**
-	 * The type of the added variable. Can be one of `VAR` or `SSH_KEY`
+	 * The type of the added variable
 	 */
 	type?:
 		| "VAR"
@@ -1427,7 +1427,7 @@ export type ProjectViewWritable = {
 	/**
 	 * The creation date of the project
 	 */
-	create_date?: string;
+	create_date?: Date;
 	/**
 	 * Repo slug of the Bitbucket, GitHub or GitLab project. Required when adding the integrated project
 	 */
@@ -1605,7 +1605,7 @@ export type AddVariableInObjectRequestWritable = {
 	 */
 	key_identifier?: string;
 	/**
-	 * The type of the added variable. Can be one of `VAR` or `SSH_KEY`
+	 * The type of the added variable
 	 */
 	type:
 		| "VAR"
@@ -1771,7 +1771,7 @@ export type SandboxContentItemWritable = {
 	/**
 	 * The size of the file in bytes
 	 */
-	size?: number;
+	size?: bigint;
 };
 
 export type SandboxCommandsViewWritable = {
@@ -1843,7 +1843,7 @@ export type ShortSnapshotViewWritable = {
 	/**
 	 * Snapshot creation date
 	 */
-	create_date?: string;
+	create_date?: Date;
 };
 
 export type SnapshotViewWritable = {
@@ -1866,7 +1866,7 @@ export type SnapshotViewWritable = {
 	/**
 	 * Snapshot creation date
 	 */
-	create_date?: string;
+	create_date?: Date;
 	created_by?: MemberViewWritable;
 };
 

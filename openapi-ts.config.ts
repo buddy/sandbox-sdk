@@ -22,8 +22,14 @@ export default defineConfig({
 		},
 		{
 			name: "zod",
-			exportFromIndex: true,
 			metadata: true,
+			exportFromIndex: true,
+		},
+		{
+			name: "@hey-api/transformers",
+			bigInt: true,
+			dates: true,
+			exportFromIndex: true,
 		},
 	],
 });
