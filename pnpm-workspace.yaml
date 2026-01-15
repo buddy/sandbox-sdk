@@ -1,13 +1,14 @@
 packages:
-  - "."
-  - "examples"
+  - .
+  - examples
+
+catalog:
+  '@dotenvx/dotenvx': 1.51.4
+  '@tsconfig/node20': '20'
+  '@tsconfig/strictest': 2.0.8
+  '@types/node': '20'
+  typescript: 5.9.3
 
 onlyBuiltDependencies:
   - esbuild
-
-catalog:
-  "@tsconfig/node20": "20"
-  "@tsconfig/strictest": "2.0.8"
-  "@types/node": "20"
-  typescript: "5.9.3"
-  tsx: "4.21.0"
+  - msw

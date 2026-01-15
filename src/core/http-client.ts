@@ -2,32 +2,49 @@ import { inspect } from "node:util";
 import pRetry, { type Options as RetryOptions } from "p-retry";
 import logger from "@/utils/logger";
 
+/** Configuration options for creating an HttpClient instance */
 export interface HttpClientConfig {
+	/** Base URL prepended to all request paths */
 	baseURL?: string;
+	/** Request timeout in milliseconds */
 	timeout?: number;
+	/** Default headers sent with every request */
 	headers?: Record<string, string>;
+	/** Enable detailed request/response logging */
 	debugMode?: boolean;
 }
 
+/** Per-request configuration options */
 export interface RequestConfig {
+	/** Disable automatic retry on transient failures */
 	skipRetry?: boolean;
+	/** URL query parameters to append */
 	queryParams?: Record<string, string | number | boolean | undefined>;
+	/** Additional headers for this request only */
 	headers?: Record<string, string>;
+	/** Response parsing mode */
 	responseType?: "json" | "text";
 }
 
+/** Normalized HTTP response with status, data, and headers */
 export interface HttpResponse<T = unknown> {
+	/** HTTP status code (e.g. 200, 404) */
 	status: number;
+	/** HTTP status text (e.g. "OK", "Not Found") */
 	statusText: string;
+	/** Parsed response body */
 	data: T;
+	/** Response headers */
 	headers: Headers;
 }
 
+/** Custom error class for HTTP request failures with status and response details */
 export class HttpError extends Error {
 	public readonly status: number;
 	public readonly response: HttpResponse | undefined;
 	public readonly errors: unknown[] | undefined;
 
+	/** Create an HttpError with message, status code, and optional response */
 	constructor(message: string, status: number, response?: HttpResponse) {
 		const apiErrors =
 			response?.data &&
@@ -73,11 +90,13 @@ export class HttpError extends Error {
 		Object.setPrototypeOf(this, HttpError.prototype);
 	}
 
+	/** Custom inspect output for Node.js util.inspect */
 	[inspect.custom](): string {
 		return this.stack ?? `${this.name}: ${this.message}`;
 	}
 }
 
+/** Base HTTP client with retry logic, timeout handling, and authentication support */
 export class HttpClient {
 	readonly #baseURL: string;
 	readonly #timeout: number;
@@ -85,9 +104,10 @@ export class HttpClient {
 	protected readonly debugMode: boolean;
 	#authToken?: string;
 
+	/** Create a new HTTP client with optional base URL, timeout, and headers */
 	constructor(config: HttpClientConfig = {}) {
 		// Enable HTTP debugging when logger level is debug
-		this.debugMode = config.debugMode ?? logger.level >= 5; // 5 is LOG_LEVELS.debug
+		this.debugMode = config.debugMode ?? logger.level >= 5;
 		this.#baseURL = config.baseURL ?? "";
 		this.#timeout = config.timeout ?? 30_000;
 		this.#defaultHeaders = {
@@ -96,6 +116,7 @@ export class HttpClient {
 		};
 	}
 
+	/** Build a full URL from path and optional query parameters */
 	#buildUrl(
 		path: string,
 		queryParameters?: Record<string, string | number | boolean | undefined>,
@@ -113,6 +134,7 @@ export class HttpClient {
 		return url.toString();
 	}
 
+	/** Merge default headers with additional headers and auth token */
 	#getHeaders(
 		additionalHeaders?: Record<string, string>,
 	): Record<string, string> {
@@ -128,6 +150,7 @@ export class HttpClient {
 		return headers;
 	}
 
+	/** Execute a request function with automatic retry on transient failures */
 	async #executeWithRetry<T>(
 		requestFunction: () => Promise<HttpResponse<T>>,
 		skipRetry = false,
@@ -153,6 +176,7 @@ export class HttpClient {
 		return pRetry(requestFunction, retryOptions);
 	}
 
+	/** Execute an HTTP request with timeout, retry, and error handling */
 	async #request<T = unknown>(
 		method: string,
 		url: string,
@@ -250,6 +274,7 @@ export class HttpClient {
 		return this.#executeWithRetry(makeRequest, skipRetry);
 	}
 
+	/** Perform a GET request */
 	async get<T = unknown>(
 		url: string,
 		config?: RequestConfig,
@@ -257,6 +282,7 @@ export class HttpClient {
 		return this.#request<T>("GET", url, undefined, config);
 	}
 
+	/** Perform a POST request with optional body data */
 	async post<T = unknown>(
 		url: string,
 		data?: unknown,
@@ -265,6 +291,7 @@ export class HttpClient {
 		return this.#request<T>("POST", url, data ?? {}, config);
 	}
 
+	/** Perform a DELETE request */
 	async delete<T = unknown>(
 		url: string,
 		config?: RequestConfig,
@@ -272,6 +299,7 @@ export class HttpClient {
 		return this.#request<T>("DELETE", url, undefined, config);
 	}
 
+	/** Set the Bearer token for authenticated requests */
 	setAuthToken(token: string): void {
 		this.#authToken = token;
 	}

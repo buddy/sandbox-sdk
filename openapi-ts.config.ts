@@ -1,0 +1,35 @@
+import { defineConfig } from "@hey-api/openapi-ts";
+
+export default defineConfig({
+	input:
+		"https://schemas-openapi-buddy-swagger-ui-beta.eu-1.agent-sls.net/dev/restapi.json",
+	output: {
+		path: "src/api/openapi",
+		postProcess: ["biome:format"],
+	},
+	parser: {
+		filters: {
+			tags: {
+				include: ["Sandbox API"],
+			},
+		},
+	},
+	plugins: [
+		{
+			name: "@hey-api/typescript",
+			enums: "javascript",
+			exportFromIndex: true,
+		},
+		{
+			name: "zod",
+			metadata: true,
+			exportFromIndex: true,
+		},
+		{
+			name: "@hey-api/transformers",
+			bigInt: true,
+			dates: true,
+			exportFromIndex: true,
+		},
+	],
+});

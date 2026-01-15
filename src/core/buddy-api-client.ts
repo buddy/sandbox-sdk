@@ -1,30 +1,76 @@
-import { prettifyError, type z } from "zod";
+import { prettifyError, z } from "zod";
 import {
-	CreateSandboxRequestSchema,
-	CreateSandboxResponseSchema,
-	ExecuteSandboxCommandRequestSchema,
-	ExecuteSandboxCommandResponseSchema,
-	GetSandboxCommandResponseSchema,
-	GetSandboxesResponseSchema,
-	GetSandboxResponseSchema,
-	type ICreateSandboxRequest,
-	type ICreateSandboxResponse,
-	type IExecuteSandboxCommandRequest,
-	type IExecuteSandboxCommandResponse,
-	type IGetSandboxCommandResponse,
-	type IGetSandboxesResponse,
-	type IGetSandboxResponse,
-	type IRestartSandboxResponse,
-	type ISimplifiedSandbox,
-	type IStartSandboxResponse,
-	type IStopSandboxResponse,
-	type ITerminateSandboxCommandResponse,
-	RestartSandboxResponseSchema,
-	SandboxCommandLogSchema,
-	StartSandboxResponseSchema,
-	StopSandboxResponseSchema,
-	TerminateSandboxCommandResponseSchema,
-} from "@/api/schemas";
+	type AddSandboxData,
+	type AddSandboxResponse,
+	addSandboxResponseTransformer,
+	type CreateSandboxDirectoryData,
+	type CreateSandboxDirectoryResponse,
+	createSandboxDirectoryResponseTransformer,
+	type DeleteSandboxData,
+	type DeleteSandboxFileData,
+	type DeleteSandboxFileResponse,
+	type DeleteSandboxResponse,
+	type DownloadSandboxContentData,
+	type ExecuteSandboxCommandData,
+	type ExecuteSandboxCommandResponse,
+	type GetSandboxCommandData,
+	type GetSandboxCommandLogsData,
+	type GetSandboxCommandResponse,
+	type GetSandboxContentData,
+	type GetSandboxContentResponse,
+	type GetSandboxData,
+	type GetSandboxesData,
+	type GetSandboxesResponse,
+	type GetSandboxResponse,
+	getSandboxContentResponseTransformer,
+	getSandboxResponseTransformer,
+	type RestartSandboxData,
+	type RestartSandboxResponse,
+	restartSandboxResponseTransformer,
+	type SandboxCommandLog,
+	type StartSandboxData,
+	type StartSandboxResponse,
+	type StopSandboxData,
+	type StopSandboxResponse,
+	startSandboxResponseTransformer,
+	stopSandboxResponseTransformer,
+	type TerminateSandboxCommandData,
+	type TerminateSandboxCommandResponse,
+	type UploadSandboxFileData,
+	type UploadSandboxFileResponse,
+	uploadSandboxFileResponseTransformer,
+	zAddSandboxData,
+	zAddSandboxResponse,
+	zCreateSandboxDirectoryData,
+	zCreateSandboxDirectoryResponse,
+	zDeleteSandboxData,
+	zDeleteSandboxFileData,
+	zDeleteSandboxFileResponse,
+	zDeleteSandboxResponse,
+	zDownloadSandboxContentData,
+	zExecuteSandboxCommandData,
+	zExecuteSandboxCommandResponse,
+	zGetSandboxCommandData,
+	zGetSandboxCommandLogsData,
+	zGetSandboxCommandResponse,
+	zGetSandboxContentData,
+	zGetSandboxContentResponse,
+	zGetSandboxData,
+	zGetSandboxesData,
+	zGetSandboxesResponse,
+	zGetSandboxResponse,
+	zRestartSandboxData,
+	zRestartSandboxResponse,
+	zSandboxCommandLog,
+	zStartSandboxData,
+	zStartSandboxResponse,
+	zStopSandboxData,
+	zStopSandboxResponse,
+	zTerminateSandboxCommandData,
+	zTerminateSandboxCommandResponse,
+	zUploadSandboxFileData,
+	zUploadSandboxFileResponse,
+} from "@/api/openapi";
 import {
 	HttpClient,
 	type HttpClientConfig,
@@ -32,18 +78,45 @@ import {
 	type HttpResponse,
 	type RequestConfig,
 } from "@/core/http-client";
+import type { ClientData, Data, DataUrl } from "@/types";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
-import { API_URLS, getApiUrlFromRegion, parseRegion } from "@/utils/regions";
 
+/** Configuration options for creating a BuddyApiClient instance */
 export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
+	/** Buddy workspace domain (e.g. "mycompany") */
 	workspace: string;
+	/** Project name within the workspace */
 	project_name: string;
+	/** API authentication token (falls back to BUDDY_TOKEN env var) */
 	token?: string;
+	/** Base URL of the Buddy API */
 	apiUrl: string;
 }
 
+/** API client for Buddy sandbox operations with request validation and response transformation */
 export class BuddyApiClient extends HttpClient {
+	readonly workspace: BuddyApiConfig["workspace"];
+	readonly project_name: BuddyApiConfig["project_name"];
+	readonly #apiUrl: BuddyApiConfig["apiUrl"];
+	readonly #token: BuddyApiConfig["token"];
+
+	/** Builds a parameterized URL by replacing path placeholders */
+	#buildUrl<const D extends Pick<Data, "url">>(params: {
+		path?: Record<string, string>;
+		url: DataUrl<D>;
+	}): string {
+		const { path = {}, url } = params;
+		return url.replace(/{(\w+)}/g, (_, key: string) => {
+			const value = path[key];
+			if (value === undefined) {
+				throw new Error(`Missing path parameter: ${key}`);
+			}
+			return value;
+		});
+	}
+
+	/** Parse and validate HTTP response data against a Zod schema */
 	async #parseResponse<T>(
 		schema: z.ZodType<T>,
 		response: HttpResponse,
@@ -62,7 +135,549 @@ export class BuddyApiClient extends HttpClient {
 		return result.data;
 	}
 
-	async #parseLogEntry(line: string) {
+	/** Check if a schema expects query parameters (not ZodNever) */
+	#schemaExpectsQuery(schema: z.ZodObject<{ query: z.ZodType }>): boolean {
+		const querySchema = schema.shape.query;
+		if (querySchema instanceof z.ZodOptional) {
+			const inner = querySchema._def.innerType;
+			if (inner instanceof z.ZodNever) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** Execute an HTTP request with input/output validation */
+	async #requestWithValidation<const D extends Data, Response>({
+		method,
+		url,
+		data,
+		dataSchema,
+		responseSchema,
+		skipRetry,
+	}: {
+		method: "GET" | "POST" | "DELETE";
+		url: DataUrl<D>;
+		data: ClientData<D>;
+		dataSchema: z.ZodObject<{
+			body: z.ZodType;
+			path: z.ZodObject<Record<string, z.ZodString>>;
+			query:
+				| z.ZodObject<Record<string, z.ZodString | z.ZodBoolean>>
+				| z.ZodOptional<z.ZodNever>;
+		}>;
+		responseSchema: z.ZodType<Response>;
+		skipRetry?: boolean;
+	}): Promise<Response> {
+		const expectsQuery = this.#schemaExpectsQuery(
+			dataSchema as z.ZodObject<{ query: z.ZodType }>,
+		);
+
+		const fullData = {
+			body: data.body,
+			path: {
+				workspace_domain: this.workspace,
+				...(data.path ?? {}),
+			},
+			query: expectsQuery
+				? {
+						project_name: this.project_name,
+						...(data.query ?? {}),
+					}
+				: undefined,
+		};
+
+		const result = await dataSchema.safeParseAsync(fullData);
+		if (!result.success) {
+			throw result.error;
+		}
+		const validatedData = result.data;
+
+		const parameterizedUrl = this.#buildUrl<D>({
+			url,
+			path: validatedData.path,
+		});
+
+		const requestConfig: RequestConfig = {
+			queryParams: validatedData.query,
+			skipRetry,
+		};
+
+		let request: Promise<HttpResponse>;
+
+		switch (method) {
+			case "POST": {
+				request = this.post(
+					parameterizedUrl,
+					validatedData.body ?? {},
+					requestConfig,
+				);
+				break;
+			}
+			case "GET": {
+				request = this.get(parameterizedUrl, requestConfig);
+				break;
+			}
+			case "DELETE": {
+				request = this.delete(parameterizedUrl, requestConfig);
+				break;
+			}
+		}
+
+		const response = await request;
+		return (await this.#parseResponse(responseSchema, response)) as Response;
+	}
+
+	/** Create a new sandbox */
+	async addSandbox<const Data extends AddSandboxData>(data: ClientData<Data>) {
+		return this.#requestWithValidation<Data, AddSandboxResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes",
+			dataSchema: zAddSandboxData,
+			responseSchema: zAddSandboxResponse.transform(
+				addSandboxResponseTransformer,
+			),
+		});
+	}
+
+	/** Get a specific sandbox by its ID */
+	async getSandboxById<const Data extends GetSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{id}",
+			dataSchema: zGetSandboxData,
+			responseSchema: zGetSandboxResponse.transform(
+				getSandboxResponseTransformer,
+			),
+		});
+	}
+
+	/** Execute a command in a sandbox */
+	async executeCommand<const Data extends ExecuteSandboxCommandData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, ExecuteSandboxCommandResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
+			dataSchema: zExecuteSandboxCommandData,
+			responseSchema: zExecuteSandboxCommandResponse,
+		});
+	}
+
+	/** Get a specific command execution details */
+	async getCommandDetails<const Data extends GetSandboxCommandData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxCommandResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{id}",
+			dataSchema: zGetSandboxCommandData,
+			responseSchema: zGetSandboxCommandResponse,
+		});
+	}
+
+	/** Terminate a running command in a sandbox */
+	async terminateCommand<const Data extends TerminateSandboxCommandData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, TerminateSandboxCommandResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/terminate",
+			dataSchema: zTerminateSandboxCommandData,
+			responseSchema: zTerminateSandboxCommandResponse,
+		});
+	}
+
+	/** Delete a sandbox by its ID */
+	async deleteSandboxById<const Data extends DeleteSandboxData>(
+		data: ClientData<Data>,
+	) {
+		try {
+			return await this.#requestWithValidation<Data, DeleteSandboxResponse>({
+				method: "DELETE",
+				data,
+				url: "/workspaces/{workspace_domain}/sandboxes/{id}",
+				dataSchema: zDeleteSandboxData,
+				responseSchema: zDeleteSandboxResponse,
+				skipRetry: true,
+			});
+		} catch (error) {
+			// Ignore 404 errors - sandbox already deleted
+			if (error instanceof HttpError && error.status === 404) {
+				return;
+			}
+			throw error;
+		}
+	}
+
+	/** Get all sandboxes in the workspace for a specific project */
+	async getSandboxes<const Data extends GetSandboxesData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxesResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes",
+			dataSchema: zGetSandboxesData,
+			responseSchema: zGetSandboxesResponse,
+		});
+	}
+
+	/** Start a sandbox */
+	async startSandbox<const Data extends StartSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, StartSandboxResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/start",
+			dataSchema: zStartSandboxData,
+			responseSchema: zStartSandboxResponse.transform(
+				startSandboxResponseTransformer,
+			),
+		});
+	}
+
+	/** Stop a sandbox */
+	async stopSandbox<const Data extends StopSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, StopSandboxResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/stop",
+			dataSchema: zStopSandboxData,
+			responseSchema: zStopSandboxResponse.transform(
+				stopSandboxResponseTransformer,
+			),
+		});
+	}
+
+	/** Restart a sandbox */
+	async restartSandbox<const Data extends RestartSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, RestartSandboxResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/restart",
+			dataSchema: zRestartSandboxData,
+			responseSchema: zRestartSandboxResponse.transform(
+				restartSandboxResponseTransformer,
+			),
+		});
+	}
+
+	/** Get sandbox content (list files/directories at a path) */
+	async getSandboxContent<const Data extends GetSandboxContentData>(
+		data: ClientData<Data>,
+	): Promise<GetSandboxContentResponse> {
+		return this.#requestWithValidation<Data, GetSandboxContentResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/content/{path}",
+			dataSchema: zGetSandboxContentData,
+			responseSchema: zGetSandboxContentResponse.transform(
+				getSandboxContentResponseTransformer,
+			),
+		});
+	}
+
+	/** Delete a file or directory from a sandbox */
+	async deleteSandboxFile<const Data extends DeleteSandboxFileData>(
+		data: ClientData<Data>,
+	): Promise<DeleteSandboxFileResponse> {
+		return this.#requestWithValidation<Data, DeleteSandboxFileResponse>({
+			method: "DELETE",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/content/{path}",
+			dataSchema: zDeleteSandboxFileData,
+			responseSchema: zDeleteSandboxFileResponse,
+		});
+	}
+
+	/** Create a directory in a sandbox */
+	async createSandboxDirectory<const Data extends CreateSandboxDirectoryData>(
+		data: ClientData<Data>,
+	): Promise<CreateSandboxDirectoryResponse> {
+		return this.#requestWithValidation<Data, CreateSandboxDirectoryResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/content/{path}",
+			dataSchema: zCreateSandboxDirectoryData,
+			responseSchema: zCreateSandboxDirectoryResponse.transform(
+				createSandboxDirectoryResponseTransformer,
+			),
+		});
+	}
+
+	/** Upload a file to a sandbox */
+	async uploadSandboxFile(data: {
+		body: Blob | File;
+		path: { sandbox_id: string; path: string };
+	}): Promise<UploadSandboxFileResponse> {
+		const fullData = {
+			body: data.body,
+			path: {
+				workspace_domain: this.workspace,
+				...(data.path ?? {}),
+			},
+			query: undefined,
+		};
+
+		const validationResult = await zUploadSandboxFileData.safeParseAsync({
+			...fullData,
+			body: undefined, // Skip body validation for binary data
+		});
+		if (!validationResult.success) {
+			throw validationResult.error;
+		}
+		const validatedData = validationResult.data;
+
+		const parameterizedUrl = this.#buildUrl<UploadSandboxFileData>({
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/content/upload/{path}",
+			path: validatedData.path,
+		});
+
+		const url = new URL(parameterizedUrl, this.#apiUrl);
+		url.searchParams.set("project_name", this.project_name);
+
+		const filename = data.path.path.split("/").pop() ?? "file";
+
+		const formData = new FormData();
+		formData.append("file", data.body, filename);
+
+		const headers = {
+			Authorization: `Bearer ${this.#token}`,
+			// Note: Don't set Content-Type - fetch will set it with boundary for multipart
+		};
+
+		if (this.debugMode) {
+			logger.debug("[HTTP REQUEST - Upload]", {
+				method: "POST",
+				url: url.toString(),
+				headers: {
+					...headers,
+					Authorization: "***",
+				},
+				formData,
+			});
+		}
+
+		const response = await fetch(url.toString(), {
+			method: "POST",
+			headers,
+			body: formData,
+		});
+
+		if (!response.ok) {
+			throw new HttpError(
+				`Failed to upload file: ${response.statusText}`,
+				response.status,
+			);
+		}
+
+		const responseData = await response.json();
+		const result = await zUploadSandboxFileResponse
+			.transform(uploadSandboxFileResponseTransformer)
+			.safeParseAsync(responseData);
+		if (!result.success) {
+			const prettyError = prettifyError(result.error);
+			throw new HttpError(
+				`Response validation failed:\n${prettyError}`,
+				response.status,
+			);
+		}
+
+		return result.data;
+	}
+
+	/** Download content from a sandbox (file or directory as tar.gz) */
+	async downloadSandboxContent(data: {
+		path: { sandbox_id: string; path: string };
+	}): Promise<{ data: ArrayBuffer; filename: string }> {
+		const fullData = {
+			body: undefined,
+			path: {
+				workspace_domain: this.workspace,
+				...data.path,
+			},
+			query: undefined,
+		};
+
+		const validationResult =
+			await zDownloadSandboxContentData.safeParseAsync(fullData);
+		if (!validationResult.success) {
+			throw validationResult.error;
+		}
+		const validatedData = validationResult.data;
+
+		const parameterizedUrl = this.#buildUrl<DownloadSandboxContentData>({
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/download/{path}",
+			path: validatedData.path,
+		});
+
+		const url = new URL(parameterizedUrl, this.#apiUrl);
+
+		const headers = {
+			Accept: "application/octet-stream",
+			Authorization: `Bearer ${this.#token}`,
+		};
+
+		if (this.debugMode) {
+			logger.debug("[HTTP REQUEST - Download]", {
+				method: "GET",
+				url: url.toString(),
+				headers: {
+					...headers,
+					Authorization: "***",
+				},
+			});
+		}
+
+		const response = await fetch(url.toString(), {
+			method: "GET",
+			headers,
+		});
+
+		if (!response.ok) {
+			throw new HttpError(
+				`Failed to download content: ${response.statusText}`,
+				response.status,
+			);
+		}
+
+		const contentDisposition = response.headers.get("Content-Disposition");
+		let filename = "download";
+		if (contentDisposition) {
+			const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
+			if (match?.[1]) {
+				filename = match[1];
+			}
+		}
+
+		const arrayBuffer = await response.arrayBuffer();
+		return { data: arrayBuffer, filename };
+	}
+
+	/** Stream logs from a specific command execution */
+	async *streamCommandLogs<const Data extends GetSandboxCommandLogsData>(
+		data: ClientData<Data>,
+	): AsyncGenerator<SandboxCommandLog, void, unknown> {
+		const fullData = {
+			body: data.body,
+			path: {
+				workspace_domain: this.workspace,
+				...(data.path ?? {}),
+			},
+			query: data.query,
+		};
+
+		const validationResult =
+			await zGetSandboxCommandLogsData.safeParseAsync(fullData);
+		if (!validationResult.success) {
+			throw validationResult.error;
+		}
+		const validatedData = validationResult.data;
+
+		const parameterizedUrl = this.#buildUrl<Data>({
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/logs",
+			path: validatedData.path,
+		});
+
+		const url = new URL(parameterizedUrl, this.#apiUrl);
+		if (validatedData.query?.follow !== undefined) {
+			url.searchParams.set("follow", String(validatedData.query.follow));
+		}
+
+		const headers = {
+			Accept: "application/jsonl",
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${this.#token}`,
+		};
+
+		const response = await fetch(url.toString(), {
+			method: "GET",
+			headers,
+		});
+
+		if (this.debugMode) {
+			logger.debug("[HTTP REQUEST - Streaming]", {
+				method: "GET",
+				url: url.toString(),
+				headers: {
+					...headers,
+					Authorization: "***",
+				},
+			});
+		}
+
+		if (!response.ok) {
+			throw new HttpError(
+				`Failed to stream logs: ${response.statusText}`,
+				response.status,
+			);
+		}
+
+		const contentType = response.headers.get("content-type");
+		if (!contentType?.includes("application/jsonl")) {
+			throw new Error(
+				`Expected application/jsonl content type, got: ${contentType ?? "none"}`,
+			);
+		}
+
+		if (!response.body) {
+			throw new Error("No response body available for streaming");
+		}
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+		let buffer = "";
+
+		try {
+			while (true) {
+				const readResult = await reader.read();
+				if (readResult.done) break;
+
+				const chunk = readResult.value as Uint8Array;
+				buffer += decoder.decode(chunk, { stream: true });
+
+				const lines = buffer.split("\n");
+				buffer = lines.pop() || "";
+
+				for (const line of lines) {
+					if (!line.trim()) continue;
+
+					const logEntry = await this.#parseAndValidateLogEntry(line);
+
+					if (this.debugMode) {
+						logger.debug(`[STREAM] ${logEntry.type}`, {
+							content: logEntry.data,
+						});
+					}
+
+					yield logEntry;
+				}
+			}
+
+			// Process any remaining data in buffer
+			if (buffer.trim()) {
+				yield this.#parseAndValidateLogEntry(buffer);
+			}
+		} finally {
+			reader.releaseLock();
+		}
+	}
+
+	/** Parse a JSON line and validate it as a SandboxCommandLog */
+	async #parseAndValidateLogEntry(line: string): Promise<SandboxCommandLog> {
 		let parsed: unknown;
 		try {
 			parsed = JSON.parse(line);
@@ -72,76 +687,15 @@ export class BuddyApiClient extends HttpClient {
 			);
 		}
 
-		const result = await SandboxCommandLogSchema.safeParseAsync(parsed);
-
+		const result = await zSandboxCommandLog.safeParseAsync(parsed);
 		if (!result.success) {
-			throw result.error; // Let ZodError bubble up
+			throw result.error;
 		}
 
-		const logEntry = result.data;
-		// Convert STDOUT/STDERR to lowercase for consistency
-		const stream =
-			logEntry.type === "STDOUT" ? ("stdout" as const) : ("stderr" as const);
-
-		return {
-			stream,
-			data: logEntry.data ? `${logEntry.data}\n` : "",
-		};
+		return result.data;
 	}
 
-	async #requestWithValidation<T>({
-		method,
-		url,
-		parameters,
-		requestSchema,
-		responseSchema,
-		requestConfig: overriddenRequestConfig = {},
-	}: {
-		method: "GET" | "POST";
-		url: string;
-		parameters?: unknown;
-		requestSchema?: z.ZodType;
-		responseSchema: z.ZodType<T>;
-		requestConfig?: RequestConfig;
-	}): Promise<T> {
-		const defaultRequestConfig: RequestConfig = {
-			queryParams: { project_name: this.project_name },
-		};
-
-		const requestConfig = {
-			...defaultRequestConfig,
-			...overriddenRequestConfig,
-		};
-
-		let request: Promise<HttpResponse>;
-
-		switch (method) {
-			case "POST": {
-				let validatedParameters: unknown = {};
-				if (requestSchema && parameters) {
-					const result = await requestSchema.safeParseAsync(parameters);
-					if (!result.success) {
-						throw result.error; // Let ZodError bubble up
-					}
-					validatedParameters = result.data;
-				}
-
-				request = this.post(url, validatedParameters, requestConfig);
-				break;
-			}
-			case "GET": {
-				request = this.get(url, requestConfig);
-				break;
-			}
-		}
-
-		const response = await request;
-		return (await this.#parseResponse(responseSchema, response)) as T;
-	}
-
-	readonly workspace: string;
-	readonly project_name: string;
-
+	/** Create a new Buddy API client instance */
 	constructor(config: BuddyApiConfig) {
 		const token = config.token ?? environment.BUDDY_TOKEN;
 
@@ -163,236 +717,8 @@ export class BuddyApiClient extends HttpClient {
 
 		this.workspace = config.workspace;
 		this.project_name = config.project_name;
+		this.#apiUrl = config.apiUrl;
+		this.#token = token;
 		this.setAuthToken(token);
-	}
-
-	/** Create a new sandbox */
-	async createSandbox(parameters: ICreateSandboxRequest) {
-		return this.#requestWithValidation<ICreateSandboxResponse>({
-			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes`,
-			parameters,
-			requestSchema: CreateSandboxRequestSchema,
-			responseSchema: CreateSandboxResponseSchema,
-		});
-	}
-
-	/** Get a specific sandbox by its ID */
-	async getSandboxById(sandboxId: string) {
-		return this.#requestWithValidation<IGetSandboxResponse>({
-			method: "GET",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}`,
-			responseSchema: GetSandboxResponseSchema,
-		});
-	}
-
-	/** Get a specific sandbox by its identifier */
-	async getSandboxByIdentifier(identifier: string) {
-		const sandboxes = await this.getSandboxes();
-		const sandbox = sandboxes?.find((s) => s.identifier === identifier);
-
-		if (!sandbox?.id) {
-			return;
-		}
-
-		return this.getSandboxById(sandbox.id);
-	}
-
-	/** Execute a command in a sandbox */
-	async executeCommand(
-		sandboxId: string,
-		parameters: IExecuteSandboxCommandRequest,
-	) {
-		return this.#requestWithValidation<IExecuteSandboxCommandResponse>({
-			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands`,
-			parameters,
-			requestSchema: ExecuteSandboxCommandRequestSchema,
-			responseSchema: ExecuteSandboxCommandResponseSchema,
-		});
-	}
-
-	/** Get a specific command execution details */
-	async getCommandDetails(sandboxId: string, commandId: string) {
-		return this.#requestWithValidation<IGetSandboxCommandResponse>({
-			method: "GET",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands/${commandId}`,
-			responseSchema: GetSandboxCommandResponseSchema,
-		});
-	}
-
-	/** Terminate a running command in a sandbox */
-	async terminateCommand(sandboxId: string, commandId: string) {
-		return this.#requestWithValidation<ITerminateSandboxCommandResponse>({
-			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands/${commandId}/terminate`,
-			responseSchema: TerminateSandboxCommandResponseSchema,
-		});
-	}
-
-	/** Delete a sandbox by its ID */
-	async deleteSandbox(sandboxId: string) {
-		const url = `/workspaces/${this.workspace}/sandboxes/${sandboxId}`;
-
-		try {
-			await this.delete(url, {
-				skipRetry: true, // Don't retry delete operations
-			});
-		} catch (error) {
-			// Ignore 404 errors - sandbox already deleted
-			if (
-				error instanceof Error &&
-				"status" in error &&
-				(error as { status: number }).status !== 404
-			) {
-				throw error;
-			}
-		}
-	}
-
-	/** Get all sandboxes in the workspace for a specific project */
-	async getSandboxes(): Promise<ISimplifiedSandbox[]> {
-		return this.#requestWithValidation<IGetSandboxesResponse>({
-			method: "GET",
-			url: `/workspaces/${this.workspace}/sandboxes`,
-			responseSchema: GetSandboxesResponseSchema,
-		}).then((res) => res.sandboxes ?? []);
-	}
-
-	/** Start a sandbox */
-	async startSandbox(sandboxId: string) {
-		return this.#requestWithValidation<IStartSandboxResponse>({
-			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/start`,
-			responseSchema: StartSandboxResponseSchema,
-		});
-	}
-
-	/** Stop a sandbox */
-	async stopSandbox(sandboxId: string) {
-		return this.#requestWithValidation<IStopSandboxResponse>({
-			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/stop`,
-			responseSchema: StopSandboxResponseSchema,
-		});
-	}
-
-	/** Restart a sandbox */
-	async restartSandbox(sandboxId: string) {
-		return this.#requestWithValidation<IRestartSandboxResponse>({
-			method: "POST",
-			url: `/workspaces/${this.workspace}/sandboxes/${sandboxId}/restart`,
-			responseSchema: RestartSandboxResponseSchema,
-		});
-	}
-
-	/** Stream logs from a specific command execution */
-	async *streamCommandLogs(
-		sandboxId: string,
-		commandId: string,
-	): AsyncGenerator<
-		{ stream: "stdout" | "stderr"; data: string },
-		void,
-		unknown
-	> {
-		try {
-			// Use same resolution logic as constructor
-			const apiUrl =
-				environment.BUDDY_API_URL ??
-				(environment.BUDDY_REGION
-					? getApiUrlFromRegion(parseRegion(environment.BUDDY_REGION))
-					: API_URLS.US);
-			const token = environment.BUDDY_TOKEN;
-			if (!token) {
-				throw new Error("Buddy API token is required for streaming logs");
-			}
-
-			const url = `${apiUrl}/workspaces/${this.workspace}/sandboxes/${sandboxId}/commands/${commandId}/logs`;
-
-			const headers = {
-				Accept: "application/jsonl",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
-			};
-
-			// Use fetch for streaming support
-			const response = await fetch(url, {
-				method: "GET",
-				headers,
-			});
-
-			if (this.debugMode) {
-				logger.debug("[HTTP REQUEST - Streaming]", {
-					method: "GET",
-					url,
-					headers: {
-						...headers,
-						Authorization: headers["Authorization"] ? "***" : undefined,
-					},
-				});
-			}
-
-			if (!response.ok) {
-				throw new Error(
-					`Failed to stream logs: ${String(response.status)} ${response.statusText}`,
-				);
-			}
-
-			const contentType = response.headers.get("content-type");
-			if (!contentType?.includes("application/jsonl")) {
-				throw new Error(
-					`Expected application/jsonl content type, got: ${contentType ?? "none"}`,
-				);
-			}
-
-			if (!response.body) {
-				throw new Error("No response body available for streaming");
-			}
-
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
-			let buffer = "";
-
-			try {
-				while (true) {
-					const result = await reader.read();
-					if (result.done) break;
-
-					// Decode the chunk and add to buffer
-					const chunk = result.value as Uint8Array;
-					buffer += decoder.decode(chunk, { stream: true });
-
-					// Process complete lines
-					const lines = buffer.split("\n");
-					buffer = lines.pop() || ""; // Keep incomplete line in buffer
-
-					for (const line of lines) {
-						if (!line.trim()) continue;
-
-						const logEntry = await this.#parseLogEntry(line);
-
-						if (this.debugMode) {
-							logger.debug(`[STREAM] ${logEntry.stream}`, {
-								content: logEntry.data,
-							});
-						}
-
-						yield logEntry;
-					}
-				}
-
-				// Process any remaining data in buffer
-				if (buffer.trim()) {
-					yield this.#parseLogEntry(buffer);
-				}
-			} finally {
-				reader.releaseLock();
-			}
-		} catch (error) {
-			if (this.debugMode) {
-				logger.debug("Log streaming error", error);
-			}
-			throw error;
-		}
 	}
 }
