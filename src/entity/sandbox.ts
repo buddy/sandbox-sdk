@@ -2,7 +2,6 @@ import type { Writable } from "node:stream";
 import type {
 	CreateNewSandboxRequestWritable,
 	ExecuteSandboxCommandRequest,
-	GetSandboxData,
 	GetSandboxResponse,
 	SandboxIdView,
 } from "@/api/openapi";
@@ -17,6 +16,8 @@ export type { ConnectionConfig };
 
 // Symbol for private constructor protection
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
+const INITIALIZE_INSTRUCTIONS =
+	"Use Sandbox.create(), Sandbox.getById(), Sandbox.getByIdentifier() or Sandbox.list() to obtain an instance.";
 
 /**
  * Configuration for creating a new sandbox
@@ -72,7 +73,7 @@ export class Sandbox {
 		const id = this.#sandboxData?.id;
 		if (!id) {
 			throw new Error(
-				"Sandbox ID is missing. The sandbox may have been deleted or not properly initialized.",
+				`Sandbox ID is missing. The sandbox may have been deleted or not properly initialized. ${INITIALIZE_INSTRUCTIONS}`,
 			);
 		}
 		return id;
@@ -130,13 +131,47 @@ export class Sandbox {
 	}
 
 	/**
+	 * Get an existing sandbox by its identifier
+	 * @param identifier - Identifier of the sandbox to retrieve
+	 * @param config - Optional configuration including connection settings
+	 * @returns The Sandbox instance
+	 */
+	static async getByIdentifier(
+		identifier: NonNullable<GetSandboxResponse["identifier"]>,
+		config?: GetSandboxConfig,
+	) {
+		return withErrorHandler("Failed to get sandbox by identifier", async () => {
+			const { connection } = config ?? {};
+			const client = createClient(connection);
+
+			const sandboxList = await client.getSandboxes({});
+			const items = sandboxList?.sandboxes ?? [];
+			const sandboxId = items.find((s) => s.identifier === identifier)?.id;
+
+			if (!sandboxId) {
+				throw new Error(`Sandbox with identifier '${identifier}' not found`);
+			}
+
+			const sandboxResponse = await client.getSandboxById({
+				path: { id: sandboxId },
+			});
+
+			if (!sandboxResponse) {
+				throw new Error(`Sandbox with ID '${sandboxId}' not found`);
+			}
+
+			return new Sandbox(sandboxResponse, client, PRIVATE_CONSTRUCTOR_KEY);
+		});
+	}
+
+	/**
 	 * Get an existing sandbox by its ID
 	 * @param sandboxId - ID of the sandbox to retrieve
 	 * @param config - Optional configuration including connection settings
 	 * @returns The Sandbox instance
 	 */
 	static async getById(
-		sandboxId: GetSandboxData["path"]["id"],
+		sandboxId: NonNullable<GetSandboxResponse["id"]>,
 		config?: GetSandboxConfig,
 	) {
 		return withErrorHandler("Failed to get sandbox", async () => {
@@ -445,7 +480,7 @@ export class Sandbox {
 	) {
 		if (constructorKey !== PRIVATE_CONSTRUCTOR_KEY) {
 			throw new Error(
-				"Cannot construct Sandbox directly. Use Sandbox.create(), Sandbox.getById(), or Sandbox.list()",
+				`Cannot construct Sandbox directly. ${INITIALIZE_INSTRUCTIONS}`,
 			);
 		}
 		this.#sandboxData = sandboxData;

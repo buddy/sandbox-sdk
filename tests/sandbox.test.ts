@@ -86,6 +86,21 @@ describe("Sandbox", () => {
 			expect(fetched.data.id).toBe(sandboxId);
 		});
 
+		it("should get sandbox by identifier", async () => {
+			const identifier = sandbox.data.identifier;
+			expect(identifier).toBeDefined();
+
+			const fetched = await Sandbox.getByIdentifier(identifier as string);
+			expect(fetched.data.id).toBe(sandbox.data.id);
+			expect(fetched.data.identifier).toBe(identifier);
+		});
+
+		it("should throw when identifier not found", async () => {
+			await expect(
+				Sandbox.getByIdentifier("non_existent_identifier_12345"),
+			).rejects.toThrow("not found");
+		});
+
 		it("should list sandboxes", async () => {
 			const sandboxes = await Sandbox.list();
 			expect(sandboxes.length).toBeGreaterThan(0);

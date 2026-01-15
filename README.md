@@ -17,13 +17,9 @@ const identifier = "my-sandbox";
 
 let sandbox: Sandbox;
 
-// Find existing sandbox by identifier
-const list = await Sandbox.list({ simple: true });
-const existingId = list.find((s) => s.identifier === identifier)?.id;
-
-if (existingId) {
-    sandbox = await Sandbox.getById(existingId);
-} else {
+try {
+    sandbox = await Sandbox.getByIdentifier(identifier);
+} catch {
     sandbox = await Sandbox.create({
         identifier,
         name: "My Sandbox",

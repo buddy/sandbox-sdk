@@ -7,13 +7,12 @@ const identifier = "lifecycle-demo-sandbox";
 
 let sandbox: Sandbox;
 
-const list = await Sandbox.list({ simple: true });
-const id = list.find((s) => s.identifier === identifier)?.id;
-
-if (id) {
+try {
+	sandbox = await Sandbox.getByIdentifier(identifier);
 	log(`Found existing sandbox with identifier: ${identifier}, deleting...`);
-	sandbox = await Sandbox.getById(id);
 	await sandbox.destroy();
+} catch {
+	// Sandbox doesn't exist, nothing to delete
 }
 
 log(`Creating sandbox with identifier: ${identifier}`);

@@ -9,15 +9,12 @@ log(`Getting or creating sandbox: ${identifier}`);
 
 let sandbox: Sandbox;
 
-const list = await Sandbox.list({ simple: true });
-const id = list.find((s) => s.identifier === identifier)?.id;
-
-if (id) {
-	sandbox = await Sandbox.getById(id);
+try {
+	sandbox = await Sandbox.getByIdentifier(identifier);
 	log(
 		`Found existing sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`,
 	);
-} else {
+} catch {
 	log("Creating new sandbox...");
 	sandbox = await Sandbox.create({
 		identifier,
