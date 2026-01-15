@@ -91,7 +91,7 @@ export class Sandbox {
 	}
 
 	/**
-	 * Create a new sandbox or return an existing one if identifier matches
+	 * Create a new sandbox
 	 * @param config - Sandbox configuration including identifier, name, os, and optional connection settings
 	 * @returns A ready-to-use Sandbox instance
 	 */
@@ -130,7 +130,7 @@ export class Sandbox {
 	}
 
 	/**
-	 * Get an existing sandbox by its identifier
+	 * Get an existing sandbox by its ID
 	 * @param sandboxId - ID of the sandbox to retrieve
 	 * @param config - Optional configuration including connection settings
 	 * @returns The Sandbox instance
