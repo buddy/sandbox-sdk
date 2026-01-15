@@ -16,9 +16,14 @@ import {Sandbox} from "@buddy-works/sandbox-sdk";
 const identifier = "my-sandbox";
 
 let sandbox: Sandbox;
-try {
-    sandbox = await Sandbox.get(identifier);
-} catch {
+
+// Find existing sandbox by identifier
+const list = await Sandbox.list({simple: true});
+const existingId = list.find((s) => s.identifier === identifier)?.id;
+
+if (existingId) {
+    sandbox = await Sandbox.getById(existingId);
+} else {
     sandbox = await Sandbox.create({
         identifier,
         name: "My Sandbox",
@@ -78,4 +83,3 @@ await Sandbox.create({
     }
 });
 ```
-
