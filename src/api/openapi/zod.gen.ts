@@ -30,25 +30,12 @@ export const zStatusType = z.object({
 
 export const zLink = z.object({
 	uri: z.optional(z.url()),
-	uri_builder: z.optional(zUriBuilder),
 	rel: z.optional(z.string()),
 	rels: z.optional(z.array(z.string())),
+	uri_builder: z.optional(zUriBuilder),
 	type: z.optional(z.string()),
 	params: z.optional(z.record(z.string(), z.string())),
 	title: z.optional(z.string()),
-});
-
-export const zEntityTag = z.object({
-	value: z.optional(z.string()),
-	weak: z.optional(z.boolean()),
-});
-
-export const zMediaType = z.object({
-	type: z.optional(z.string()),
-	subtype: z.optional(z.string()),
-	parameters: z.optional(z.record(z.string(), z.string())),
-	wildcard_type: z.optional(z.boolean()),
-	wildcard_subtype: z.optional(z.boolean()),
 });
 
 export const zNewCookie = z.object({
@@ -83,10 +70,20 @@ export const zNewCookie = z.object({
 	same_site: z.optional(z.enum(["NONE", "LAX", "STRICT"])),
 });
 
+export const zEntityTag = z.object({
+	value: z.optional(z.string()),
+	weak: z.optional(z.boolean()),
+});
+
+export const zMediaType = z.object({
+	type: z.optional(z.string()),
+	subtype: z.optional(z.string()),
+	parameters: z.optional(z.record(z.string(), z.string())),
+	wildcard_type: z.optional(z.boolean()),
+	wildcard_subtype: z.optional(z.boolean()),
+});
+
 export const zResponse = z.object({
-	status_info: z.optional(zStatusType),
-	allowed_methods: z.optional(z.array(z.string())),
-	cookies: z.optional(z.record(z.string(), zNewCookie)),
 	media_type: z.optional(zMediaType),
 	entity_tag: z.optional(zEntityTag),
 	string_headers: z.optional(
@@ -94,6 +91,9 @@ export const zResponse = z.object({
 			empty: z.optional(z.boolean()),
 		}),
 	),
+	status_info: z.optional(zStatusType),
+	allowed_methods: z.optional(z.array(z.string())),
+	cookies: z.optional(z.record(z.string(), zNewCookie)),
 	links: z.optional(z.array(zLink)),
 	closed: z.optional(z.boolean()),
 	length: z.optional(
@@ -127,11 +127,6 @@ export const zResponse = z.object({
 	),
 	date: z.optional(z.iso.datetime()),
 	last_modified: z.optional(z.iso.datetime()),
-	metadata: z.optional(
-		z.object({
-			empty: z.optional(z.boolean()),
-		}),
-	),
 	status: z.optional(
 		z
 			.int()
@@ -141,6 +136,11 @@ export const zResponse = z.object({
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
+	),
+	metadata: z.optional(
+		z.object({
+			empty: z.optional(z.boolean()),
+		}),
 	),
 	entity: z.optional(z.record(z.string(), z.unknown())),
 	headers: z.optional(

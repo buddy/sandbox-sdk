@@ -60,11 +60,11 @@ log("Both commands started in background! Waiting for results...\n");
 
 await Promise.all([
 	cmd1.wait().then(async (finished) => {
-		log(`[Slow] Exit code: ${finished.exitCode}`);
+		log(`[Slow] Exit code: ${finished.data.exit_code}`);
 		log(`[Slow] Output:\n${await finished.output()}`);
 	}),
 	cmd2.wait().then(async (finished) => {
-		log(`[Fast] Exit code: ${finished.exitCode}`);
+		log(`[Fast] Exit code: ${finished.data.exit_code}`);
 		log(`[Fast] Output:\n${await finished.output()}`);
 	}),
 ]);

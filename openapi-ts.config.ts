@@ -5,7 +5,7 @@ export default defineConfig({
 		"https://schemas-openapi-buddy-swagger-ui-beta.eu-1.agent-sls.net/dev/restapi.json",
 	output: {
 		path: "src/api/openapi",
-		format: "biome",
+		postProcess: ["biome:format"],
 	},
 	parser: {
 		filters: {
