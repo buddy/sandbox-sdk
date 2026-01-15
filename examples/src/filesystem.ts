@@ -30,10 +30,7 @@ if (id) {
 log("\n=== Direct FileSystem Usage ===");
 log("Creating FileSystem directly from sandbox ID...");
 
-const sandboxId = sandbox.data.id;
-if (!sandboxId) {
-	throw new Error("Sandbox ID is required");
-}
+const sandboxId = sandbox.initializedId;
 
 const directFs = FileSystem.forSandbox(sandboxId);
 const homeFiles = await directFs.listFiles("/home");

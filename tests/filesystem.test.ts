@@ -60,6 +60,8 @@ describe("FileSystem", () => {
 
 			if (files.length > 0) {
 				const file = files[0];
+				if (!file) throw new Error("No files found in root directory");
+
 				expect(file).toHaveProperty("name");
 				expect(file).toHaveProperty("path");
 				expect(file).toHaveProperty("type");
