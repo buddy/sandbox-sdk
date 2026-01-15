@@ -6,6 +6,7 @@ onlyBuiltDependencies:
   - esbuild
 
 catalog:
+  "@dotenvx/dotenvx": "1.51.4"
   "@tsconfig/node20": "20"
   "@tsconfig/strictest": "2.0.8"
   "@types/node": "20"

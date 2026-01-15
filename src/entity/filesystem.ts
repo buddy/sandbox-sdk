@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 import type { SandboxContentItem } from "@/api/openapi";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
-import { createClient, type ConnectionConfig } from "@/utils/client";
 import { withErrorHandler } from "@/errors";
+import { type ConnectionConfig, createClient } from "@/utils/client";
 
 /**
  * File information returned by file system operations

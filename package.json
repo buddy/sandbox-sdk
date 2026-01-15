@@ -17,6 +17,8 @@
 	"scripts": {
 		"fetch:schemas": "openapi-ts",
 		"build": "tsdown",
+		"test": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- vitest run",
+		"test:watch": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- vitest",
 		"lint:check": "tsc --skipLibCheck --noEmit && biome check",
 		"lint:fix": "tsc --skipLibCheck --noEmit && biome check --write",
 		"knip": "knip"
@@ -46,13 +48,15 @@
 	"packageManager": "pnpm@10.28.0",
 	"devDependencies": {
 		"@biomejs/biome": "2.3.11",
+		"@dotenvx/dotenvx": "catalog:",
 		"@hey-api/openapi-ts": "0.90.2",
 		"@tsconfig/node20": "catalog:",
 		"@tsconfig/strictest": "catalog:",
 		"@types/node": "catalog:",
 		"knip": "5.80.0",
 		"tsdown": "0.18.4",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"vitest": "4.0.17"
 	},
 	"dependencies": {
 		"p-retry": "7.1.1",

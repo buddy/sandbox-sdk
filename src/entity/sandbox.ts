@@ -21,7 +21,8 @@ const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
 /**
  * Configuration for creating a new sandbox
  */
-export interface CreateSandboxConfig extends CreateNewSandboxRequestWritable {
+export interface CreateSandboxConfig
+	extends Partial<CreateNewSandboxRequestWritable> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 }
@@ -66,24 +67,27 @@ export class Sandbox {
 		return this.#sandboxData ?? {};
 	}
 
+	/** The sandbox ID, throws if not initialized */
+	get initializedId(): NonNullable<GetSandboxResponse["id"]> {
+		const id = this.#sandboxData?.id;
+		if (!id) {
+			throw new Error(
+				"Sandbox ID is missing. The sandbox may have been deleted or not properly initialized.",
+			);
+		}
+		return id;
+	}
+
 	/**
 	 * File system operations for this sandbox.
 	 * Provides methods for listing, uploading, downloading, and managing files.
 	 */
 	get fs(): FileSystem {
+		const sandboxId = this.initializedId;
 		if (!this.#fs) {
-			this.#fs = new FileSystem(this.#client, this.#ensureId());
+			this.#fs = new FileSystem(this.#client, sandboxId);
 		}
 		return this.#fs;
-	}
-
-	#ensureId(): string {
-		if (!this.data.id) {
-			throw new Error(
-				"Sandbox ID is missing. The sandbox may have been deleted or not properly initialized.",
-			);
-		}
-		return this.data.id;
 	}
 
 	/**
@@ -199,6 +203,7 @@ export class Sandbox {
 	 * @returns Command instance (call wait() for blocking execution)
 	 */
 	async runCommand(options: RunCommandOptions): Promise<Command> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to run command", async () => {
 			const { stdout, stderr, detached, ...commandRequest } = options;
 
@@ -210,13 +215,13 @@ export class Sandbox {
 
 			const commandResponse = await this.#client.executeCommand({
 				body: commandRequest,
-				path: { sandbox_id: this.#ensureId() },
+				path: { sandbox_id: sandboxId },
 			});
 
 			const command = new Command({
 				commandResponse,
 				client: this.#client,
-				sandboxId: this.#ensureId(),
+				sandboxId,
 			});
 
 			const streamingPromise =
@@ -251,8 +256,9 @@ export class Sandbox {
 	 * Delete the sandbox permanently
 	 */
 	async destroy(): Promise<void> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to destroy sandbox", async () => {
-			await this.#client.deleteSandboxById({ path: { id: this.#ensureId() } });
+			await this.#client.deleteSandboxById({ path: { id: sandboxId } });
 		});
 	}
 
@@ -261,9 +267,10 @@ export class Sandbox {
 	 * Updates the internal state with the latest sandbox information
 	 */
 	async refresh(): Promise<void> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to refresh sandbox", async () => {
 			this.#sandboxData = await this.#client.getSandboxById({
-				path: { id: this.#ensureId() },
+				path: { id: sandboxId },
 			});
 		});
 	}
@@ -273,6 +280,7 @@ export class Sandbox {
 	 * @param pollIntervalMs - How often to check the status (default: 1000ms)
 	 */
 	async waitUntilReady(pollIntervalMs = 1000): Promise<void> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Sandbox not ready", async () => {
 			while (true) {
 				await this.refresh();
@@ -283,7 +291,7 @@ export class Sandbox {
 
 				if (this.data.setup_status === "FAILED") {
 					throw new Error(
-						`Sandbox ${this.#ensureId()} setup failed. Status: ${this.data.setup_status}`,
+						`Sandbox ${sandboxId} setup failed. Status: ${this.data.setup_status}`,
 					);
 				}
 
@@ -301,6 +309,7 @@ export class Sandbox {
 		pollIntervalMs = 1000,
 		maxWaitMs = 60_000,
 	): Promise<void> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Sandbox not running", async () => {
 			const startTime = Date.now();
 
@@ -313,13 +322,13 @@ export class Sandbox {
 
 				if (this.data.status === "FAILED") {
 					throw new Error(
-						`Sandbox ${this.#ensureId()} failed. Status: ${this.data.status}`,
+						`Sandbox ${sandboxId} failed. Status: ${this.data.status}`,
 					);
 				}
 
 				if (Date.now() - startTime > maxWaitMs) {
 					throw new Error(
-						`Timeout waiting for sandbox ${this.#ensureId()} to be RUNNING. Current: ${this.data.status}`,
+						`Timeout waiting for sandbox ${sandboxId} to be RUNNING. Current: ${this.data.status}`,
 					);
 				}
 
@@ -337,6 +346,7 @@ export class Sandbox {
 		pollIntervalMs = 1000,
 		maxWaitMs = 60_000,
 	): Promise<void> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Sandbox not stopped", async () => {
 			const startTime = Date.now();
 
@@ -349,13 +359,13 @@ export class Sandbox {
 
 				if (this.data.status === "FAILED") {
 					throw new Error(
-						`Sandbox ${this.#ensureId()} failed. Status: ${this.data.status}`,
+						`Sandbox ${sandboxId} failed. Status: ${this.data.status}`,
 					);
 				}
 
 				if (Date.now() - startTime > maxWaitMs) {
 					throw new Error(
-						`Timeout waiting for sandbox ${this.#ensureId()} to be STOPPED. Current: ${this.data.status}`,
+						`Timeout waiting for sandbox ${sandboxId} to be STOPPED. Current: ${this.data.status}`,
 					);
 				}
 
@@ -369,17 +379,18 @@ export class Sandbox {
 	 * Waits until the sandbox reaches RUNNING state
 	 */
 	async start(): Promise<void> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to start sandbox", async () => {
-			logger.debug(`Starting sandbox ${this.data.id}...`);
+			logger.debug(`Starting sandbox ${sandboxId}...`);
 
 			this.#sandboxData = await this.#client.startSandbox({
-				path: { sandbox_id: this.#ensureId() },
+				path: { sandbox_id: sandboxId },
 			});
 
 			await this.waitUntilRunning();
 
 			logger.debug(
-				`Sandbox ${this.data.id} is now running. Status: ${this.data.status}`,
+				`Sandbox ${sandboxId} is now running. Status: ${this.data.status}`,
 			);
 		});
 	}
@@ -389,17 +400,18 @@ export class Sandbox {
 	 * Waits until the sandbox reaches STOPPED state
 	 */
 	async stop(): Promise<void> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to stop sandbox", async () => {
-			logger.debug(`Stopping sandbox ${this.data.id}...`);
+			logger.debug(`Stopping sandbox ${sandboxId}...`);
 
 			this.#sandboxData = await this.#client.stopSandbox({
-				path: { sandbox_id: this.#ensureId() },
+				path: { sandbox_id: sandboxId },
 			});
 
 			await this.waitUntilStopped();
 
 			logger.debug(
-				`Sandbox ${this.data.id} is now stopped. Status: ${this.data.status}`,
+				`Sandbox ${sandboxId} is now stopped. Status: ${this.data.status}`,
 			);
 		});
 	}
@@ -409,18 +421,19 @@ export class Sandbox {
 	 * Waits until the sandbox reaches RUNNING state and setup is complete
 	 */
 	async restart(): Promise<void> {
+		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to restart sandbox", async () => {
-			logger.debug(`Restarting sandbox ${this.data.id}...`);
+			logger.debug(`Restarting sandbox ${sandboxId}...`);
 
 			this.#sandboxData = await this.#client.restartSandbox({
-				path: { sandbox_id: this.#ensureId() },
+				path: { sandbox_id: sandboxId },
 			});
 
 			await this.waitUntilRunning();
 			await this.waitUntilReady();
 
 			logger.debug(
-				`Sandbox ${this.data.id} has been restarted and is ready. Status: ${this.data.status}, Setup status: ${this.data.setup_status}`,
+				`Sandbox ${sandboxId} has been restarted and is ready. Status: ${this.data.status}, Setup status: ${this.data.setup_status}`,
 			);
 		});
 	}
