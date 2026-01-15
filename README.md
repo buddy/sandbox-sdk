@@ -11,14 +11,14 @@ npm install @buddy-works/sandbox-sdk
 ## Usage
 
 ```typescript
-import {Sandbox} from "@buddy-works/sandbox-sdk";
+import { Sandbox } from "@buddy-works/sandbox-sdk";
 
 const identifier = "my-sandbox";
 
 let sandbox: Sandbox;
 
 // Find existing sandbox by identifier
-const list = await Sandbox.list({simple: true});
+const list = await Sandbox.list({ simple: true });
 const existingId = list.find((s) => s.identifier === identifier)?.id;
 
 if (existingId) {
