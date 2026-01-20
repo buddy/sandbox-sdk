@@ -30,11 +30,6 @@ describe("Error handling", () => {
 			const sandboxes = await Sandbox.list();
 			expect(Array.isArray(sandboxes)).toBe(true);
 		});
-
-		it("should return simple list without error", async () => {
-			const sandboxes = await Sandbox.list({ simple: true });
-			expect(Array.isArray(sandboxes)).toBe(true);
-		});
 	});
 
 	describe("FileSystem.forSandbox", () => {

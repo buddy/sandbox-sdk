@@ -105,13 +105,8 @@ describe("Sandbox", () => {
 			const sandboxes = await Sandbox.list();
 			expect(sandboxes.length).toBeGreaterThan(0);
 
-			const found = sandboxes.find((s) => s.data.id === sandbox.data.id);
+			const found = sandboxes.find((s) => s.id === sandbox.data.id);
 			expect(found).toBeDefined();
-		});
-
-		it("should list sandboxes in simple mode", async () => {
-			const sandboxes = await Sandbox.list({ simple: true });
-			expect(sandboxes.length).toBeGreaterThan(0);
 		});
 
 		it("should refresh sandbox data", async () => {

@@ -17,7 +17,7 @@ export type { ConnectionConfig };
 // Symbol for private constructor protection
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
 const INITIALIZE_INSTRUCTIONS =
-	"Use Sandbox.create(), Sandbox.getById(), Sandbox.getByIdentifier() or Sandbox.list() to obtain an instance.";
+	"Use Sandbox.create(), Sandbox.getById(), or Sandbox.getByIdentifier() to obtain an instance.";
 
 /**
  * Configuration for creating a new sandbox
@@ -40,8 +40,6 @@ export interface GetSandboxConfig {
  * Configuration for listing sandboxes
  */
 export interface ListSandboxesConfig {
-	/** Whether to fetch simplified sandbox data (faster, useful for filtering by ID). Default: false */
-	simple?: boolean;
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 }
@@ -191,45 +189,22 @@ export class Sandbox {
 	}
 
 	/**
-	 * List all sandboxes in the workspace (simplified data)
-	 * @param config - Configuration with simple: true for fast, minimal sandbox data
+	 * List all sandboxes in the workspace
+	 *
+	 * Returns a simplified view of each sandbox (id, identifier, name, status, urls)
+	 * rather than full Sandbox instances. Use `getById()` or `getByIdentifier()`
+	 * to get a full Sandbox instance for a specific sandbox.
+	 *
+	 * @param config - Optional configuration including connection settings
 	 * @returns Array of simplified sandbox objects
 	 */
-	static list(
-		config: ListSandboxesConfig & { simple: true },
-	): Promise<SandboxIdView[]>;
-	/**
-	 * List all sandboxes in the workspace (full Sandbox instances)
-	 * @param config - Optional configuration including connection settings
-	 * @returns Array of full Sandbox instances
-	 */
-	static list(config?: ListSandboxesConfig): Promise<Sandbox[]>;
-	static list(
-		config?: ListSandboxesConfig,
-	): Promise<Sandbox[] | SandboxIdView[]> {
+	static async list(config?: ListSandboxesConfig): Promise<SandboxIdView[]> {
 		return withErrorHandler("Failed to list sandboxes", async () => {
-			const { connection, simple } = config ?? {};
+			const { connection } = config ?? {};
 			const client = createClient(connection);
 
 			const sandboxList = await client.getSandboxes({});
-			const items = sandboxList?.sandboxes ?? [];
-
-			if (simple) {
-				return items as SandboxIdView[];
-			}
-
-			const sandboxes = await Promise.all(
-				items.map(async (item) => {
-					if (!item.id) return null;
-					const fullData = await client.getSandboxById({
-						path: { id: item.id },
-					});
-					if (!fullData) return null;
-					return new Sandbox(fullData, client, PRIVATE_CONSTRUCTOR_KEY);
-				}),
-			);
-
-			return sandboxes.filter((s): s is Sandbox => s !== null);
+			return sandboxList?.sandboxes ?? [];
 		});
 	}
 

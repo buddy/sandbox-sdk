@@ -23,18 +23,18 @@ export type StatusType = {
 };
 
 export type Response = {
+	status_info?: StatusType;
+	cookies?: {
+		[key: string]: NewCookie;
+	};
+	allowed_methods?: Array<string>;
+	links?: Array<Link>;
 	media_type?: MediaType;
 	entity_tag?: EntityTag;
 	string_headers?: {
 		empty?: boolean;
 		[key: string]: Array<string> | boolean | undefined;
 	};
-	status_info?: StatusType;
-	allowed_methods?: Array<string>;
-	cookies?: {
-		[key: string]: NewCookie;
-	};
-	links?: Array<Link>;
 	closed?: boolean;
 	length?: number;
 	location?: string;
@@ -80,11 +80,26 @@ export type Response = {
 	};
 };
 
+export type EntityTag = {
+	value?: string;
+	weak?: boolean;
+};
+
+export type MediaType = {
+	type?: string;
+	subtype?: string;
+	parameters?: {
+		[key: string]: string;
+	};
+	wildcard_type?: boolean;
+	wildcard_subtype?: boolean;
+};
+
 export type Link = {
 	uri?: string;
+	uri_builder?: UriBuilder;
 	rel?: string;
 	rels?: Array<string>;
-	uri_builder?: UriBuilder;
 	type?: string;
 	params?: {
 		[key: string]: string;
@@ -104,21 +119,6 @@ export type NewCookie = {
 	secure?: boolean;
 	http_only?: boolean;
 	same_site?: "NONE" | "LAX" | "STRICT";
-};
-
-export type EntityTag = {
-	value?: string;
-	weak?: boolean;
-};
-
-export type MediaType = {
-	type?: string;
-	subtype?: string;
-	parameters?: {
-		[key: string]: string;
-	};
-	wildcard_type?: boolean;
-	wildcard_subtype?: boolean;
 };
 
 /**

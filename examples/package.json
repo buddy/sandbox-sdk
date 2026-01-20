@@ -6,6 +6,7 @@
 		"lint:check": "tsc --skipLibCheck --noEmit && biome check",
 		"lint:fix": "tsc --skipLibCheck --noEmit && biome check --write",
 		"example:ping": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/ping.ts",
+		"example:list": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/list.ts",
 		"example:lifecycle": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/lifecycle.ts",
 		"example:streaming": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/streaming.ts",
 		"example:filesystem": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/filesystem.ts"
