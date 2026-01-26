@@ -2,20 +2,8 @@
 
 import { z } from "zod";
 
-export const zUriBuilder = z.record(z.string(), z.unknown());
-
-export const zStatusType = z.object({
-	family: z.optional(
-		z.enum([
-			"INFORMATIONAL",
-			"SUCCESSFUL",
-			"REDIRECTION",
-			"CLIENT_ERROR",
-			"SERVER_ERROR",
-			"OTHER",
-		]),
-	),
-	status_code: z.optional(
+export const zGroupPermissionView = z.object({
+	id: z.optional(
 		z
 			.int()
 			.min(-2147483648, {
@@ -23,38 +11,34 @@ export const zStatusType = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
+			})
+			.register(z.globalRegistry, {
+				description: "The ID of the group",
 			}),
 	),
-	reason_phrase: z.optional(z.string()),
+	access_level: z.optional(
+		z
+			.enum([
+				"DENIED",
+				"READ_ONLY",
+				"BLIND",
+				"RUN_ONLY",
+				"READ_WRITE",
+				"MANAGE",
+				"DEFAULT",
+				"ALLOWED",
+				"STAGE",
+				"COMMIT",
+				"USE_ONLY",
+			])
+			.register(z.globalRegistry, {
+				description: "The access level for the group",
+			}),
+	),
 });
 
-export const zEntityTag = z.object({
-	value: z.optional(z.string()),
-	weak: z.optional(z.boolean()),
-});
-
-export const zMediaType = z.object({
-	type: z.optional(z.string()),
-	subtype: z.optional(z.string()),
-	parameters: z.optional(z.record(z.string(), z.string())),
-	wildcard_type: z.optional(z.boolean()),
-	wildcard_subtype: z.optional(z.boolean()),
-});
-
-export const zLink = z.object({
-	uri: z.optional(z.url()),
-	uri_builder: z.optional(zUriBuilder),
-	rel: z.optional(z.string()),
-	rels: z.optional(z.array(z.string())),
-	type: z.optional(z.string()),
-	params: z.optional(z.record(z.string(), z.string())),
-	title: z.optional(z.string()),
-});
-
-export const zNewCookie = z.object({
-	name: z.optional(z.string()),
-	value: z.optional(z.string()),
-	version: z.optional(
+export const zUserPermissionView = z.object({
+	id: z.optional(
 		z
 			.int()
 			.min(-2147483648, {
@@ -62,91 +46,29 @@ export const zNewCookie = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			}),
-	),
-	path: z.optional(z.string()),
-	domain: z.optional(z.string()),
-	comment: z.optional(z.string()),
-	max_age: z.optional(
-		z
-			.int()
-			.min(-2147483648, {
-				error: "Invalid value: Expected int32 to be >= -2147483648",
 			})
-			.max(2147483647, {
-				error: "Invalid value: Expected int32 to be <= 2147483647",
+			.register(z.globalRegistry, {
+				description: "The ID of the user",
 			}),
 	),
-	expiry: z.optional(z.iso.datetime()),
-	secure: z.optional(z.boolean()),
-	http_only: z.optional(z.boolean()),
-	same_site: z.optional(z.enum(["NONE", "LAX", "STRICT"])),
-});
-
-export const zResponse = z.object({
-	status_info: z.optional(zStatusType),
-	cookies: z.optional(z.record(z.string(), zNewCookie)),
-	allowed_methods: z.optional(z.array(z.string())),
-	links: z.optional(z.array(zLink)),
-	media_type: z.optional(zMediaType),
-	entity_tag: z.optional(zEntityTag),
-	string_headers: z.optional(
-		z.object({
-			empty: z.optional(z.boolean()),
-		}),
-	),
-	closed: z.optional(z.boolean()),
-	length: z.optional(
+	access_level: z.optional(
 		z
-			.int()
-			.min(-2147483648, {
-				error: "Invalid value: Expected int32 to be >= -2147483648",
-			})
-			.max(2147483647, {
-				error: "Invalid value: Expected int32 to be <= 2147483647",
+			.enum([
+				"DENIED",
+				"READ_ONLY",
+				"BLIND",
+				"RUN_ONLY",
+				"READ_WRITE",
+				"MANAGE",
+				"DEFAULT",
+				"ALLOWED",
+				"STAGE",
+				"COMMIT",
+				"USE_ONLY",
+			])
+			.register(z.globalRegistry, {
+				description: "The access level for the user",
 			}),
-	),
-	location: z.optional(z.url()),
-	language: z.optional(
-		z.object({
-			language: z.optional(z.string()),
-			display_name: z.optional(z.string()),
-			country: z.optional(z.string()),
-			variant: z.optional(z.string()),
-			script: z.optional(z.string()),
-			unicode_locale_attributes: z.optional(z.array(z.string())),
-			unicode_locale_keys: z.optional(z.array(z.string())),
-			display_language: z.optional(z.string()),
-			display_script: z.optional(z.string()),
-			display_country: z.optional(z.string()),
-			display_variant: z.optional(z.string()),
-			extension_keys: z.optional(z.array(z.string())),
-			iso3_language: z.optional(z.string()),
-			iso3_country: z.optional(z.string()),
-		}),
-	),
-	date: z.optional(z.iso.datetime()),
-	last_modified: z.optional(z.iso.datetime()),
-	status: z.optional(
-		z
-			.int()
-			.min(-2147483648, {
-				error: "Invalid value: Expected int32 to be >= -2147483648",
-			})
-			.max(2147483647, {
-				error: "Invalid value: Expected int32 to be <= 2147483647",
-			}),
-	),
-	metadata: z.optional(
-		z.object({
-			empty: z.optional(z.boolean()),
-		}),
-	),
-	entity: z.optional(z.record(z.string(), z.unknown())),
-	headers: z.optional(
-		z.object({
-			empty: z.optional(z.boolean()),
-		}),
 	),
 });
 
@@ -558,6 +480,45 @@ export const zProjectView = z.object({
 });
 
 /**
+ * Access permissions configuration
+ */
+export const zPermissionsView = z
+	.object({
+		others: z.optional(
+			z
+				.enum([
+					"DENIED",
+					"READ_ONLY",
+					"BLIND",
+					"RUN_ONLY",
+					"READ_WRITE",
+					"MANAGE",
+					"DEFAULT",
+					"ALLOWED",
+					"STAGE",
+					"COMMIT",
+					"USE_ONLY",
+				])
+				.register(z.globalRegistry, {
+					description: "Access level for other workspace members",
+				}),
+		),
+		users: z.optional(
+			z.array(zUserPermissionView).register(z.globalRegistry, {
+				description: "List of specific users with their access levels",
+			}),
+		),
+		groups: z.optional(
+			z.array(zGroupPermissionView).register(z.globalRegistry, {
+				description: "List of user groups with their access levels",
+			}),
+		),
+	})
+	.register(z.globalRegistry, {
+		description: "Access permissions configuration",
+	});
+
+/**
  * The environment variables of the sandbox
  */
 export const zAddVariableInObjectRequest = z
@@ -926,6 +887,7 @@ export const zUpdateSandboxRequest = z.object({
 			description: "The environment variables of the sandbox",
 		}),
 	),
+	permissions: z.optional(zPermissionsView),
 });
 
 export const zSandboxesView = z.object({
@@ -1767,6 +1729,7 @@ export const zSandboxResponse = z.object({
 		}),
 	),
 	project: z.optional(zProjectView),
+	permissions: z.optional(zPermissionsView),
 	variables: z.optional(
 		z.array(zEnvironmentVariableView).register(z.globalRegistry, {
 			description: "The environment variables of the sandbox",
@@ -2447,6 +2410,7 @@ export const zUpdateSandboxRequestWritable = z.object({
 			description: "The environment variables of the sandbox",
 		}),
 	),
+	permissions: z.optional(zPermissionsView),
 });
 
 export const zSandboxesViewWritable = z.object({
@@ -2928,6 +2892,7 @@ export const zSandboxResponseWritable = z.object({
 		}),
 	),
 	project: z.optional(zProjectViewWritable),
+	permissions: z.optional(zPermissionsView),
 	variables: z.optional(
 		z.array(zEnvironmentVariableView).register(z.globalRegistry, {
 			description: "The environment variables of the sandbox",
@@ -3247,9 +3212,13 @@ export const zDownloadSandboxContentData = z.object({
 });
 
 /**
- * Content downloaded successfully
+ * File download
  */
-export const zDownloadSandboxContentResponse = zResponse;
+export const zDownloadSandboxContentResponse = z
+	.string()
+	.register(z.globalRegistry, {
+		description: "File download",
+	});
 
 export const zRestartSandboxData = z.object({
 	body: z.optional(z.never()),

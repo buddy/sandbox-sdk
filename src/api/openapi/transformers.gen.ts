@@ -5,7 +5,6 @@ import type {
 	AddSandboxResponse,
 	AddSandboxSnapshotResponse,
 	CreateSandboxDirectoryResponse,
-	DownloadSandboxContentResponse,
 	GetProjectSnapshotsResponse,
 	GetSandboxContentResponse,
 	GetSandboxResponse,
@@ -88,23 +87,6 @@ export const uploadSandboxFileResponseTransformer = async (
 	data: any,
 ): Promise<UploadSandboxFileResponse> => {
 	data = sandboxContentItemSchemaResponseTransformer(data);
-	return data;
-};
-
-const responseSchemaResponseTransformer = (data: any) => {
-	if (data.date) {
-		data.date = new Date(data.date);
-	}
-	if (data.last_modified) {
-		data.last_modified = new Date(data.last_modified);
-	}
-	return data;
-};
-
-export const downloadSandboxContentResponseTransformer = async (
-	data: any,
-): Promise<DownloadSandboxContentResponse> => {
-	data = responseSchemaResponseTransformer(data);
 	return data;
 };
 

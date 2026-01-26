@@ -15,7 +15,7 @@
 		"dist"
 	],
 	"scripts": {
-		"fetch:schemas": "openapi-ts",
+		"fetch:schemas": "dotenvx run -q -- openapi-ts",
 		"build": "tsdown",
 		"test": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- vitest run",
 		"test:watch": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- vitest",
@@ -56,6 +56,7 @@
 		"knip": "5.81.0",
 		"msw": "2.12.7",
 		"tsdown": "0.20.0-beta.3",
+		"tsx": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "4.0.17"
 	},
