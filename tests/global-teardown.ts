@@ -35,4 +35,5 @@ async function cleanupTestSandboxes() {
 	}
 }
 
+export const setup = cleanupTestSandboxes;
 export const teardown = cleanupTestSandboxes;
