@@ -6,6 +6,8 @@ export default defineConfig({
 		globals: true,
 		include: ["tests/**/*.test.ts"],
 		testTimeout: 60_000,
+		fileParallelism: true,
+		maxWorkers: 8,
 	},
 	resolve: {
 		alias: {
