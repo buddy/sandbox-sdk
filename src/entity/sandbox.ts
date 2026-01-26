@@ -386,6 +386,7 @@ export class Sandbox {
 
 	/**
 	 * Start a stopped sandbox
+	 *
 	 * Waits until the sandbox reaches RUNNING state
 	 */
 	async start(): Promise<void> {
@@ -407,6 +408,7 @@ export class Sandbox {
 
 	/**
 	 * Stop a running sandbox
+	 *
 	 * Waits until the sandbox reaches STOPPED state
 	 */
 	async stop(): Promise<void> {
@@ -428,6 +430,7 @@ export class Sandbox {
 
 	/**
 	 * Restart the sandbox
+	 *
 	 * Waits until the sandbox reaches RUNNING state and setup is complete
 	 */
 	async restart(): Promise<void> {

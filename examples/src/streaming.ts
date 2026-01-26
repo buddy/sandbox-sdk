@@ -14,6 +14,8 @@ try {
 	log(
 		`Found existing sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`,
 	);
+	log("Starting sandbox...");
+	await sandbox.start();
 } catch {
 	log("Creating new sandbox...");
 	sandbox = await Sandbox.create({
@@ -22,6 +24,7 @@ try {
 		os: "ubuntu:24.04",
 	});
 	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
+	await sandbox.waitUntilRunning();
 }
 
 log("\n=== Example 1: Auto-streaming ===");
@@ -49,4 +52,7 @@ for await (const entry of command.logs({ follow: true })) {
 
 await command.wait();
 
-log("\nDone!");
+log("\nStopping sandbox...");
+await sandbox.stop();
+
+log("Done!");
