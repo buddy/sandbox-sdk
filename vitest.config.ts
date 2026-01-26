@@ -8,6 +8,7 @@ export default defineConfig({
 		testTimeout: 60_000,
 		fileParallelism: true,
 		maxWorkers: 8,
+		globalSetup: ["./tests/global-teardown.ts"],
 	},
 	resolve: {
 		alias: {
