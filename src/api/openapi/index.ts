@@ -30,7 +30,6 @@ export type {
 	AddSnapshotRequest,
 	AddVariableInObjectRequest,
 	AddVariableInObjectRequestWritable,
-	ClientOptions,
 	CloneSandboxRequest,
 	CreateFromSnapshotRequest,
 	CreateFromSnapshotRequestWritable,
