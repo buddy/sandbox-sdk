@@ -7,7 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!.pnpm-store/"]
+		"includes": ["**/*", "!.pnpm-store/**/*"]
 	},
 	"formatter": {
 		"enabled": true,
