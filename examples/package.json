@@ -15,7 +15,7 @@
 	"author": "",
 	"type": "module",
 	"license": "ISC",
-	"packageManager": "pnpm@10.27.0",
+	"packageManager": "pnpm@10.28.0",
 	"dependencies": {
 		"@buddy-works/sandbox-sdk": "file:.."
 	},
