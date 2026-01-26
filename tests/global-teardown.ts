@@ -6,9 +6,10 @@ async function cleanupTestSandboxes() {
 	const sandboxes = await Sandbox.list();
 	const testSandboxes = sandboxes.filter(
 		(s) =>
+			s.name?.startsWith("Sandbox 202") ||
 			s.name?.startsWith("test-sandbox-") ||
 			s.name?.startsWith("command-test-") ||
-			s.name?.startsWith("fs-test-"),
+			s.name?.startsWith("filesystem-test-"),
 	);
 
 	if (testSandboxes.length === 0) {
