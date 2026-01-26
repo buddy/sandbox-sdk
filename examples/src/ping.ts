@@ -13,6 +13,8 @@ try {
 	log(
 		`Found existing sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`,
 	);
+	log("Starting sandbox...");
+	await sandbox.start();
 } catch {
 	log("Creating new sandbox...");
 	sandbox = await Sandbox.create({
@@ -21,6 +23,7 @@ try {
 		os: "ubuntu:24.04",
 	});
 	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
+	await sandbox.waitUntilRunning();
 }
 
 log("\n=== Mode 1: Real-time streaming ===");
@@ -88,5 +91,8 @@ log(
 	`Status check took ${Date.now() - start}ms (instant - command already done!)`,
 );
 log(`Output:\n${await finished3.output()}`);
+
+log("\nStopping sandbox...");
+await sandbox.stop();
 
 log("Ping example completed!");

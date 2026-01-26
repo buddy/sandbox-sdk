@@ -386,11 +386,20 @@ export class Sandbox {
 
 	/**
 	 * Start a stopped sandbox
-	 * Waits until the sandbox reaches RUNNING state
+	 *
+	 * If the sandbox is already running, this method returns immediately.
+	 * Waits until the sandbox reaches RUNNING state.
 	 */
 	async start(): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to start sandbox", async () => {
+			await this.refresh();
+
+			if (this.data.status === "RUNNING") {
+				logger.debug(`Sandbox ${sandboxId} is already running.`);
+				return;
+			}
+
 			logger.debug(`Starting sandbox ${sandboxId}...`);
 
 			this.#sandboxData = await this.#client.startSandbox({
@@ -407,11 +416,20 @@ export class Sandbox {
 
 	/**
 	 * Stop a running sandbox
-	 * Waits until the sandbox reaches STOPPED state
+	 *
+	 * If the sandbox is already stopped, this method returns immediately.
+	 * Waits until the sandbox reaches STOPPED state.
 	 */
 	async stop(): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to stop sandbox", async () => {
+			await this.refresh();
+
+			if (this.data.status === "STOPPED") {
+				logger.debug(`Sandbox ${sandboxId} is already stopped.`);
+				return;
+			}
+
 			logger.debug(`Stopping sandbox ${sandboxId}...`);
 
 			this.#sandboxData = await this.#client.stopSandbox({
@@ -428,6 +446,7 @@ export class Sandbox {
 
 	/**
 	 * Restart the sandbox
+	 *
 	 * Waits until the sandbox reaches RUNNING state and setup is complete
 	 */
 	async restart(): Promise<void> {

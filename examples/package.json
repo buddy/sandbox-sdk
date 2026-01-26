@@ -9,13 +9,14 @@
 		"example:list": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/list.ts",
 		"example:lifecycle": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/lifecycle.ts",
 		"example:streaming": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/streaming.ts",
-		"example:filesystem": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/filesystem.ts"
+		"example:filesystem": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/filesystem.ts",
+		"example:all": "concurrently \"pnpm example:ping\" \"pnpm example:list\" \"pnpm example:lifecycle\" \"pnpm example:streaming\" \"pnpm example:filesystem\""
 	},
 	"keywords": [],
 	"author": "",
 	"type": "module",
 	"license": "ISC",
-	"packageManager": "pnpm@10.27.0",
+	"packageManager": "pnpm@10.28.0",
 	"dependencies": {
 		"@buddy-works/sandbox-sdk": "file:.."
 	},
@@ -25,6 +26,7 @@
 		"@tsconfig/node20": "catalog:",
 		"@tsconfig/strictest": "catalog:",
 		"@types/node": "catalog:",
+		"concurrently": "9.2.1",
 		"tsx": "4.21.0",
 		"typescript": "catalog:"
 	}
