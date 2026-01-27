@@ -4,7 +4,8 @@ import { log } from "@/shared/logger";
 log("Ping Sandbox Example\n");
 
 const identifier = "ping-dev-sandbox";
-log(`Getting sandbox with identifier: ${identifier}`);
+
+log(`Getting or creating sandbox: ${identifier}`);
 
 let sandbox: Sandbox;
 
@@ -13,8 +14,6 @@ try {
 	log(
 		`Found existing sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`,
 	);
-	log("Starting sandbox...");
-	await sandbox.start();
 } catch {
 	log("Creating new sandbox...");
 	sandbox = await Sandbox.create({
@@ -23,8 +22,9 @@ try {
 		os: "ubuntu:24.04",
 	});
 	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
-	await sandbox.waitUntilRunning();
 }
+
+await sandbox.start();
 
 log("\n=== Mode 1: Real-time streaming ===");
 log("Output appears as the command runs:\n");

@@ -10,7 +10,8 @@
 		"example:lifecycle": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/lifecycle.ts",
 		"example:streaming": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/streaming.ts",
 		"example:filesystem": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/filesystem.ts",
-		"example:all": "concurrently \"pnpm example:ping\" \"pnpm example:list\" \"pnpm example:lifecycle\" \"pnpm example:streaming\" \"pnpm example:filesystem\""
+		"example:error-handling": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/error-handling.ts",
+		"example:all": "concurrently \"pnpm example:ping\" \"pnpm example:list\" \"pnpm example:lifecycle\" \"pnpm example:streaming\" \"pnpm example:filesystem\" \"pnpm example:error-handling\""
 	},
 	"keywords": [],
 	"author": "",

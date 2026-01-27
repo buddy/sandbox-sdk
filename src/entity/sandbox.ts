@@ -124,6 +124,12 @@ export class Sandbox {
 				`Sandbox ${sandbox.data.id} is ready (Setup status: ${sandbox.data.setup_status})`,
 			);
 
+			await sandbox.waitUntilRunning();
+
+			logger.debug(
+				`Sandbox ${sandbox.data.id} is now running. Status: ${sandbox.data.status}`,
+			);
+
 			return sandbox;
 		});
 	}
@@ -236,7 +242,7 @@ export class Sandbox {
 
 			const streamingPromise =
 				outputStdout || outputStderr
-					? await (async () => {
+					? (async () => {
 							for await (const log of command.logs({ follow: true })) {
 								const output = `${log.data ?? ""}\n`;
 
@@ -395,7 +401,10 @@ export class Sandbox {
 		return withErrorHandler("Failed to start sandbox", async () => {
 			await this.refresh();
 
-			if (this.data.status === "RUNNING") {
+			if (
+				this.data.setup_status === "SUCCESS" &&
+				this.data.status === "RUNNING"
+			) {
 				logger.debug(`Sandbox ${sandboxId} is already running.`);
 				return;
 			}
@@ -405,6 +414,12 @@ export class Sandbox {
 			this.#sandboxData = await this.#client.startSandbox({
 				path: { sandbox_id: sandboxId },
 			});
+
+			await this.waitUntilReady();
+
+			logger.debug(
+				`Sandbox ${sandboxId} is ready (Setup status: ${this.data.setup_status})`,
+			);
 
 			await this.waitUntilRunning();
 
