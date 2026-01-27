@@ -19,7 +19,6 @@ let sandbox: Sandbox;
 
 try {
     sandbox = await Sandbox.getByIdentifier(identifier);
-    await sandbox.start();
 } catch {
     sandbox = await Sandbox.create({
         identifier,
@@ -27,6 +26,8 @@ try {
         os: "ubuntu:24.04",
     });
 }
+
+await sandbox.start();
 
 await sandbox.runCommand({
     command: "ping -c 5 buddy.works",
