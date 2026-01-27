@@ -14,8 +14,6 @@ try {
 	log(
 		`Found existing sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`,
 	);
-	log("Starting sandbox...");
-	await sandbox.start();
 } catch {
 	log("Creating new sandbox...");
 	sandbox = await Sandbox.create({
@@ -24,8 +22,9 @@ try {
 		os: "ubuntu:24.04",
 	});
 	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
-	await sandbox.waitUntilRunning();
 }
+
+await sandbox.start();
 
 log("\n=== Direct FileSystem Usage ===");
 log("Creating FileSystem directly from sandbox ID...");

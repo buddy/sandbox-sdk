@@ -14,7 +14,6 @@ try {
 	log(
 		`Found existing sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`,
 	);
-	log("Starting sandbox...");
 	await sandbox.start();
 } catch {
 	log("Creating new sandbox...");
@@ -55,4 +54,4 @@ await command.wait();
 log("\nStopping sandbox...");
 await sandbox.stop();
 
-log("Done!");
+log("Streaming example completed!");
