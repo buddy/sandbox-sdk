@@ -62,7 +62,11 @@ async function runOrThrow(
 	sandbox: Sandbox,
 	command: string,
 ): Promise<Awaited<ReturnType<Sandbox["runCommand"]>>> {
-	const result = await sandbox.runCommand({ command, stdout: null, stderr: null });
+	const result = await sandbox.runCommand({
+		command,
+		stdout: null,
+		stderr: null,
+	});
 	if (result.data.exit_code !== 0) {
 		const stderr = await result.stderr();
 		throw new Error(`Command "${command}" failed: ${stderr.trim()}`);
