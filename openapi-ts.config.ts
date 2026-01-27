@@ -1,11 +1,22 @@
 import { defineConfig } from "@hey-api/openapi-ts";
 
+const schemaUrl = process.env["SCHEMA_URL"];
+
+if (!schemaUrl) {
+	throw new Error("SCHEMA_URL environment variable is required");
+}
+
 export default defineConfig({
-	input:
-		"https://schemas-openapi-buddy-swagger-ui-beta.eu-1.agent-sls.net/dev/restapi.json",
+	input: schemaUrl,
 	output: {
 		path: "src/api/openapi",
-		postProcess: ["biome:format"],
+		postProcess: [
+			{
+				command: "npx",
+				args: ["tsx", "scripts/cleanup-schemas.ts"],
+			},
+			"biome:format",
+		],
 	},
 	parser: {
 		filters: {

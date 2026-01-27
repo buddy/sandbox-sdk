@@ -6,6 +6,7 @@ export default defineConfig({
 		globals: true,
 		include: ["tests/**/*.test.ts"],
 		testTimeout: 60_000,
+		hookTimeout: 60_000,
 		fileParallelism: true,
 		maxWorkers: 8,
 		globalSetup: ["./tests/global-teardown.ts"],
