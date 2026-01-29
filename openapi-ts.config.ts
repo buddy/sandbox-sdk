@@ -21,7 +21,7 @@ export default defineConfig({
 	parser: {
 		filters: {
 			tags: {
-				include: ["Sandbox API"],
+				include: ["Sandbox API", "Workspace API"],
 			},
 		},
 	},

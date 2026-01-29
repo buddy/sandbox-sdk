@@ -148,9 +148,11 @@ export class Sandbox {
 			const { connection } = config ?? {};
 			const client = createClient(connection);
 
-			const sandboxList = await client.getSandboxes({});
-			const items = sandboxList?.sandboxes ?? [];
-			const sandboxId = items.find((s) => s.identifier === identifier)?.id;
+			const sandboxId = await client
+				.getIdentifiers({
+					query: { sandbox: identifier },
+				})
+				.then((res) => res.sandbox_id);
 
 			if (!sandboxId) {
 				throw new Error(`Sandbox with identifier '${identifier}' not found`);
