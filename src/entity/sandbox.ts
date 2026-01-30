@@ -148,11 +148,24 @@ export class Sandbox {
 			const { connection } = config ?? {};
 			const client = createClient(connection);
 
-			const sandboxId = await client
-				.getIdentifiers({
+			let sandboxId: NonNullable<GetSandboxResponse["id"]> | undefined;
+
+			try {
+				const identifiers = await client.getIdentifiers({
 					query: { project: client.project_name, sandbox: identifier },
-				})
-				.then((res) => res.sandbox_id);
+				});
+				sandboxId = identifiers.sandbox_id;
+			} catch {}
+
+			// <TODO>: Remove this fallback when the identifiers endpoint is rolled out to prod
+			if (!sandboxId) {
+				try {
+					const sandboxList = await client.getSandboxes({});
+					sandboxId = sandboxList?.sandboxes?.find(
+						(s) => s.identifier === identifier,
+					)?.id;
+				} catch {}
+			} // </TODO>
 
 			if (!sandboxId) {
 				throw new Error(`Sandbox with identifier '${identifier}' not found`);
