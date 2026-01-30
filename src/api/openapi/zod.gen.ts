@@ -3,16 +3,8 @@
 import { z } from "zod";
 
 export const zUpdateWorkspaceMemberRequest = z.object({
-	admin: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether the user has admin privileges",
-		}),
-	),
-	auto_assign_to_new_projects: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether user is automatically assigned to new projects",
-		}),
-	),
+	admin: z.optional(z.boolean()),
+	auto_assign_to_new_projects: z.optional(z.boolean()),
 	auto_assign_permission_set_id: z.optional(
 		z
 			.int()
@@ -21,71 +13,23 @@ export const zUpdateWorkspaceMemberRequest = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description:
-					"ID of permission set to automatically assign to new projects",
 			}),
 	),
 });
 
 export const zUpdateSsoRequest = z.object({
-	type: z.optional(
-		z.enum(["SAML", "OIDC"]).register(z.globalRegistry, {
-			description: "The type of the SSO to be set",
-		}),
-	),
+	type: z.optional(z.enum(["SAML", "OIDC"])),
 	sso_provider_type: z.optional(
-		z
-			.enum(["OKTA", "ONE_LOGIN", "GOOGLE", "AZURE", "AWS", "CUSTOM"])
-			.register(z.globalRegistry, {
-				description: "The provider type for SSO configuration",
-			}),
+		z.enum(["OKTA", "ONE_LOGIN", "GOOGLE", "AZURE", "AWS", "CUSTOM"]),
 	),
-	sso_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The SSO URL / SAML endpoint / Identity provider Single sign-on URL. Set when type is `SAML`.",
-		}),
-	),
-	issuer: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Issuer URI, IDP Entity ID, SSO issuer, provider issuer, AD identifier or the base URL of the OpenID Connect (OIDC) server.",
-		}),
-	),
-	certificate: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The x509 certificate content. Set when type is `SAML`.",
-		}),
-	),
-	signature_method: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Set when type is `SAML`. Examples: `sha1`, `sha256`, `sha512`",
-		}),
-	),
-	digest_method: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Set when type is `SAML`. Examples: `sha1`, `sha256`, `sha512`",
-		}),
-	),
-	client_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The client ID of the identity provider application.",
-		}),
-	),
-	client_secret: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The client secret of the identity provider application.",
-		}),
-	),
-	require_sso_for_all_members: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Require SSO authentication.",
-		}),
-	),
+	sso_url: z.optional(z.string()),
+	issuer: z.optional(z.string()),
+	certificate: z.optional(z.string()),
+	signature_method: z.optional(z.string()),
+	digest_method: z.optional(z.string()),
+	client_id: z.optional(z.string()),
+	client_secret: z.optional(z.string()),
+	require_sso_for_all_members: z.optional(z.boolean()),
 });
 
 export const zGroupPermissionView = z.object({
@@ -97,29 +41,22 @@ export const zGroupPermissionView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the group",
 			}),
 	),
 	access_level: z.optional(
-		z
-			.enum([
-				"DENIED",
-				"READ_ONLY",
-				"BLIND",
-				"RUN_ONLY",
-				"READ_WRITE",
-				"MANAGE",
-				"DEFAULT",
-				"ALLOWED",
-				"STAGE",
-				"COMMIT",
-				"USE_ONLY",
-			])
-			.register(z.globalRegistry, {
-				description: "The access level for the group",
-			}),
+		z.enum([
+			"DENIED",
+			"READ_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+			"USE_ONLY",
+		]),
 	),
 });
 
@@ -132,124 +69,80 @@ export const zUserPermissionView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the user",
 			}),
 	),
 	access_level: z.optional(
-		z
-			.enum([
-				"DENIED",
-				"READ_ONLY",
-				"BLIND",
-				"RUN_ONLY",
-				"READ_WRITE",
-				"MANAGE",
-				"DEFAULT",
-				"ALLOWED",
-				"STAGE",
-				"COMMIT",
-				"USE_ONLY",
-			])
-			.register(z.globalRegistry, {
-				description: "The access level for the user",
-			}),
+		z.enum([
+			"DENIED",
+			"READ_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+			"USE_ONLY",
+		]),
 	),
 });
 
 /**
  * Permission settings defining who can use this integration
  */
-export const zIntegrationPermissionsView = z
-	.object({
-		others: z.optional(
-			z
-				.enum([
-					"DENIED",
-					"READ_ONLY",
-					"BLIND",
-					"RUN_ONLY",
-					"READ_WRITE",
-					"MANAGE",
-					"DEFAULT",
-					"ALLOWED",
-					"STAGE",
-					"COMMIT",
-					"USE_ONLY",
-				])
-				.register(z.globalRegistry, {
-					description: "Access level for other workspace members",
-				}),
-		),
-		users: z.optional(
-			z.array(zUserPermissionView).register(z.globalRegistry, {
-				description: "List of specific users with their access levels",
-			}),
-		),
-		groups: z.optional(
-			z.array(zGroupPermissionView).register(z.globalRegistry, {
-				description: "List of user groups with their access levels",
-			}),
-		),
-		admins: z.optional(
-			z
-				.enum([
-					"DENIED",
-					"READ_ONLY",
-					"BLIND",
-					"RUN_ONLY",
-					"READ_WRITE",
-					"MANAGE",
-					"DEFAULT",
-					"ALLOWED",
-					"STAGE",
-					"COMMIT",
-					"USE_ONLY",
-				])
-				.register(z.globalRegistry, {
-					description: "Access level for workspace administrators",
-				}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Permission settings defining who can use this integration",
-	});
+export const zIntegrationPermissionsView = z.object({
+	others: z.optional(
+		z.enum([
+			"DENIED",
+			"READ_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+			"USE_ONLY",
+		]),
+	),
+	users: z.optional(z.array(zUserPermissionView)),
+	groups: z.optional(z.array(zGroupPermissionView)),
+	admins: z.optional(
+		z.enum([
+			"DENIED",
+			"READ_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+			"USE_ONLY",
+		]),
+	),
+});
 
 /**
  * Pipeline reference
  */
-export const zPipelineIdView = z
-	.object({
-		id: z
-			.int()
-			.min(-2147483648, {
-				error: "Invalid value: Expected int32 to be >= -2147483648",
-			})
-			.max(2147483647, {
-				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The unique identifier of the pipeline",
-			}),
-	})
-	.register(z.globalRegistry, {
-		description: "Pipeline reference",
-	});
+export const zPipelineIdView = z.object({
+	id: z
+		.int()
+		.min(-2147483648, {
+			error: "Invalid value: Expected int32 to be >= -2147483648",
+		})
+		.max(2147483647, {
+			error: "Invalid value: Expected int32 to be <= 2147483647",
+		}),
+});
 
 export const zRoleAssumptionView = z.object({
-	arn: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The Amazon Resource Name (ARN) of the AWS IAM role to assume",
-		}),
-	),
-	external_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The external ID used for additional security when assuming the AWS role",
-		}),
-	),
+	arn: z.optional(z.string()),
+	external_id: z.optional(z.string()),
 	duration: z.optional(
 		z
 			.int()
@@ -258,232 +151,67 @@ export const zRoleAssumptionView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The duration of the assumed role session in seconds",
 			}),
 	),
 });
 
 export const zUpdateIntegrationRequest = z.object({
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "A human-readable ID of the integration",
-		}),
-	),
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the integration",
-	}),
-	token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The authentication token for services like GitHub, GitLab, DigitalOcean",
-		}),
-	),
-	email: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Email address associated with the integration",
-		}),
-	),
-	api_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The API key for services that use key-based authentication",
-		}),
-	),
-	access_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The access key ID for AWS or DigitalOcean Spaces",
-		}),
-	),
-	secret_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The secret access key for AWS or DigitalOcean Spaces",
-		}),
-	),
-	partner_token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Partner token for specific integrations",
-		}),
-	),
-	shop: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The shop name for Shopify integrations",
-		}),
-	),
-	url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The integration URL",
-		}),
-	),
-	chat_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The chat ID for messaging integrations",
-		}),
-	),
-	git_hub_user_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The GitHub user ID",
-		}),
-	),
-	git_hub_user_name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The GitHub username",
-		}),
-	),
-	username: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The username for authentication",
-		}),
-	),
-	password: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The password for Azure Cloud, UpCloud, or DockerHub",
-		}),
-	),
-	app_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application ID for Azure Cloud integrations",
-		}),
-	),
-	tenant_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The tenant ID for Azure Cloud integrations",
-		}),
-	),
-	client_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The client ID for OAuth-based integrations",
-		}),
-	),
-	client_token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The client token for authentication",
-		}),
-	),
-	server_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The server ID for Discord integrations",
-		}),
-	),
-	server_token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The server token for authentication",
-		}),
-	),
-	key_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The key ID for various integrations",
-		}),
-	),
-	application_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application key for Datadog integrations",
-		}),
-	),
-	host_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The host URL for custom integrations",
-		}),
-	),
-	webhook_address: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The webhook URL for receiving notifications",
-		}),
-	),
-	slack_user_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The Slack user ID",
-		}),
-	),
-	region: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The cloud region (e.g., us-east-1, eu-west-1)",
-		}),
-	),
-	role_assumptions: z.optional(
-		z.array(zRoleAssumptionView).register(z.globalRegistry, {
-			description: "AWS IAM role assumptions for cross-account access",
-		}),
-	),
-	all_pipelines_allowed: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"Set to `true` to allow all pipelines to use this integration",
-		}),
-	),
-	allowed_pipelines: z.optional(
-		z.array(zPipelineIdView).register(z.globalRegistry, {
-			description: "List of specific pipelines allowed to use this integration",
-		}),
-	),
+	identifier: z.optional(z.string()),
+	name: z.string(),
+	token: z.optional(z.string()),
+	email: z.optional(z.string()),
+	api_key: z.optional(z.string()),
+	access_key: z.optional(z.string()),
+	secret_key: z.optional(z.string()),
+	partner_token: z.optional(z.string()),
+	shop: z.optional(z.string()),
+	url: z.optional(z.string()),
+	chat_id: z.optional(z.string()),
+	git_hub_user_id: z.optional(z.string()),
+	git_hub_user_name: z.optional(z.string()),
+	username: z.optional(z.string()),
+	password: z.optional(z.string()),
+	app_id: z.optional(z.string()),
+	tenant_id: z.optional(z.string()),
+	client_id: z.optional(z.string()),
+	client_token: z.optional(z.string()),
+	server_id: z.optional(z.string()),
+	server_token: z.optional(z.string()),
+	key_id: z.optional(z.string()),
+	application_key: z.optional(z.string()),
+	host_url: z.optional(z.string()),
+	webhook_address: z.optional(z.string()),
+	slack_user_id: z.optional(z.string()),
+	region: z.optional(z.string()),
+	role_assumptions: z.optional(z.array(zRoleAssumptionView)),
+	all_pipelines_allowed: z.optional(z.boolean()),
+	allowed_pipelines: z.optional(z.array(zPipelineIdView)),
 	permissions: z.optional(zIntegrationPermissionsView),
 	auth_type: z.optional(
-		z
-			.enum([
-				"OAUTH",
-				"TOKEN",
-				"API_KEY",
-				"APP",
-				"APP_SPRYKER",
-				"TOKEN_APP_EXTENSION",
-				"DEFAULT",
-				"OIDC",
-				"TRUSTED",
-				"APP_RW",
-			])
-			.register(z.globalRegistry, {
-				description: "The authentication method used by the integration",
-			}),
+		z.enum([
+			"OAUTH",
+			"TOKEN",
+			"API_KEY",
+			"APP",
+			"APP_SPRYKER",
+			"TOKEN_APP_EXTENSION",
+			"DEFAULT",
+			"OIDC",
+			"TRUSTED",
+			"APP_RW",
+		]),
 	),
-	target_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The target URL for webhook-based integrations",
-		}),
-	),
-	refresh_token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The refresh token for OAuth flows",
-		}),
-	),
-	audience: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The JWT audience for token validation",
-		}),
-	),
-	config: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Additional configuration data in JSON format",
-		}),
-	),
-	google_project: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The Google Cloud project ID",
-		}),
-	),
-	atop_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ATOP service URL",
-		}),
-	),
+	target_url: z.optional(z.string()),
+	refresh_token: z.optional(z.string()),
+	audience: z.optional(z.string()),
+	config: z.optional(z.string()),
+	google_project: z.optional(z.string()),
+	atop_url: z.optional(z.string()),
 });
 
 export const zShortWorkspaceView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
 	id: z.optional(
 		z
 			.int()
@@ -492,61 +220,21 @@ export const zShortWorkspaceView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the workspace",
 			}),
 	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the workspace",
-		}),
-	),
-	domain: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The human-readable ID of the workspace. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
+	name: z.optional(z.string()),
+	domain: z.optional(z.string()),
 });
 
 export const zWorkspacesView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
 	workspaces: z.optional(z.array(zShortWorkspaceView)),
 });
 
 export const zWorkspaceMemberView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
 	id: z.optional(
 		z
 			.int()
@@ -555,41 +243,14 @@ export const zWorkspaceMemberView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the user",
 			}),
 	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the user",
-		}),
-	),
-	avatar_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The avatar URL of the user",
-		}),
-	),
-	email: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The email address of the user",
-		}),
-	),
-	admin: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether the user has admin privileges",
-		}),
-	),
-	workspace_owner: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether the user is workspace owner",
-		}),
-	),
-	auto_assign_to_new_projects: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether user is automatically assigned to new projects",
-		}),
-	),
+	name: z.optional(z.string()),
+	avatar_url: z.optional(z.string()),
+	email: z.optional(z.string()),
+	admin: z.optional(z.boolean()),
+	workspace_owner: z.optional(z.boolean()),
+	auto_assign_to_new_projects: z.optional(z.boolean()),
 	auto_assign_permission_set_id: z.optional(
 		z
 			.int()
@@ -598,51 +259,19 @@ export const zWorkspaceMemberView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description:
-					"ID of permission set to automatically assign to new projects",
 			}),
 	),
 });
 
 export const zWorkspaceMembersView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
 	members: z.optional(z.array(zWorkspaceMemberView)),
 });
 
 export const zWorkspaceView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
 	id: z.optional(
 		z
 			.int()
@@ -651,22 +280,10 @@ export const zWorkspaceView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the workspace",
 			}),
 	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the workspace",
-		}),
-	),
-	domain: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The human-readable ID of the workspace. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
+	name: z.optional(z.string()),
+	domain: z.optional(z.string()),
 	owner_id: z.optional(
 		z
 			.int()
@@ -675,1070 +292,220 @@ export const zWorkspaceView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the workspace owner",
 			}),
 	),
-	frozen: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether the workspace is frozen",
-		}),
-	),
-	create_date: z.optional(
-		z.iso.datetime().register(z.globalRegistry, {
-			description: "The date and time when the workspace was created",
-		}),
-	),
+	frozen: z.optional(z.boolean()),
+	create_date: z.optional(z.iso.datetime()),
 	default_pipeline_resource: z.optional(
-		z
-			.enum([
-				"DEFAULT",
-				"NANO",
-				"SMALL",
-				"MEDIUM",
-				"LARGE",
-				"XLARGE",
-				"CUSTOM",
-				"X2LARGE",
-			])
-			.register(z.globalRegistry, {
-				description: "Default pipeline resource allocation for the workspace",
-			}),
+		z.enum([
+			"DEFAULT",
+			"NANO",
+			"SMALL",
+			"MEDIUM",
+			"LARGE",
+			"XLARGE",
+			"CUSTOM",
+			"X2LARGE",
+		]),
 	),
-	sso_enabled: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether Single Sign-On (SSO) is enabled for the workspace",
-		}),
-	),
-	public_pipelines_disabled: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether public pipelines are disabled in the workspace",
-		}),
-	),
+	sso_enabled: z.optional(z.boolean()),
+	public_pipelines_disabled: z.optional(z.boolean()),
 });
 
 export const zSsoView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	type: z.optional(
-		z.enum(["SAML", "OIDC"]).register(z.globalRegistry, {
-			description: "The type of the SSO to be set",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	type: z.optional(z.enum(["SAML", "OIDC"])),
 	sso_provider_type: z.optional(
-		z
-			.enum(["OKTA", "ONE_LOGIN", "GOOGLE", "AZURE", "AWS", "CUSTOM"])
-			.register(z.globalRegistry, {
-				description: "The provider type for SSO configuration",
-			}),
+		z.enum(["OKTA", "ONE_LOGIN", "GOOGLE", "AZURE", "AWS", "CUSTOM"]),
 	),
-	sso_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The SSO URL / SAML endpoint / Identity provider Single sign-on URL. Set when type is `SAML`.",
-		}),
-	),
-	issuer: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Issuer URI, IDP Entity ID, SSO issuer, provider issuer, AD identifier or the base URL of the OpenID Connect (OIDC) server.",
-		}),
-	),
-	certificate: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The x509 certificate content. Set when type is `SAML`.",
-		}),
-	),
-	signature_method: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Set when type is `SAML`. Examples: `sha1`, `sha256`, `sha512`",
-		}),
-	),
-	digest_method: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Set when type is `SAML`. Examples: `sha1`, `sha256`, `sha512`",
-		}),
-	),
-	require_sso_for_all_members: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Require SSO authentication.",
-		}),
-	),
+	sso_url: z.optional(z.string()),
+	issuer: z.optional(z.string()),
+	certificate: z.optional(z.string()),
+	signature_method: z.optional(z.string()),
+	digest_method: z.optional(z.string()),
+	require_sso_for_all_members: z.optional(z.boolean()),
 });
 
 /**
  * YAML pipeline definition configuration
  */
-export const zYamlDefinitionView = z
-	.object({
-		path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The file path to the YAML definition",
-			}),
-		),
-		branch: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"The git ref (branch/tag) where the YAML definition is located",
-			}),
-		),
-		project: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The project name where the YAML definition is located",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "YAML pipeline definition configuration",
-	});
+export const zYamlDefinitionView = z.object({
+	path: z.optional(z.string()),
+	branch: z.optional(z.string()),
+	project: z.optional(z.string()),
+});
 
 /**
  * The parameters passed to the remote pipeline definition
  */
-export const zPipelinePropertyView = z
-	.object({
-		key: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The key of the pipeline property",
-			}),
-		),
-		value: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The value of the pipeline property",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The parameters passed to the remote pipeline definition",
-	});
+export const zPipelinePropertyView = z.object({
+	key: z.optional(z.string()),
+	value: z.optional(z.string()),
+});
 
 export const zPipelinePkgContextView = z.object({
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "A human-readable ID of package",
-		}),
-	),
-	scope: z.optional(
-		z
-			.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT", "ANY"])
-			.register(z.globalRegistry, {
-				description: "The scope of the package",
-			}),
-	),
+	identifier: z.optional(z.string()),
+	scope: z.optional(z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT", "ANY"])),
 });
 
 /**
  * The list of events that trigger the pipeline run
  */
-export const zPipelineEventView = z
-	.object({
-		type: z.optional(
-			z
-				.enum([
-					"PUSH",
-					"CREATE_REF",
-					"DELETE_REF",
-					"PULL_REQUEST",
-					"SCHEDULE",
-					"PUBLISH_PACKAGE_VERSION",
-					"DELETE_PACKAGE_VERSION",
-					"WEBHOOK",
-					"EMAIL",
-					"CREATE_PACKAGE_VERSION",
-				])
-				.register(z.globalRegistry, {
-					description: "The type of event that triggers the pipeline",
-				}),
-		),
-		refs: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description:
-					"The list of refs (branches/tags) that trigger the pipeline for push/ref events",
+export const zPipelineEventView = z.object({
+	type: z.optional(
+		z.enum([
+			"PUSH",
+			"CREATE_REF",
+			"DELETE_REF",
+			"PULL_REQUEST",
+			"SCHEDULE",
+			"PUBLISH_PACKAGE_VERSION",
+			"DELETE_PACKAGE_VERSION",
+			"WEBHOOK",
+			"EMAIL",
+			"CREATE_PACKAGE_VERSION",
+		]),
+	),
+	refs: z.optional(z.array(z.string())),
+	events: z.optional(z.array(z.string())),
+	branches: z.optional(z.array(z.string())),
+	packages: z.optional(z.array(zPipelinePkgContextView)),
+	start_date: z.optional(z.iso.datetime()),
+	delay: z.optional(
+		z.coerce
+			.bigint()
+			.min(BigInt("-9223372036854775808"), {
+				error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+			})
+			.max(BigInt("9223372036854775807"), {
+				error: "Invalid value: Expected int64 to be <= 9223372036854775807",
 			}),
-		),
-		events: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description:
-					"The list of pull request events that trigger the pipeline. Examples: `OPENED`, `EDITED`, `CLOSED`, `LABELED`, `UNLABELED`, `REVIEW_REQUESTED`, `REVIEW_REQUESTED_REMOVED`, `SYNCHRONIZED`",
-			}),
-		),
-		branches: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description: "The list of branches for pull request events",
-			}),
-		),
-		packages: z.optional(
-			z.array(zPipelinePkgContextView).register(z.globalRegistry, {
-				description: "The list of packages that trigger the pipeline",
-			}),
-		),
-		start_date: z.optional(
-			z.iso.datetime().register(z.globalRegistry, {
-				description: "The start date for scheduled events (type `SCHEDULE`)",
-			}),
-		),
-		delay: z.optional(
-			z.coerce
-				.bigint()
-				.min(BigInt("-9223372036854775808"), {
-					error: "Invalid value: Expected int64 to be >= -9223372036854775808",
-				})
-				.max(BigInt("9223372036854775807"), {
-					error: "Invalid value: Expected int64 to be <= 9223372036854775807",
-				})
-				.register(z.globalRegistry, {
-					description:
-						"The delay in minutes between scheduled runs (type `SCHEDULE`)",
-				}),
-		),
-		cron: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"The cron expression for scheduled (type `SCHEDULE`) events e.g., '0 9 * * 1-5' for weekdays at 9 AM",
-			}),
-		),
-		timezone: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"The timezone for scheduled events (type `SCHEDULE`) e.g., 'UTC', 'Europe/Warsaw'",
-			}),
-		),
-		totp: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Whether TOTP (Time-based One-Time Password) is enabled for webhook events (type `WEBHOOK`)",
-			}),
-		),
-		prefix: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"The email subject prefix for email trigger events (type `EMAIL`)",
-			}),
-		),
-		whitelist: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description:
-					"The list of allowed email addresses that can trigger the pipeline via email (type `EMAIL`)",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The list of events that trigger the pipeline run",
-	});
+	),
+	cron: z.optional(z.string()),
+	timezone: z.optional(z.string()),
+	totp: z.optional(z.boolean()),
+	prefix: z.optional(z.string()),
+	whitelist: z.optional(z.array(z.string())),
+});
 
 /**
  * Short representation of a pipeline
  */
-export const zShortPipelineView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		id: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description: "The unique identifier of the pipeline",
-				}),
-		),
-		identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "A human-readable ID of pipeline",
+export const zShortPipelineView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	id: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the pipeline",
+	),
+	identifier: z.optional(z.string()),
+	name: z.optional(z.string()),
+	definition_source: z.optional(z.enum(["LOCAL", "REMOTE"])),
+	git_config_ref: z.optional(z.enum(["NONE", "DYNAMIC", "FIXED"])),
+	refs: z.optional(z.array(z.string())),
+	events: z.optional(z.array(zPipelineEventView)),
+	loop: z.optional(z.array(z.string())),
+	priority: z.optional(z.enum(["LOW", "NORMAL", "HIGH"])),
+	disabled: z.optional(z.boolean()),
+	disabled_reason: z.optional(z.string()),
+	last_execution_status: z.optional(
+		z.enum([
+			"INPROGRESS",
+			"ENQUEUED",
+			"TERMINATED",
+			"SUCCESSFUL",
+			"FAILED",
+			"INITIAL",
+			"NOT_EXECUTED",
+			"SKIPPED",
+			"TERMINATING",
+			"WAITING_FOR_APPLY",
+			"WAITING_FOR_VARIABLES",
+			"WAITING_FOR_SETTABLE_VARIABLES",
+			"WAITING_FOR_VT_SESSION",
+		]),
+	),
+	last_execution_revision: z.optional(z.string()),
+	target_site_url: z.optional(z.string()),
+	execution_message_template: z.optional(z.string()),
+	create_date: z.optional(z.iso.datetime()),
+	always_from_scratch: z.optional(z.boolean()),
+	ignore_fail_on_project_status: z.optional(z.boolean()),
+	no_skip_to_most_recent: z.optional(z.boolean()),
+	terminate_stale_runs: z.optional(z.boolean()),
+	auto_clear_cache: z.optional(z.boolean()),
+	paused: z.optional(z.boolean()),
+	pause_on_repeated_failures: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		definition_source: z.optional(
-			z.enum(["LOCAL", "REMOTE"]).register(z.globalRegistry, {
-				description: "The source of the pipeline definition",
+	),
+	fetch_all_refs: z.optional(z.boolean()),
+	fail_on_prepare_env_warning: z.optional(z.boolean()),
+	concurrent_pipeline_runs: z.optional(z.boolean()),
+	clone_depth: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		git_config_ref: z.optional(
-			z.enum(["NONE", "DYNAMIC", "FIXED"]).register(z.globalRegistry, {
-				description: "The git configuration reference type",
-			}),
-		),
-		refs: z.optional(
-			z
-				.array(
-					z.string().register(z.globalRegistry, {
-						description:
-							"Pipeline git context refs. If unset and events is empty, the pipeline counts as codeless",
-					}),
-				)
-				.register(z.globalRegistry, {
-					description:
-						"Pipeline git context refs. If unset and events is empty, the pipeline counts as codeless",
-				}),
-		),
-		events: z.optional(
-			z.array(zPipelineEventView).register(z.globalRegistry, {
-				description: "The list of events that trigger the pipeline run",
-			}),
-		),
-		loop: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description: "The loop configuration for the pipeline",
-			}),
-		),
-		priority: z.optional(
-			z.enum(["LOW", "NORMAL", "HIGH"]).register(z.globalRegistry, {
-				description: "The priority of the pipeline",
-			}),
-		),
-		disabled: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Indicates if the pipeline is disabled",
-			}),
-		),
-		disabled_reason: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The reason why the pipeline is disabled",
-			}),
-		),
-		last_execution_status: z.optional(
-			z
-				.enum([
-					"INPROGRESS",
-					"ENQUEUED",
-					"TERMINATED",
-					"SUCCESSFUL",
-					"FAILED",
-					"INITIAL",
-					"NOT_EXECUTED",
-					"SKIPPED",
-					"TERMINATING",
-					"WAITING_FOR_APPLY",
-					"WAITING_FOR_VARIABLES",
-					"WAITING_FOR_SETTABLE_VARIABLES",
-					"WAITING_FOR_VT_SESSION",
-				])
-				.register(z.globalRegistry, {
-					description: "The status of the last run",
-				}),
-		),
-		last_execution_revision: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The git revision of the last run",
-			}),
-		),
-		target_site_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The URL to the target site after deployment",
-			}),
-		),
-		execution_message_template: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The template for commit status messages",
-			}),
-		),
-		create_date: z.optional(
-			z.iso.datetime().register(z.globalRegistry, {
-				description: "The creation date of the pipeline",
-			}),
-		),
-		always_from_scratch: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Defines whether to upload everything from scratch on every run",
-			}),
-		),
-		ignore_fail_on_project_status: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, the status of a given pipeline will not impact the project status on the dashboard",
-			}),
-		),
-		no_skip_to_most_recent: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, the pipeline will not skip queued runs to execute the most recent one",
-			}),
-		),
-		terminate_stale_runs: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, stale runs will be automatically terminated",
-			}),
-		),
-		auto_clear_cache: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Defines whether to automatically clear cache before running the pipeline",
-			}),
-		),
-		paused: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Indicates if the pipeline is paused",
-			}),
-		),
-		pause_on_repeated_failures: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description:
-						"Defines how many repeated failures are required to pause the pipeline",
-				}),
-		),
-		fetch_all_refs: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, all refs will be fetched from the repository",
-			}),
-		),
-		fail_on_prepare_env_warning: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, the pipeline will fail on environment preparation warnings",
-			}),
-		),
-		concurrent_pipeline_runs: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Defines whether the pipeline can be run concurrently",
-			}),
-		),
-		clone_depth: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description:
-						"Defines the depth of the git clone operation for shallow clones",
-				}),
-		),
-		do_not_create_commit_status: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, commit statuses will not be created in the repository",
-			}),
-		),
-		stale: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Indicates that pipeline definition was probably removed on particular Git ref and pipeline won't be run on events",
-			}),
-		),
-		waiting_for_push: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Indicates if the pipeline is waiting for the first push to the repository",
-			}),
-		),
-		resources: z.optional(
-			z
-				.enum([
-					"DEFAULT",
-					"NANO",
-					"SMALL",
-					"MEDIUM",
-					"LARGE",
-					"XLARGE",
-					"CUSTOM",
-					"X2LARGE",
-				])
-				.register(z.globalRegistry, {
-					description: "The resource configuration for the pipeline run",
-				}),
-		),
-		remote_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The path to the remote pipeline definition file",
-			}),
-		),
-		remote_ref: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The ref of the remote pipeline definition",
-			}),
-		),
-		remote_project_name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The project name of the remote pipeline definition",
-			}),
-		),
-		remote_parameters: z.optional(
-			z.array(zPipelinePropertyView).register(z.globalRegistry, {
-				description: "The parameters passed to the remote pipeline definition",
-			}),
-		),
-		git_config: z.optional(zYamlDefinitionView),
-		tags: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description:
-					"The list of tags associated with the pipeline for organization",
-			}),
-		),
-		git_changeset_base: z.optional(
-			z
-				.enum(["LATEST_RUN", "LATEST_RUN_MATCHING_REF", "PULL_REQUEST"])
-				.register(z.globalRegistry, {
-					description:
-						"The base for git changeset calculation. Determines which changes trigger the pipeline",
-				}),
-		),
-		filesystem_changeset_base: z.optional(
-			z.enum(["DATE_MODIFIED", "CONTENTS"]).register(z.globalRegistry, {
-				description:
-					"The base for filesystem changeset calculation. Determines which file changes trigger the pipeline",
-			}),
-		),
-		cpu: z.optional(
-			z.enum(["X64", "ARM", "X86"]).register(z.globalRegistry, {
-				description: "The CPU architecture for the pipeline run",
-			}),
-		),
-		description_required: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, a description is required when executing the pipeline manually",
-			}),
-		),
-		folder: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The folder name where the pipeline is organized",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Short representation of a pipeline",
-	});
+	),
+	do_not_create_commit_status: z.optional(z.boolean()),
+	stale: z.optional(z.boolean()),
+	waiting_for_push: z.optional(z.boolean()),
+	resources: z.optional(
+		z.enum([
+			"DEFAULT",
+			"NANO",
+			"SMALL",
+			"MEDIUM",
+			"LARGE",
+			"XLARGE",
+			"CUSTOM",
+			"X2LARGE",
+		]),
+	),
+	remote_path: z.optional(z.string()),
+	remote_ref: z.optional(z.string()),
+	remote_project_name: z.optional(z.string()),
+	remote_parameters: z.optional(z.array(zPipelinePropertyView)),
+	git_config: z.optional(zYamlDefinitionView),
+	tags: z.optional(z.array(z.string())),
+	git_changeset_base: z.optional(
+		z.enum(["LATEST_RUN", "LATEST_RUN_MATCHING_REF", "PULL_REQUEST"]),
+	),
+	filesystem_changeset_base: z.optional(z.enum(["DATE_MODIFIED", "CONTENTS"])),
+	cpu: z.optional(z.enum(["X64", "ARM", "X86"])),
+	description_required: z.optional(z.boolean()),
+	folder: z.optional(z.string()),
+});
 
 /**
  * The integration to use for authentication
  */
-export const zIntegrationView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "A human-readable ID of the integration",
-			}),
-		),
-		hash_id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The unique hash ID of the integration",
-			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the integration",
-			}),
-		),
-		type: z.optional(
-			z
-				.enum([
-					"GIT_HUB",
-					"BITBUCKET",
-					"GOOGLE",
-					"DIGITAL_OCEAN",
-					"SLACK",
-					"MODULUS",
-					"HEROKU",
-					"AMAZON",
-					"GIT_LAB",
-					"SHOPIFY",
-					"GIT_HUB_ENTERPRISE",
-					"GIT_LAB_ENTERPRISE",
-					"PUSHOVER",
-					"PUSHBULLET",
-					"RACKSPACE",
-					"CUSTOM",
-					"CLOUDFLARE",
-					"NEW_RELIC",
-					"SENTRY",
-					"ROLLBAR",
-					"DATADOG",
-					"DO_SPACES",
-					"HONEYBADGER",
-					"VULTR",
-					"SENTRY_ENTERPRISE",
-					"LOGGLY",
-					"HIP_CHAT",
-					"FIREBASE",
-					"TELEGRAM",
-					"AZURE",
-					"UPCLOUD",
-					"GHOST_INSPECTOR",
-					"NETLIFY",
-					"AZURE_CLOUD",
-					"MICROSOFT_TEAMS",
-					"GOOGLE_SERVICE_ACCOUNT",
-					"GOOGLE_PLAY_STORE",
-					"DOCKER_HUB",
-					"APP_STORE",
-					"GIT_HUB_APP",
-					"GIT_HUB_APP_ENTERPRISE",
-					"GIT_HUB_API",
-					"ATOP",
-					"SNYK",
-					"STACK_HAWK",
-					"BLACKFIRE",
-					"BACKBLAZE",
-					"ONE_LOGIN",
-					"OKTA",
-					"CONTENTFUL",
-				])
-				.register(z.globalRegistry, {
-					description: "The type of integration",
-				}),
-		),
-		auth_type: z.optional(
-			z
-				.enum([
-					"OAUTH",
-					"TOKEN",
-					"API_KEY",
-					"APP",
-					"APP_SPRYKER",
-					"TOKEN_APP_EXTENSION",
-					"DEFAULT",
-					"OIDC",
-					"TRUSTED",
-					"APP_RW",
-				])
-				.register(z.globalRegistry, {
-					description: "The authentication method used by the integration",
-				}),
-		),
-		scope: z.optional(
-			z
-				.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"])
-				.register(z.globalRegistry, {
-					description: "The scope of the integration",
-				}),
-		),
-		project_name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"The human-readable ID of the project (required when scope is `PROJECT`)",
-			}),
-		),
-		app_id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The application ID for Azure Cloud integrations",
-			}),
-		),
-		google_project: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The Google Cloud project ID",
-			}),
-		),
-		host_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The host URL for custom integrations",
-			}),
-		),
-		webhook_address: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The webhook URL for receiving notifications",
-			}),
-		),
-		audience: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The JWT audience for token validation",
-			}),
-		),
-		atop_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The ATOP service URL",
-			}),
-		),
-		permissions: z.optional(zIntegrationPermissionsView),
-		all_pipelines_allowed: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Set to `true` to allow all pipelines to use this integration",
-			}),
-		),
-		allowed_pipelines: z.optional(
-			z.array(zShortPipelineView).register(z.globalRegistry, {
-				description:
-					"List of specific pipelines allowed to use this integration",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The integration to use for authentication",
-	});
-
-export const zIntegrationsView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	integrations: z.optional(z.array(zIntegrationView)),
-});
-
-export const zIdsView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	domain: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-	),
-	project_identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the project",
-		}),
-	),
-	pipeline_id: z.optional(
-		z
-			.int()
-			.min(-2147483648, {
-				error: "Invalid value: Expected int32 to be >= -2147483648",
-			})
-			.max(2147483647, {
-				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the pipeline",
-			}),
-	),
-	environment_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the environment",
-		}),
-	),
-	pkg_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the package",
-		}),
-	),
-	pkg_version_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the package version",
-		}),
-	),
-	sandbox_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-	),
-});
-
-export const zAddWorkspaceMemberRequest = z.object({
-	admin: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether the user has admin privileges",
-		}),
-	),
-	auto_assign_to_new_projects: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether user is automatically assigned to new projects",
-		}),
-	),
-	auto_assign_permission_set_id: z.optional(
-		z
-			.int()
-			.min(-2147483648, {
-				error: "Invalid value: Expected int32 to be >= -2147483648",
-			})
-			.max(2147483647, {
-				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description:
-					"ID of permission set to automatically assign to new projects",
-			}),
-	),
-	email: z.string().register(z.globalRegistry, {
-		description: "The email address of the user",
-	}),
-});
-
-export const zAddIntegrationRequest = z.object({
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "A human-readable ID of the integration",
-		}),
-	),
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the integration",
-	}),
-	token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The authentication token for services like GitHub, GitLab, DigitalOcean",
-		}),
-	),
-	email: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Email address associated with the integration",
-		}),
-	),
-	api_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The API key for services that use key-based authentication",
-		}),
-	),
-	access_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The access key ID for AWS or DigitalOcean Spaces",
-		}),
-	),
-	secret_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The secret access key for AWS or DigitalOcean Spaces",
-		}),
-	),
-	partner_token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Partner token for specific integrations",
-		}),
-	),
-	shop: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The shop name for Shopify integrations",
-		}),
-	),
-	url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The integration URL",
-		}),
-	),
-	chat_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The chat ID for messaging integrations",
-		}),
-	),
-	git_hub_user_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The GitHub user ID",
-		}),
-	),
-	git_hub_user_name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The GitHub username",
-		}),
-	),
-	username: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The username for authentication",
-		}),
-	),
-	password: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The password for Azure Cloud, UpCloud, or DockerHub",
-		}),
-	),
-	app_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application ID for Azure Cloud integrations",
-		}),
-	),
-	tenant_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The tenant ID for Azure Cloud integrations",
-		}),
-	),
-	client_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The client ID for OAuth-based integrations",
-		}),
-	),
-	client_token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The client token for authentication",
-		}),
-	),
-	server_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The server ID for Discord integrations",
-		}),
-	),
-	server_token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The server token for authentication",
-		}),
-	),
-	key_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The key ID for various integrations",
-		}),
-	),
-	application_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application key for Datadog integrations",
-		}),
-	),
-	host_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The host URL for custom integrations",
-		}),
-	),
-	webhook_address: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The webhook URL for receiving notifications",
-		}),
-	),
-	slack_user_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The Slack user ID",
-		}),
-	),
-	region: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The cloud region (e.g., us-east-1, eu-west-1)",
-		}),
-	),
-	role_assumptions: z.optional(
-		z.array(zRoleAssumptionView).register(z.globalRegistry, {
-			description: "AWS IAM role assumptions for cross-account access",
-		}),
-	),
-	all_pipelines_allowed: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"Set to `true` to allow all pipelines to use this integration",
-		}),
-	),
-	allowed_pipelines: z.optional(
-		z.array(zPipelineIdView).register(z.globalRegistry, {
-			description: "List of specific pipelines allowed to use this integration",
-		}),
-	),
-	permissions: z.optional(zIntegrationPermissionsView),
-	auth_type: z.optional(
-		z
-			.enum([
-				"OAUTH",
-				"TOKEN",
-				"API_KEY",
-				"APP",
-				"APP_SPRYKER",
-				"TOKEN_APP_EXTENSION",
-				"DEFAULT",
-				"OIDC",
-				"TRUSTED",
-				"APP_RW",
-			])
-			.register(z.globalRegistry, {
-				description: "The authentication method used by the integration",
-			}),
-	),
-	target_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The target URL for webhook-based integrations",
-		}),
-	),
-	refresh_token: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The refresh token for OAuth flows",
-		}),
-	),
-	audience: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The JWT audience for token validation",
-		}),
-	),
-	config: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Additional configuration data in JSON format",
-		}),
-	),
-	google_project: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The Google Cloud project ID",
-		}),
-	),
-	atop_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ATOP service URL",
-		}),
-	),
-	type: z
-		.enum([
+export const zIntegrationView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	identifier: z.optional(z.string()),
+	hash_id: z.optional(z.string()),
+	name: z.optional(z.string()),
+	type: z.optional(
+		z.enum([
 			"GIT_HUB",
 			"BITBUCKET",
 			"GOOGLE",
@@ -1789,336 +556,324 @@ export const zAddIntegrationRequest = z.object({
 			"ONE_LOGIN",
 			"OKTA",
 			"CONTENTFUL",
-		])
-		.register(z.globalRegistry, {
-			description: "The type of integration",
-		}),
-	scope: z
-		.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"])
-		.register(z.globalRegistry, {
-			description: "The scope of the integration",
-		}),
-	project_name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The human-readable ID of the project (required when scope is `PROJECT`)",
-		}),
+		]),
 	),
+	auth_type: z.optional(
+		z.enum([
+			"OAUTH",
+			"TOKEN",
+			"API_KEY",
+			"APP",
+			"APP_SPRYKER",
+			"TOKEN_APP_EXTENSION",
+			"DEFAULT",
+			"OIDC",
+			"TRUSTED",
+			"APP_RW",
+		]),
+	),
+	scope: z.optional(z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"])),
+	project_name: z.optional(z.string()),
+	app_id: z.optional(z.string()),
+	google_project: z.optional(z.string()),
+	host_url: z.optional(z.string()),
+	webhook_address: z.optional(z.string()),
+	audience: z.optional(z.string()),
+	atop_url: z.optional(z.string()),
+	permissions: z.optional(zIntegrationPermissionsView),
+	all_pipelines_allowed: z.optional(z.boolean()),
+	allowed_pipelines: z.optional(z.array(zShortPipelineView)),
+});
+
+export const zIntegrationsView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	integrations: z.optional(z.array(zIntegrationView)),
+});
+
+export const zIdsView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	domain: z.optional(z.string()),
+	project_identifier: z.optional(z.string()),
+	pipeline_id: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
+			}),
+	),
+	environment_id: z.optional(z.string()),
+	pkg_id: z.optional(z.string()),
+	pkg_version_id: z.optional(z.string()),
+	sandbox_id: z.optional(z.string()),
+});
+
+export const zAddWorkspaceMemberRequest = z.object({
+	admin: z.optional(z.boolean()),
+	auto_assign_to_new_projects: z.optional(z.boolean()),
+	auto_assign_permission_set_id: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
+			}),
+	),
+	email: z.string(),
+});
+
+export const zAddIntegrationRequest = z.object({
+	identifier: z.optional(z.string()),
+	name: z.string(),
+	token: z.optional(z.string()),
+	email: z.optional(z.string()),
+	api_key: z.optional(z.string()),
+	access_key: z.optional(z.string()),
+	secret_key: z.optional(z.string()),
+	partner_token: z.optional(z.string()),
+	shop: z.optional(z.string()),
+	url: z.optional(z.string()),
+	chat_id: z.optional(z.string()),
+	git_hub_user_id: z.optional(z.string()),
+	git_hub_user_name: z.optional(z.string()),
+	username: z.optional(z.string()),
+	password: z.optional(z.string()),
+	app_id: z.optional(z.string()),
+	tenant_id: z.optional(z.string()),
+	client_id: z.optional(z.string()),
+	client_token: z.optional(z.string()),
+	server_id: z.optional(z.string()),
+	server_token: z.optional(z.string()),
+	key_id: z.optional(z.string()),
+	application_key: z.optional(z.string()),
+	host_url: z.optional(z.string()),
+	webhook_address: z.optional(z.string()),
+	slack_user_id: z.optional(z.string()),
+	region: z.optional(z.string()),
+	role_assumptions: z.optional(z.array(zRoleAssumptionView)),
+	all_pipelines_allowed: z.optional(z.boolean()),
+	allowed_pipelines: z.optional(z.array(zPipelineIdView)),
+	permissions: z.optional(zIntegrationPermissionsView),
+	auth_type: z.optional(
+		z.enum([
+			"OAUTH",
+			"TOKEN",
+			"API_KEY",
+			"APP",
+			"APP_SPRYKER",
+			"TOKEN_APP_EXTENSION",
+			"DEFAULT",
+			"OIDC",
+			"TRUSTED",
+			"APP_RW",
+		]),
+	),
+	target_url: z.optional(z.string()),
+	refresh_token: z.optional(z.string()),
+	audience: z.optional(z.string()),
+	config: z.optional(z.string()),
+	google_project: z.optional(z.string()),
+	atop_url: z.optional(z.string()),
+	type: z.enum([
+		"GIT_HUB",
+		"BITBUCKET",
+		"GOOGLE",
+		"DIGITAL_OCEAN",
+		"SLACK",
+		"MODULUS",
+		"HEROKU",
+		"AMAZON",
+		"GIT_LAB",
+		"SHOPIFY",
+		"GIT_HUB_ENTERPRISE",
+		"GIT_LAB_ENTERPRISE",
+		"PUSHOVER",
+		"PUSHBULLET",
+		"RACKSPACE",
+		"CUSTOM",
+		"CLOUDFLARE",
+		"NEW_RELIC",
+		"SENTRY",
+		"ROLLBAR",
+		"DATADOG",
+		"DO_SPACES",
+		"HONEYBADGER",
+		"VULTR",
+		"SENTRY_ENTERPRISE",
+		"LOGGLY",
+		"HIP_CHAT",
+		"FIREBASE",
+		"TELEGRAM",
+		"AZURE",
+		"UPCLOUD",
+		"GHOST_INSPECTOR",
+		"NETLIFY",
+		"AZURE_CLOUD",
+		"MICROSOFT_TEAMS",
+		"GOOGLE_SERVICE_ACCOUNT",
+		"GOOGLE_PLAY_STORE",
+		"DOCKER_HUB",
+		"APP_STORE",
+		"GIT_HUB_APP",
+		"GIT_HUB_APP_ENTERPRISE",
+		"GIT_HUB_API",
+		"ATOP",
+		"SNYK",
+		"STACK_HAWK",
+		"BLACKFIRE",
+		"BACKBLAZE",
+		"ONE_LOGIN",
+		"OKTA",
+		"CONTENTFUL",
+	]),
+	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"]),
+	project_name: z.optional(z.string()),
 });
 
 /**
  * Sandbox reference
  */
-export const zSandboxIdView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The ID of the sandbox",
-			}),
-		),
-		identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the sandbox",
-			}),
-		),
-		status: z.optional(
-			z
-				.enum([
-					"STARTING",
-					"STOPPING",
-					"FAILED",
-					"RUNNING",
-					"STOPPED",
-					"RESTORING",
-				])
-				.register(z.globalRegistry, {
-					description: "The current status of the sandbox",
-				}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Sandbox reference",
-	});
+export const zSandboxIdView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	id: z.optional(z.string()),
+	identifier: z.optional(z.string()),
+	name: z.optional(z.string()),
+	status: z.optional(
+		z.enum([
+			"STARTING",
+			"STOPPING",
+			"FAILED",
+			"RUNNING",
+			"STOPPED",
+			"RESTORING",
+		]),
+	),
+});
 
 /**
  * Integration reference
  */
-export const zIntegrationIdView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "A human-readable ID of the integration",
-			}),
-		),
-		hash_id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The unique hash ID of the integration",
-			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the integration",
-			}),
-		),
-		type: z.optional(
-			z
-				.enum([
-					"GIT_HUB",
-					"BITBUCKET",
-					"GOOGLE",
-					"DIGITAL_OCEAN",
-					"SLACK",
-					"MODULUS",
-					"HEROKU",
-					"AMAZON",
-					"GIT_LAB",
-					"SHOPIFY",
-					"GIT_HUB_ENTERPRISE",
-					"GIT_LAB_ENTERPRISE",
-					"PUSHOVER",
-					"PUSHBULLET",
-					"RACKSPACE",
-					"CUSTOM",
-					"CLOUDFLARE",
-					"NEW_RELIC",
-					"SENTRY",
-					"ROLLBAR",
-					"DATADOG",
-					"DO_SPACES",
-					"HONEYBADGER",
-					"VULTR",
-					"SENTRY_ENTERPRISE",
-					"LOGGLY",
-					"HIP_CHAT",
-					"FIREBASE",
-					"TELEGRAM",
-					"AZURE",
-					"UPCLOUD",
-					"GHOST_INSPECTOR",
-					"NETLIFY",
-					"AZURE_CLOUD",
-					"MICROSOFT_TEAMS",
-					"GOOGLE_SERVICE_ACCOUNT",
-					"GOOGLE_PLAY_STORE",
-					"DOCKER_HUB",
-					"APP_STORE",
-					"GIT_HUB_APP",
-					"GIT_HUB_APP_ENTERPRISE",
-					"GIT_HUB_API",
-					"ATOP",
-					"SNYK",
-					"STACK_HAWK",
-					"BLACKFIRE",
-					"BACKBLAZE",
-					"ONE_LOGIN",
-					"OKTA",
-					"CONTENTFUL",
-				])
-				.register(z.globalRegistry, {
-					description: "The type of integration",
-				}),
-		),
-		auth_type: z.optional(
-			z
-				.enum([
-					"OAUTH",
-					"TOKEN",
-					"API_KEY",
-					"APP",
-					"APP_SPRYKER",
-					"TOKEN_APP_EXTENSION",
-					"DEFAULT",
-					"OIDC",
-					"TRUSTED",
-					"APP_RW",
-				])
-				.register(z.globalRegistry, {
-					description: "The authentication method used by the integration",
-				}),
-		),
-		host_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The host URL for custom integrations",
-			}),
-		),
-		webhook_address: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The webhook URL for receiving notifications",
-			}),
-		),
-		atop_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The ATOP service URL",
-			}),
-		),
-		app_id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The application ID for Azure Cloud integrations",
-			}),
-		),
-		google_project: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The Google Cloud project ID",
-			}),
-		),
-		audience: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The JWT audience for token validation",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Integration reference",
-	});
+export const zIntegrationIdView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	identifier: z.optional(z.string()),
+	hash_id: z.optional(z.string()),
+	name: z.optional(z.string()),
+	type: z.optional(
+		z.enum([
+			"GIT_HUB",
+			"BITBUCKET",
+			"GOOGLE",
+			"DIGITAL_OCEAN",
+			"SLACK",
+			"MODULUS",
+			"HEROKU",
+			"AMAZON",
+			"GIT_LAB",
+			"SHOPIFY",
+			"GIT_HUB_ENTERPRISE",
+			"GIT_LAB_ENTERPRISE",
+			"PUSHOVER",
+			"PUSHBULLET",
+			"RACKSPACE",
+			"CUSTOM",
+			"CLOUDFLARE",
+			"NEW_RELIC",
+			"SENTRY",
+			"ROLLBAR",
+			"DATADOG",
+			"DO_SPACES",
+			"HONEYBADGER",
+			"VULTR",
+			"SENTRY_ENTERPRISE",
+			"LOGGLY",
+			"HIP_CHAT",
+			"FIREBASE",
+			"TELEGRAM",
+			"AZURE",
+			"UPCLOUD",
+			"GHOST_INSPECTOR",
+			"NETLIFY",
+			"AZURE_CLOUD",
+			"MICROSOFT_TEAMS",
+			"GOOGLE_SERVICE_ACCOUNT",
+			"GOOGLE_PLAY_STORE",
+			"DOCKER_HUB",
+			"APP_STORE",
+			"GIT_HUB_APP",
+			"GIT_HUB_APP_ENTERPRISE",
+			"GIT_HUB_API",
+			"ATOP",
+			"SNYK",
+			"STACK_HAWK",
+			"BLACKFIRE",
+			"BACKBLAZE",
+			"ONE_LOGIN",
+			"OKTA",
+			"CONTENTFUL",
+		]),
+	),
+	auth_type: z.optional(
+		z.enum([
+			"OAUTH",
+			"TOKEN",
+			"API_KEY",
+			"APP",
+			"APP_SPRYKER",
+			"TOKEN_APP_EXTENSION",
+			"DEFAULT",
+			"OIDC",
+			"TRUSTED",
+			"APP_RW",
+		]),
+	),
+	host_url: z.optional(z.string()),
+	webhook_address: z.optional(z.string()),
+	atop_url: z.optional(z.string()),
+	app_id: z.optional(z.string()),
+	google_project: z.optional(z.string()),
+	audience: z.optional(z.string()),
+});
 
 /**
  * User/member reference
  */
-export const zMemberView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		id: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description: "The ID of the user",
-				}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the user",
+export const zMemberView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	id: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		avatar_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The avatar URL of the user",
-			}),
-		),
-		email: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The email address of the user",
-			}),
-		),
-		admin: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Whether the user has admin privileges",
-			}),
-		),
-		workspace_owner: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Whether the user is workspace owner",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "User/member reference",
-	});
+	),
+	name: z.optional(z.string()),
+	avatar_url: z.optional(z.string()),
+	email: z.optional(z.string()),
+	admin: z.optional(z.boolean()),
+	workspace_owner: z.optional(z.boolean()),
+});
 
 export const zProjectView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the project",
-		}),
-	),
-	display_name: z.string().register(z.globalRegistry, {
-		description: "The Name of the project",
-	}),
-	status: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The status of the project",
-		}),
-	),
-	access: z.optional(
-		z.enum(["PRIVATE", "PUBLIC"]).register(z.globalRegistry, {
-			description: "Indicates if this is a public project",
-		}),
-	),
-	create_date: z.optional(
-		z.iso.datetime().register(z.globalRegistry, {
-			description: "The creation date of the project",
-		}),
-	),
-	external_project_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Repo slug of the Bitbucket, GitHub or GitLab project. Required when adding the integrated project",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	name: z.optional(z.string()),
+	display_name: z.string(),
+	status: z.optional(z.string()),
+	access: z.optional(z.enum(["PRIVATE", "PUBLIC"])),
+	create_date: z.optional(z.iso.datetime()),
+	external_project_id: z.optional(z.string()),
 	git_lab_project_id: z.optional(
 		z
 			.int()
@@ -2127,29 +882,11 @@ export const zProjectView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "ID of the project in GitLab",
 			}),
 	),
-	custom_repo_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"SSH or HTTPS url of the git repository. Required when adding the project integrated with custom git repository",
-		}),
-	),
-	custom_repo_user: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Username used to authorize access to the git repository. Required when adding the project integrated with custom git repository",
-		}),
-	),
-	custom_repo_pass: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Password used to authorize access to the git repository. Required when adding the project integrated with custom git repository and the provided `custom_repo_url` is the HTTPS url",
-		}),
-	),
+	custom_repo_url: z.optional(z.string()),
+	custom_repo_user: z.optional(z.string()),
+	custom_repo_pass: z.optional(z.string()),
 	custom_repo_ssh_key_id: z.optional(
 		z
 			.int()
@@ -2158,421 +895,133 @@ export const zProjectView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description:
-					"The ID of the private SSH key used to authorize access to the git repository. Required when adding the project integrated with private git server by SSH url",
 			}),
 	),
 	created_by: z.optional(zMemberView),
-	http_repository: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The HTTP repository URL",
-		}),
-	),
-	ssh_repository: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The SSH repository URL",
-		}),
-	),
-	default_branch: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The default branch name",
-		}),
-	),
+	http_repository: z.optional(z.string()),
+	ssh_repository: z.optional(z.string()),
+	default_branch: z.optional(z.string()),
 	integration: z.optional(zIntegrationIdView),
-	fetch_submodules: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"Defines whether the submodules are fetched during the runs in this project",
-		}),
-	),
-	fetch_submodules_env_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Name of the key that will be used to authorize while fetching the submodules. Required when `fetch_submodules` is set to `true`",
-		}),
-	),
-	allow_pull_requests: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"Enables/disables pull requests in the project. Available only for projects synchronized with GitHub or GitHub Enterprise repository",
-		}),
-	),
-	update_default_branch_from_external: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"If set to true, the default branch will be updated from GitHub/GitLab/Bitbucket.",
-		}),
-	),
-	without_repository: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"If set to true, the project is created without any repository attached.",
-		}),
-	),
+	fetch_submodules: z.optional(z.boolean()),
+	fetch_submodules_env_key: z.optional(z.string()),
+	allow_pull_requests: z.optional(z.boolean()),
+	update_default_branch_from_external: z.optional(z.boolean()),
+	without_repository: z.optional(z.boolean()),
 });
 
 /**
  * Access permissions configuration
  */
-export const zPermissionsView = z
-	.object({
-		others: z.optional(
-			z
-				.enum([
-					"DENIED",
-					"READ_ONLY",
-					"BLIND",
-					"RUN_ONLY",
-					"READ_WRITE",
-					"MANAGE",
-					"DEFAULT",
-					"ALLOWED",
-					"STAGE",
-					"COMMIT",
-					"USE_ONLY",
-				])
-				.register(z.globalRegistry, {
-					description: "Access level for other workspace members",
-				}),
-		),
-		users: z.optional(
-			z.array(zUserPermissionView).register(z.globalRegistry, {
-				description: "List of specific users with their access levels",
-			}),
-		),
-		groups: z.optional(
-			z.array(zGroupPermissionView).register(z.globalRegistry, {
-				description: "List of user groups with their access levels",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Access permissions configuration",
-	});
+export const zPermissionsView = z.object({
+	others: z.optional(
+		z.enum([
+			"DENIED",
+			"READ_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+			"USE_ONLY",
+		]),
+	),
+	users: z.optional(z.array(zUserPermissionView)),
+	groups: z.optional(z.array(zGroupPermissionView)),
+});
 
 /**
  * Short representation of a project
  */
-export const zShortProjectView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The human-readable ID of the project",
-			}),
-		),
-		display_name: z.string().register(z.globalRegistry, {
-			description: "The Name of the project",
-		}),
-		status: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The status of the project",
-			}),
-		),
-		access: z.optional(
-			z.enum(["PRIVATE", "PUBLIC"]).register(z.globalRegistry, {
-				description: "Indicates if this is a public project",
-			}),
-		),
-		create_date: z.optional(
-			z.iso.datetime().register(z.globalRegistry, {
-				description: "The creation date of the project",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Short representation of a project",
-	});
+export const zShortProjectView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	name: z.optional(z.string()),
+	display_name: z.string(),
+	status: z.optional(z.string()),
+	access: z.optional(z.enum(["PRIVATE", "PUBLIC"])),
+	create_date: z.optional(z.iso.datetime()),
+});
 
 /**
  * The environment variables of the sandbox
  */
-export const zAddVariableInObjectRequest = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		key: z.string().register(z.globalRegistry, {
-			description: "The name of the variable",
-		}),
-		value: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The value of the variable",
-			}),
-		),
-		settable: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to `true` the variable value can be set by Buddy actions",
-			}),
-		),
-		run_only_settable: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Available only if `type=VAR`. If set to `true` the variable value can be set by Buddy actions only for execution time",
-			}),
-		),
-		encrypted: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to `true` the variable value will be encrypted and hidden",
-			}),
-		),
-		description: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The optional description of the variable",
-			}),
-		),
-		init_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Initial path for the variable",
-			}),
-		),
-		defaults: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Default value for the variable",
-			}),
-		),
-		file_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"Specifies where to copy the file on each run. Set if `type` is `SSH_KEY`",
-			}),
-		),
-		file_chmod: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"File permission set on copy to a container on each run. Set if `type` is `SSH_KEY`",
-			}),
-		),
-		file_place: z.optional(
-			z.enum(["NONE", "CONTAINER"]).register(z.globalRegistry, {
-				description:
-					"Set if `type` is `SSH_KEY`. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run",
-			}),
-		),
-		password: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Password for certificates",
-			}),
-		),
-		passphrase: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Passphrase for encrypted SSH keys",
-			}),
-		),
-		key_identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "GPG key identifier",
-			}),
-		),
-		type: z
-			.enum([
-				"VAR",
-				"FILE",
-				"SSH_KEY",
-				"IOS_KEYCHAIN",
-				"IOS_PROVISION_PROFILES",
-				"SSH_PUBLIC_KEY",
-				"GPG_KEY",
-			])
-			.register(z.globalRegistry, {
-				description: "The type of the added variable",
-			}),
-	})
-	.register(z.globalRegistry, {
-		description: "The environment variables of the sandbox",
-	});
+export const zAddVariableInObjectRequest = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	key: z.string(),
+	value: z.optional(z.string()),
+	settable: z.optional(z.boolean()),
+	run_only_settable: z.optional(z.boolean()),
+	encrypted: z.optional(z.boolean()),
+	description: z.optional(z.string()),
+	init_path: z.optional(z.string()),
+	defaults: z.optional(z.string()),
+	file_path: z.optional(z.string()),
+	file_chmod: z.optional(z.string()),
+	file_place: z.optional(z.enum(["NONE", "CONTAINER"])),
+	password: z.optional(z.string()),
+	passphrase: z.optional(z.string()),
+	key_identifier: z.optional(z.string()),
+	type: z.enum([
+		"VAR",
+		"FILE",
+		"SSH_KEY",
+		"IOS_KEYCHAIN",
+		"IOS_PROVISION_PROFILES",
+		"SSH_PUBLIC_KEY",
+		"GPG_KEY",
+	]),
+});
 
 /**
  * The TLS/SSL encryption settings of the tunnel
  */
-export const zTlsSettingsView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		terminate_at: z.optional(
-			z.enum(["REGION", "AGENT", "TARGET"]).register(z.globalRegistry, {
-				description: "Where to terminate TLS connection",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The TLS/SSL encryption settings of the tunnel",
-	});
+export const zTlsSettingsView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	terminate_at: z.optional(z.enum(["REGION", "AGENT", "TARGET"])),
+});
 
 /**
  * The HTTP-specific settings of the tunnel
  */
-export const zHttpSettingsView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		verify_certificate: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Whether to verify SSL/TLS certificates",
+export const zHttpSettingsView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	verify_certificate: z.optional(z.boolean()),
+	compression: z.optional(z.boolean()),
+	http2: z.optional(z.boolean()),
+	log_requests: z.optional(z.boolean()),
+	request_headers: z.optional(z.array(z.record(z.string(), z.string()))),
+	whitelist_user_agents: z.optional(z.array(z.string())),
+	rewrite_host_header: z.optional(z.string()),
+	response_headers: z.optional(z.array(z.record(z.string(), z.string()))),
+	login: z.optional(z.string()),
+	circuit_breaker: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		compression: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Enable HTTP compression",
-			}),
-		),
-		http2: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Enable HTTP/2 protocol support",
-			}),
-		),
-		log_requests: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Log incoming HTTP requests",
-			}),
-		),
-		request_headers: z.optional(
-			z.array(z.record(z.string(), z.string())).register(z.globalRegistry, {
-				description: "Custom HTTP headers to add to requests",
-			}),
-		),
-		whitelist_user_agents: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description: "List of allowed User-Agent strings",
-			}),
-		),
-		rewrite_host_header: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Rewrite the Host header to this value",
-			}),
-		),
-		response_headers: z.optional(
-			z.array(z.record(z.string(), z.string())).register(z.globalRegistry, {
-				description: "Custom HTTP headers to add to responses",
-			}),
-		),
-		login: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Basic authentication username",
-			}),
-		),
-		circuit_breaker: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description: "Circuit breaker threshold (number of failed requests)",
-				}),
-		),
-		serve_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Base path for serving requests",
-			}),
-		),
-		auth_type: z.optional(
-			z.enum(["NONE", "BASIC", "BUDDY"]).register(z.globalRegistry, {
-				description: "Type of authentication used",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The HTTP-specific settings of the tunnel",
-	});
+	),
+	serve_path: z.optional(z.string()),
+	auth_type: z.optional(z.enum(["NONE", "BASIC", "BUDDY"])),
+});
 
 export const zTunnelView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the tunnel",
-	}),
-	endpoint: z.string().register(z.globalRegistry, {
-		description: "The endpoint URL of the tunnel",
-	}),
-	type: z.enum(["TCP", "TLS", "HTTP", "SSH"]).register(z.globalRegistry, {
-		description: "The type of the tunnel",
-	}),
-	region: z.enum(["US", "EU", "AS"]).register(z.globalRegistry, {
-		description: "The region where the tunnel is deployed",
-	}),
-	whitelist: z.optional(
-		z.array(z.string()).register(z.globalRegistry, {
-			description: "The IP addresses or domains allowed to access the tunnel",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	name: z.string(),
+	endpoint: z.string(),
+	type: z.enum(["TCP", "TLS", "HTTP", "SSH"]),
+	region: z.enum(["US", "EU", "AS"]),
+	whitelist: z.optional(z.array(z.string())),
 	timeout: z.optional(
 		z
 			.int()
@@ -2581,243 +1030,86 @@ export const zTunnelView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The connection timeout of the tunnel in seconds",
 			}),
 	),
 	http: z.optional(zHttpSettingsView),
 	tls: z.optional(zTlsSettingsView),
-	endpoint_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The url of the tunnel",
-		}),
-	),
+	endpoint_url: z.optional(z.string()),
 });
 
 export const zUpdateSandboxRequest = z.object({
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the sandbox",
-		}),
-	),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
+	name: z.optional(z.string()),
+	identifier: z.optional(z.string()),
 	resources: z.optional(
-		z
-			.enum([
-				"1x2",
-				"2x4",
-				"3x6",
-				"4x8",
-				"5x10",
-				"6x12",
-				"7x14",
-				"8x16",
-				"9x18",
-				"10x20",
-				"11x22",
-				"12x24",
-				"CUSTOM",
-			])
-			.register(z.globalRegistry, {
-				description: "The resource configuration of the sandbox (CPU x RAM)",
-			}),
+		z.enum([
+			"1x2",
+			"2x4",
+			"3x6",
+			"4x8",
+			"5x10",
+			"6x12",
+			"7x14",
+			"8x16",
+			"9x18",
+			"10x20",
+			"11x22",
+			"12x24",
+			"CUSTOM",
+		]),
 	),
-	install_commands: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The commands to run during setup of the sandbox",
-		}),
-	),
-	run_command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The run command of the sandbox",
-		}),
-	),
-	app_dir: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application directory of the sandbox",
-		}),
-	),
-	app_type: z.optional(
-		z.enum(["CMD", "SERVICE"]).register(z.globalRegistry, {
-			description:
-				"The application type of the sandbox (passed command or existent service eg. apache2)",
-		}),
-	),
-	tags: z.optional(
-		z
-			.array(
-				z.string().register(z.globalRegistry, {
-					description: "The list of tags associated with the sandbox",
-				}),
-			)
-			.register(z.globalRegistry, {
-				description: "The list of tags associated with the sandbox",
-			}),
-	),
-	endpoints: z.optional(
-		z.array(zTunnelView).register(z.globalRegistry, {
-			description: "The tunnel endpoints of the sandbox",
-		}),
-	),
-	variables: z.optional(
-		z.array(zAddVariableInObjectRequest).register(z.globalRegistry, {
-			description: "The environment variables of the sandbox",
-		}),
-	),
+	install_commands: z.optional(z.string()),
+	run_command: z.optional(z.string()),
+	app_dir: z.optional(z.string()),
+	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	tags: z.optional(z.array(z.string())),
+	endpoints: z.optional(z.array(zTunnelView)),
+	variables: z.optional(z.array(zAddVariableInObjectRequest)),
 	permissions: z.optional(zPermissionsView),
 });
 
 export const zSandboxesView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
 	sandboxes: z.optional(z.array(zSandboxIdView)),
 });
 
 /**
  * Content item in a sandbox
  */
-export const zSandboxContentItem = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		type: z.optional(
-			z.enum(["FILE", "DIR"]).register(z.globalRegistry, {
-				description: "The content type (FILE or DIR)",
+export const zSandboxContentItem = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	type: z.optional(z.enum(["FILE", "DIR"])),
+	name: z.optional(z.string()),
+	path: z.optional(z.string()),
+	size: z.optional(
+		z.coerce
+			.bigint()
+			.min(BigInt("-9223372036854775808"), {
+				error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+			})
+			.max(BigInt("9223372036854775807"), {
+				error: "Invalid value: Expected int64 to be <= 9223372036854775807",
 			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the file or directory",
-			}),
-		),
-		path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The path to the file or directory",
-			}),
-		),
-		size: z.optional(
-			z.coerce
-				.bigint()
-				.min(BigInt("-9223372036854775808"), {
-					error: "Invalid value: Expected int64 to be >= -9223372036854775808",
-				})
-				.max(BigInt("9223372036854775807"), {
-					error: "Invalid value: Expected int64 to be <= 9223372036854775807",
-				})
-				.register(z.globalRegistry, {
-					description: "The size of the file in bytes",
-				}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Content item in a sandbox",
-	});
+	),
+});
 
 /**
  * Sandbox content listing
  */
-export const zSandboxContentView = z
-	.object({
-		url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "API endpoint to GET this object",
-				})
-				.readonly(),
-		),
-		html_url: z.optional(
-			z
-				.string()
-				.register(z.globalRegistry, {
-					description: "Web URL to view this object in Buddy.works",
-				})
-				.readonly(),
-		),
-		contents: z.optional(
-			z.array(zSandboxContentItem).register(z.globalRegistry, {
-				description: "List of content items in the directory",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Sandbox content listing",
-	});
+export const zSandboxContentView = z.object({
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	contents: z.optional(z.array(zSandboxContentItem)),
+});
 
 export const zSandboxCommandView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the command",
-		}),
-	),
-	command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Command to execute in the sandbox",
-		}),
-	),
-	runtime: z.optional(
-		z
-			.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"])
-			.register(z.globalRegistry, {
-				description:
-					"Runtime environment for command execution (default: `BASH`)",
-			}),
-	),
-	status: z.optional(
-		z.enum(["INPROGRESS", "SUCCESSFUL", "FAILED"]).register(z.globalRegistry, {
-			description: "Command execution status",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	id: z.optional(z.string()),
+	command: z.optional(z.string()),
+	runtime: z.optional(z.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"])),
+	status: z.optional(z.enum(["INPROGRESS", "SUCCESSFUL", "FAILED"])),
 	exit_code: z.optional(
 		z
 			.int()
@@ -2826,107 +1118,34 @@ export const zSandboxCommandView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "Command exit code",
 			}),
 	),
-	logs_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "API endpoint URL to retrieve logs for this command",
-		}),
-	),
+	logs_url: z.optional(z.string()),
 });
 
 export const zSandboxCommandsView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
 	commands: z.optional(z.array(zSandboxCommandView)),
 });
 
 export const zSandboxCommandLog = z.object({
-	type: z.optional(
-		z.enum(["STDOUT", "STDERR"]).register(z.globalRegistry, {
-			description: "The type of command output stream",
-		}),
-	),
-	data: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The command execution logs.",
-		}),
-	),
+	type: z.optional(z.enum(["STDOUT", "STDERR"])),
+	data: z.optional(z.string()),
 });
 
 export const zSandboxAppLogsView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	cursor: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Cursor for pagination",
-		}),
-	),
-	logs: z.optional(
-		z.array(z.string()).register(z.globalRegistry, {
-			description: "Application log entries",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	cursor: z.optional(z.string()),
+	logs: z.optional(z.array(z.string())),
 });
 
 export const zShortSnapshotView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the snapshot",
-		}),
-	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Snapshot name",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	id: z.optional(z.string()),
+	name: z.optional(z.string()),
 	size: z.optional(
 		z
 			.int()
@@ -2935,98 +1154,32 @@ export const zShortSnapshotView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "Snapshot size in GB",
 			}),
 	),
-	status: z.optional(
-		z
-			.enum(["CREATING", "CREATED", "DELETING", "FAILED"])
-			.register(z.globalRegistry, {
-				description: "Snapshot status",
-			}),
-	),
-	create_date: z.optional(
-		z.iso.datetime().register(z.globalRegistry, {
-			description: "Snapshot creation date",
-		}),
-	),
+	status: z.optional(z.enum(["CREATING", "CREATED", "DELETING", "FAILED"])),
+	create_date: z.optional(z.iso.datetime()),
 });
 
 export const zSnapshotsView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	snapshots: z.optional(
-		z.array(zShortSnapshotView).register(z.globalRegistry, {
-			description: "Collection of snapshots",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	snapshots: z.optional(z.array(zShortSnapshotView)),
 });
 
 export const zExecuteSandboxCommandRequest = z.object({
-	command: z.string().register(z.globalRegistry, {
-		description: "Command to execute in the sandbox",
-	}),
-	runtime: z.optional(
-		z
-			.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"])
-			.register(z.globalRegistry, {
-				description:
-					"Runtime environment for command execution (default: `BASH`)",
-			}),
-	),
+	command: z.string(),
+	runtime: z.optional(z.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"])),
 });
 
 export const zAddSnapshotRequest = z.object({
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Snapshot name",
-		}),
-	),
+	name: z.optional(z.string()),
 });
 
 export const zSnapshotView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the snapshot",
-		}),
-	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Snapshot name",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	id: z.optional(z.string()),
+	name: z.optional(z.string()),
 	size: z.optional(
 		z
 			.int()
@@ -3035,508 +1188,182 @@ export const zSnapshotView = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "Snapshot size in GB",
 			}),
 	),
-	status: z.optional(
-		z
-			.enum(["CREATING", "CREATED", "DELETING", "FAILED"])
-			.register(z.globalRegistry, {
-				description: "Snapshot status",
-			}),
-	),
-	create_date: z.optional(
-		z.iso.datetime().register(z.globalRegistry, {
-			description: "Snapshot creation date",
-		}),
-	),
+	status: z.optional(z.enum(["CREATING", "CREATED", "DELETING", "FAILED"])),
+	create_date: z.optional(z.iso.datetime()),
 	created_by: z.optional(zMemberView),
 });
 
 export const zSandboxYamlView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	yaml: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The base64-encoded YAML configuration of the sandbox",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	yaml: z.optional(z.string()),
 });
 
 export const zCreateNewSandboxRequest = z.object({
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the sandbox",
-	}),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
-	os: z.string().register(z.globalRegistry, {
-		description:
-			'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
-	}),
+	name: z.string(),
+	identifier: z.optional(z.string()),
+	os: z.string(),
 	resources: z.optional(
-		z
-			.enum([
-				"1x2",
-				"2x4",
-				"3x6",
-				"4x8",
-				"5x10",
-				"6x12",
-				"7x14",
-				"8x16",
-				"9x18",
-				"10x20",
-				"11x22",
-				"12x24",
-				"CUSTOM",
-			])
-			.register(z.globalRegistry, {
-				description: "The resource configuration of the sandbox (CPU x RAM)",
-			}),
+		z.enum([
+			"1x2",
+			"2x4",
+			"3x6",
+			"4x8",
+			"5x10",
+			"6x12",
+			"7x14",
+			"8x16",
+			"9x18",
+			"10x20",
+			"11x22",
+			"12x24",
+			"CUSTOM",
+		]),
 	),
-	install_commands: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The commands to run during setup of the sandbox",
-		}),
-	),
-	run_command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The run command of the sandbox",
-		}),
-	),
-	app_dir: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application directory of the sandbox",
-		}),
-	),
-	app_type: z.optional(
-		z.enum(["CMD", "SERVICE"]).register(z.globalRegistry, {
-			description:
-				"The application type of the sandbox (passed command or existent service eg. apache2)",
-		}),
-	),
-	tags: z.optional(
-		z
-			.array(
-				z.string().register(z.globalRegistry, {
-					description: "The list of tags associated with the sandbox",
-				}),
-			)
-			.register(z.globalRegistry, {
-				description: "The list of tags associated with the sandbox",
-			}),
-	),
-	endpoints: z.optional(
-		z.array(zTunnelView).register(z.globalRegistry, {
-			description: "The tunnel endpoints of the sandbox",
-		}),
-	),
-	variables: z.optional(
-		z.array(zAddVariableInObjectRequest).register(z.globalRegistry, {
-			description: "The environment variables of the sandbox",
-		}),
-	),
+	install_commands: z.optional(z.string()),
+	run_command: z.optional(z.string()),
+	app_dir: z.optional(z.string()),
+	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	tags: z.optional(z.array(z.string())),
+	endpoints: z.optional(z.array(zTunnelView)),
+	variables: z.optional(z.array(zAddVariableInObjectRequest)),
 });
 
 /**
  * The list of variables you can use the action
  */
-export const zEnvironmentVariableView = z
-	.object({
-		id: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description: "The ID of the variable",
-				}),
-		),
-		key: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the variable",
+export const zEnvironmentVariableView = z.object({
+	id: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		value: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The value of the variable",
-			}),
-		),
-		type: z.optional(
-			z
-				.enum([
-					"VAR",
-					"FILE",
-					"SSH_KEY",
-					"IOS_KEYCHAIN",
-					"IOS_PROVISION_PROFILES",
-					"SSH_PUBLIC_KEY",
-					"GPG_KEY",
-				])
-				.register(z.globalRegistry, {
-					description: "The type of the added variable",
-				}),
-		),
-		encrypted: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to `true` the variable value will be encrypted and hidden",
-			}),
-		),
-		settable: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to `true` the variable value can be set by Buddy actions",
-			}),
-		),
-		run_only_settable: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Available only if `type=VAR`. If set to `true` the variable value can be set by Buddy actions only for execution time",
-			}),
-		),
-		description: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The optional description of the variable",
-			}),
-		),
-		init_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Initial path for the variable",
-			}),
-		),
-		defaults: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Default value for the variable",
-			}),
-		),
-		file_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"Specifies where to copy the file on each run. Set if `type` is `SSH_KEY`",
-			}),
-		),
-		file_chmod: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"File permission set on copy to a container on each run. Set if `type` is `SSH_KEY`",
-			}),
-		),
-		file_place: z.optional(
-			z.enum(["NONE", "CONTAINER"]).register(z.globalRegistry, {
-				description:
-					"Set if `type` is `SSH_KEY`. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run",
-			}),
-		),
-		binary: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Whether the file is binary",
-			}),
-		),
-		public_value: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Public value for SSH key type variables",
-			}),
-		),
-		key_fingerprint: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Fingerprint of SSH key",
-			}),
-		),
-		checksum: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Checksum of the variable value",
-			}),
-		),
-		password: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Password for certificates",
-			}),
-		),
-		passphrase: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Passphrase for encrypted SSH keys",
-			}),
-		),
-		key_identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "GPG key identifier",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The list of variables you can use the action",
-	});
+	),
+	key: z.optional(z.string()),
+	value: z.optional(z.string()),
+	type: z.optional(
+		z.enum([
+			"VAR",
+			"FILE",
+			"SSH_KEY",
+			"IOS_KEYCHAIN",
+			"IOS_PROVISION_PROFILES",
+			"SSH_PUBLIC_KEY",
+			"GPG_KEY",
+		]),
+	),
+	encrypted: z.optional(z.boolean()),
+	settable: z.optional(z.boolean()),
+	run_only_settable: z.optional(z.boolean()),
+	description: z.optional(z.string()),
+	init_path: z.optional(z.string()),
+	defaults: z.optional(z.string()),
+	file_path: z.optional(z.string()),
+	file_chmod: z.optional(z.string()),
+	file_place: z.optional(z.enum(["NONE", "CONTAINER"])),
+	binary: z.optional(z.boolean()),
+	public_value: z.optional(z.string()),
+	key_fingerprint: z.optional(z.string()),
+	checksum: z.optional(z.string()),
+	password: z.optional(z.string()),
+	passphrase: z.optional(z.string()),
+	key_identifier: z.optional(z.string()),
+});
 
 export const zCreateFromSnapshotRequest = z.object({
-	snapshot_id: z.string().register(z.globalRegistry, {
-		description: "The ID of the snapshot to create from",
-	}),
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the sandbox",
-	}),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
-	os: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
-		}),
-	),
+	snapshot_id: z.string(),
+	name: z.string(),
+	identifier: z.optional(z.string()),
+	os: z.optional(z.string()),
 	resources: z.optional(
-		z
-			.enum([
-				"1x2",
-				"2x4",
-				"3x6",
-				"4x8",
-				"5x10",
-				"6x12",
-				"7x14",
-				"8x16",
-				"9x18",
-				"10x20",
-				"11x22",
-				"12x24",
-				"CUSTOM",
-			])
-			.register(z.globalRegistry, {
-				description: "The resource configuration of the sandbox (CPU x RAM)",
-			}),
+		z.enum([
+			"1x2",
+			"2x4",
+			"3x6",
+			"4x8",
+			"5x10",
+			"6x12",
+			"7x14",
+			"8x16",
+			"9x18",
+			"10x20",
+			"11x22",
+			"12x24",
+			"CUSTOM",
+		]),
 	),
-	install_commands: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The commands to run during setup of the sandbox",
-		}),
-	),
-	run_command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The run command of the sandbox",
-		}),
-	),
-	app_dir: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application directory of the sandbox",
-		}),
-	),
-	app_type: z.optional(
-		z.enum(["CMD", "SERVICE"]).register(z.globalRegistry, {
-			description:
-				"The application type of the sandbox (passed command or existent service eg. apache2)",
-		}),
-	),
-	tags: z.optional(
-		z
-			.array(
-				z.string().register(z.globalRegistry, {
-					description: "The list of tags associated with the sandbox",
-				}),
-			)
-			.register(z.globalRegistry, {
-				description: "The list of tags associated with the sandbox",
-			}),
-	),
-	endpoints: z.optional(
-		z.array(zTunnelView).register(z.globalRegistry, {
-			description: "The tunnel endpoints of the sandbox",
-		}),
-	),
-	variables: z.optional(
-		z.array(zEnvironmentVariableView).register(z.globalRegistry, {
-			description: "The environment variables of the sandbox",
-		}),
-	),
+	install_commands: z.optional(z.string()),
+	run_command: z.optional(z.string()),
+	app_dir: z.optional(z.string()),
+	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	tags: z.optional(z.array(z.string())),
+	endpoints: z.optional(z.array(zTunnelView)),
+	variables: z.optional(z.array(zEnvironmentVariableView)),
 });
 
 export const zCloneSandboxRequest = z.object({
-	source_sandbox_id: z.string().register(z.globalRegistry, {
-		description: "The ID of the sandbox to clone",
-	}),
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the sandbox",
-	}),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
+	source_sandbox_id: z.string(),
+	name: z.string(),
+	identifier: z.optional(z.string()),
 });
 
 export const zSandboxResponse = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
-	id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-	),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the sandbox",
-		}),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
+	id: z.optional(z.string()),
+	identifier: z.optional(z.string()),
+	name: z.optional(z.string()),
 	status: z.optional(
-		z
-			.enum([
-				"STARTING",
-				"STOPPING",
-				"FAILED",
-				"RUNNING",
-				"STOPPED",
-				"RESTORING",
-			])
-			.register(z.globalRegistry, {
-				description: "The current status of the sandbox",
-			}),
+		z.enum([
+			"STARTING",
+			"STOPPING",
+			"FAILED",
+			"RUNNING",
+			"STOPPED",
+			"RESTORING",
+		]),
 	),
-	os: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
-		}),
-	),
+	os: z.optional(z.string()),
 	resources: z.optional(
-		z
-			.enum([
-				"1x2",
-				"2x4",
-				"3x6",
-				"4x8",
-				"5x10",
-				"6x12",
-				"7x14",
-				"8x16",
-				"9x18",
-				"10x20",
-				"11x22",
-				"12x24",
-				"CUSTOM",
-			])
-			.register(z.globalRegistry, {
-				description: "The resource configuration of the sandbox (CPU x RAM)",
-			}),
+		z.enum([
+			"1x2",
+			"2x4",
+			"3x6",
+			"4x8",
+			"5x10",
+			"6x12",
+			"7x14",
+			"8x16",
+			"9x18",
+			"10x20",
+			"11x22",
+			"12x24",
+			"CUSTOM",
+		]),
 	),
-	install_commands: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The commands to run during setup of the sandbox",
-		}),
-	),
-	run_command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The run command of the sandbox",
-		}),
-	),
-	app_dir: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application directory of the sandbox",
-		}),
-	),
-	app_type: z.optional(
-		z.enum(["CMD", "SERVICE"]).register(z.globalRegistry, {
-			description:
-				"The application type of the sandbox (passed command or existent service eg. apache2)",
-		}),
-	),
-	tags: z.optional(
-		z.array(z.string()).register(z.globalRegistry, {
-			description: "The list of tags associated with the sandbox",
-		}),
-	),
-	app_status: z.optional(
-		z.enum(["NONE", "RUNNING", "ENDED", "FAILED"]).register(z.globalRegistry, {
-			description: "The current application status of the sandbox",
-		}),
-	),
-	boot_logs: z.optional(
-		z.array(z.string()).register(z.globalRegistry, {
-			description: "The boot logs of the sandbox",
-		}),
-	),
-	setup_status: z.optional(
-		z.enum(["INPROGRESS", "SUCCESS", "FAILED"]).register(z.globalRegistry, {
-			description: "The current setup status of the sandbox",
-		}),
-	),
-	endpoints: z.optional(
-		z.array(zTunnelView).register(z.globalRegistry, {
-			description: "The tunnel endpoints of the sandbox",
-		}),
-	),
+	install_commands: z.optional(z.string()),
+	run_command: z.optional(z.string()),
+	app_dir: z.optional(z.string()),
+	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	tags: z.optional(z.array(z.string())),
+	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
+	boot_logs: z.optional(z.array(z.string())),
+	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED"])),
+	endpoints: z.optional(z.array(zTunnelView)),
 	project: z.optional(zProjectView),
 	permissions: z.optional(zPermissionsView),
-	variables: z.optional(
-		z.array(zEnvironmentVariableView).register(z.globalRegistry, {
-			description: "The environment variables of the sandbox",
-		}),
-	),
+	variables: z.optional(z.array(zEnvironmentVariableView)),
 });
 
 export const zProjectsView = z.object({
-	url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "API endpoint to GET this object",
-			})
-			.readonly(),
-	),
-	html_url: z.optional(
-		z
-			.string()
-			.register(z.globalRegistry, {
-				description: "Web URL to view this object in Buddy.works",
-			})
-			.readonly(),
-	),
+	url: z.optional(z.string().readonly()),
+	html_url: z.optional(z.string().readonly()),
 	projects: z.optional(z.array(zShortProjectView)),
 });
 
@@ -3549,22 +1376,10 @@ export const zShortWorkspaceViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the workspace",
 			}),
 	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the workspace",
-		}),
-	),
-	domain: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The human-readable ID of the workspace. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
+	name: z.optional(z.string()),
+	domain: z.optional(z.string()),
 });
 
 export const zWorkspacesViewWritable = z.object({
@@ -3580,41 +1395,14 @@ export const zWorkspaceMemberViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the user",
 			}),
 	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the user",
-		}),
-	),
-	avatar_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The avatar URL of the user",
-		}),
-	),
-	email: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The email address of the user",
-		}),
-	),
-	admin: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether the user has admin privileges",
-		}),
-	),
-	workspace_owner: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether the user is workspace owner",
-		}),
-	),
-	auto_assign_to_new_projects: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether user is automatically assigned to new projects",
-		}),
-	),
+	name: z.optional(z.string()),
+	avatar_url: z.optional(z.string()),
+	email: z.optional(z.string()),
+	admin: z.optional(z.boolean()),
+	workspace_owner: z.optional(z.boolean()),
+	auto_assign_to_new_projects: z.optional(z.boolean()),
 	auto_assign_permission_set_id: z.optional(
 		z
 			.int()
@@ -3623,10 +1411,6 @@ export const zWorkspaceMemberViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description:
-					"ID of permission set to automatically assign to new projects",
 			}),
 	),
 });
@@ -3644,22 +1428,10 @@ export const zWorkspaceViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the workspace",
 			}),
 	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the workspace",
-		}),
-	),
-	domain: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The human-readable ID of the workspace. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
+	name: z.optional(z.string()),
+	domain: z.optional(z.string()),
 	owner_id: z.optional(
 		z
 			.int()
@@ -3668,563 +1440,238 @@ export const zWorkspaceViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the workspace owner",
 			}),
 	),
-	frozen: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether the workspace is frozen",
-		}),
-	),
-	create_date: z.optional(
-		z.iso.datetime().register(z.globalRegistry, {
-			description: "The date and time when the workspace was created",
-		}),
-	),
+	frozen: z.optional(z.boolean()),
+	create_date: z.optional(z.iso.datetime()),
 	default_pipeline_resource: z.optional(
-		z
-			.enum([
-				"DEFAULT",
-				"NANO",
-				"SMALL",
-				"MEDIUM",
-				"LARGE",
-				"XLARGE",
-				"CUSTOM",
-				"X2LARGE",
-			])
-			.register(z.globalRegistry, {
-				description: "Default pipeline resource allocation for the workspace",
-			}),
+		z.enum([
+			"DEFAULT",
+			"NANO",
+			"SMALL",
+			"MEDIUM",
+			"LARGE",
+			"XLARGE",
+			"CUSTOM",
+			"X2LARGE",
+		]),
 	),
-	sso_enabled: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether Single Sign-On (SSO) is enabled for the workspace",
-		}),
-	),
-	public_pipelines_disabled: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Whether public pipelines are disabled in the workspace",
-		}),
-	),
+	sso_enabled: z.optional(z.boolean()),
+	public_pipelines_disabled: z.optional(z.boolean()),
 });
 
 export const zSsoViewWritable = z.object({
-	type: z.optional(
-		z.enum(["SAML", "OIDC"]).register(z.globalRegistry, {
-			description: "The type of the SSO to be set",
-		}),
-	),
+	type: z.optional(z.enum(["SAML", "OIDC"])),
 	sso_provider_type: z.optional(
-		z
-			.enum(["OKTA", "ONE_LOGIN", "GOOGLE", "AZURE", "AWS", "CUSTOM"])
-			.register(z.globalRegistry, {
-				description: "The provider type for SSO configuration",
-			}),
+		z.enum(["OKTA", "ONE_LOGIN", "GOOGLE", "AZURE", "AWS", "CUSTOM"]),
 	),
-	sso_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"The SSO URL / SAML endpoint / Identity provider Single sign-on URL. Set when type is `SAML`.",
-		}),
-	),
-	issuer: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Issuer URI, IDP Entity ID, SSO issuer, provider issuer, AD identifier or the base URL of the OpenID Connect (OIDC) server.",
-		}),
-	),
-	certificate: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The x509 certificate content. Set when type is `SAML`.",
-		}),
-	),
-	signature_method: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Set when type is `SAML`. Examples: `sha1`, `sha256`, `sha512`",
-		}),
-	),
-	digest_method: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Set when type is `SAML`. Examples: `sha1`, `sha256`, `sha512`",
-		}),
-	),
-	require_sso_for_all_members: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description: "Require SSO authentication.",
-		}),
-	),
+	sso_url: z.optional(z.string()),
+	issuer: z.optional(z.string()),
+	certificate: z.optional(z.string()),
+	signature_method: z.optional(z.string()),
+	digest_method: z.optional(z.string()),
+	require_sso_for_all_members: z.optional(z.boolean()),
 });
 
 /**
  * Short representation of a pipeline
  */
-export const zShortPipelineViewWritable = z
-	.object({
-		id: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description: "The unique identifier of the pipeline",
-				}),
-		),
-		identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "A human-readable ID of pipeline",
+export const zShortPipelineViewWritable = z.object({
+	id: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the pipeline",
+	),
+	identifier: z.optional(z.string()),
+	name: z.optional(z.string()),
+	definition_source: z.optional(z.enum(["LOCAL", "REMOTE"])),
+	git_config_ref: z.optional(z.enum(["NONE", "DYNAMIC", "FIXED"])),
+	refs: z.optional(z.array(z.string())),
+	events: z.optional(z.array(zPipelineEventView)),
+	loop: z.optional(z.array(z.string())),
+	priority: z.optional(z.enum(["LOW", "NORMAL", "HIGH"])),
+	disabled: z.optional(z.boolean()),
+	disabled_reason: z.optional(z.string()),
+	last_execution_status: z.optional(
+		z.enum([
+			"INPROGRESS",
+			"ENQUEUED",
+			"TERMINATED",
+			"SUCCESSFUL",
+			"FAILED",
+			"INITIAL",
+			"NOT_EXECUTED",
+			"SKIPPED",
+			"TERMINATING",
+			"WAITING_FOR_APPLY",
+			"WAITING_FOR_VARIABLES",
+			"WAITING_FOR_SETTABLE_VARIABLES",
+			"WAITING_FOR_VT_SESSION",
+		]),
+	),
+	last_execution_revision: z.optional(z.string()),
+	target_site_url: z.optional(z.string()),
+	execution_message_template: z.optional(z.string()),
+	create_date: z.optional(z.iso.datetime()),
+	always_from_scratch: z.optional(z.boolean()),
+	ignore_fail_on_project_status: z.optional(z.boolean()),
+	no_skip_to_most_recent: z.optional(z.boolean()),
+	terminate_stale_runs: z.optional(z.boolean()),
+	auto_clear_cache: z.optional(z.boolean()),
+	paused: z.optional(z.boolean()),
+	pause_on_repeated_failures: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		definition_source: z.optional(
-			z.enum(["LOCAL", "REMOTE"]).register(z.globalRegistry, {
-				description: "The source of the pipeline definition",
+	),
+	fetch_all_refs: z.optional(z.boolean()),
+	fail_on_prepare_env_warning: z.optional(z.boolean()),
+	concurrent_pipeline_runs: z.optional(z.boolean()),
+	clone_depth: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		git_config_ref: z.optional(
-			z.enum(["NONE", "DYNAMIC", "FIXED"]).register(z.globalRegistry, {
-				description: "The git configuration reference type",
-			}),
-		),
-		refs: z.optional(
-			z
-				.array(
-					z.string().register(z.globalRegistry, {
-						description:
-							"Pipeline git context refs. If unset and events is empty, the pipeline counts as codeless",
-					}),
-				)
-				.register(z.globalRegistry, {
-					description:
-						"Pipeline git context refs. If unset and events is empty, the pipeline counts as codeless",
-				}),
-		),
-		events: z.optional(
-			z.array(zPipelineEventView).register(z.globalRegistry, {
-				description: "The list of events that trigger the pipeline run",
-			}),
-		),
-		loop: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description: "The loop configuration for the pipeline",
-			}),
-		),
-		priority: z.optional(
-			z.enum(["LOW", "NORMAL", "HIGH"]).register(z.globalRegistry, {
-				description: "The priority of the pipeline",
-			}),
-		),
-		disabled: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Indicates if the pipeline is disabled",
-			}),
-		),
-		disabled_reason: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The reason why the pipeline is disabled",
-			}),
-		),
-		last_execution_status: z.optional(
-			z
-				.enum([
-					"INPROGRESS",
-					"ENQUEUED",
-					"TERMINATED",
-					"SUCCESSFUL",
-					"FAILED",
-					"INITIAL",
-					"NOT_EXECUTED",
-					"SKIPPED",
-					"TERMINATING",
-					"WAITING_FOR_APPLY",
-					"WAITING_FOR_VARIABLES",
-					"WAITING_FOR_SETTABLE_VARIABLES",
-					"WAITING_FOR_VT_SESSION",
-				])
-				.register(z.globalRegistry, {
-					description: "The status of the last run",
-				}),
-		),
-		last_execution_revision: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The git revision of the last run",
-			}),
-		),
-		target_site_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The URL to the target site after deployment",
-			}),
-		),
-		execution_message_template: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The template for commit status messages",
-			}),
-		),
-		create_date: z.optional(
-			z.iso.datetime().register(z.globalRegistry, {
-				description: "The creation date of the pipeline",
-			}),
-		),
-		always_from_scratch: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Defines whether to upload everything from scratch on every run",
-			}),
-		),
-		ignore_fail_on_project_status: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, the status of a given pipeline will not impact the project status on the dashboard",
-			}),
-		),
-		no_skip_to_most_recent: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, the pipeline will not skip queued runs to execute the most recent one",
-			}),
-		),
-		terminate_stale_runs: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, stale runs will be automatically terminated",
-			}),
-		),
-		auto_clear_cache: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Defines whether to automatically clear cache before running the pipeline",
-			}),
-		),
-		paused: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Indicates if the pipeline is paused",
-			}),
-		),
-		pause_on_repeated_failures: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description:
-						"Defines how many repeated failures are required to pause the pipeline",
-				}),
-		),
-		fetch_all_refs: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, all refs will be fetched from the repository",
-			}),
-		),
-		fail_on_prepare_env_warning: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, the pipeline will fail on environment preparation warnings",
-			}),
-		),
-		concurrent_pipeline_runs: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Defines whether the pipeline can be run concurrently",
-			}),
-		),
-		clone_depth: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description:
-						"Defines the depth of the git clone operation for shallow clones",
-				}),
-		),
-		do_not_create_commit_status: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, commit statuses will not be created in the repository",
-			}),
-		),
-		stale: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Indicates that pipeline definition was probably removed on particular Git ref and pipeline won't be run on events",
-			}),
-		),
-		waiting_for_push: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Indicates if the pipeline is waiting for the first push to the repository",
-			}),
-		),
-		resources: z.optional(
-			z
-				.enum([
-					"DEFAULT",
-					"NANO",
-					"SMALL",
-					"MEDIUM",
-					"LARGE",
-					"XLARGE",
-					"CUSTOM",
-					"X2LARGE",
-				])
-				.register(z.globalRegistry, {
-					description: "The resource configuration for the pipeline run",
-				}),
-		),
-		remote_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The path to the remote pipeline definition file",
-			}),
-		),
-		remote_ref: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The ref of the remote pipeline definition",
-			}),
-		),
-		remote_project_name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The project name of the remote pipeline definition",
-			}),
-		),
-		remote_parameters: z.optional(
-			z.array(zPipelinePropertyView).register(z.globalRegistry, {
-				description: "The parameters passed to the remote pipeline definition",
-			}),
-		),
-		git_config: z.optional(zYamlDefinitionView),
-		tags: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description:
-					"The list of tags associated with the pipeline for organization",
-			}),
-		),
-		git_changeset_base: z.optional(
-			z
-				.enum(["LATEST_RUN", "LATEST_RUN_MATCHING_REF", "PULL_REQUEST"])
-				.register(z.globalRegistry, {
-					description:
-						"The base for git changeset calculation. Determines which changes trigger the pipeline",
-				}),
-		),
-		filesystem_changeset_base: z.optional(
-			z.enum(["DATE_MODIFIED", "CONTENTS"]).register(z.globalRegistry, {
-				description:
-					"The base for filesystem changeset calculation. Determines which file changes trigger the pipeline",
-			}),
-		),
-		cpu: z.optional(
-			z.enum(["X64", "ARM", "X86"]).register(z.globalRegistry, {
-				description: "The CPU architecture for the pipeline run",
-			}),
-		),
-		description_required: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to true, a description is required when executing the pipeline manually",
-			}),
-		),
-		folder: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The folder name where the pipeline is organized",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Short representation of a pipeline",
-	});
+	),
+	do_not_create_commit_status: z.optional(z.boolean()),
+	stale: z.optional(z.boolean()),
+	waiting_for_push: z.optional(z.boolean()),
+	resources: z.optional(
+		z.enum([
+			"DEFAULT",
+			"NANO",
+			"SMALL",
+			"MEDIUM",
+			"LARGE",
+			"XLARGE",
+			"CUSTOM",
+			"X2LARGE",
+		]),
+	),
+	remote_path: z.optional(z.string()),
+	remote_ref: z.optional(z.string()),
+	remote_project_name: z.optional(z.string()),
+	remote_parameters: z.optional(z.array(zPipelinePropertyView)),
+	git_config: z.optional(zYamlDefinitionView),
+	tags: z.optional(z.array(z.string())),
+	git_changeset_base: z.optional(
+		z.enum(["LATEST_RUN", "LATEST_RUN_MATCHING_REF", "PULL_REQUEST"]),
+	),
+	filesystem_changeset_base: z.optional(z.enum(["DATE_MODIFIED", "CONTENTS"])),
+	cpu: z.optional(z.enum(["X64", "ARM", "X86"])),
+	description_required: z.optional(z.boolean()),
+	folder: z.optional(z.string()),
+});
 
 /**
  * The integration to use for authentication
  */
-export const zIntegrationViewWritable = z
-	.object({
-		identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "A human-readable ID of the integration",
-			}),
-		),
-		hash_id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The unique hash ID of the integration",
-			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the integration",
-			}),
-		),
-		type: z.optional(
-			z
-				.enum([
-					"GIT_HUB",
-					"BITBUCKET",
-					"GOOGLE",
-					"DIGITAL_OCEAN",
-					"SLACK",
-					"MODULUS",
-					"HEROKU",
-					"AMAZON",
-					"GIT_LAB",
-					"SHOPIFY",
-					"GIT_HUB_ENTERPRISE",
-					"GIT_LAB_ENTERPRISE",
-					"PUSHOVER",
-					"PUSHBULLET",
-					"RACKSPACE",
-					"CUSTOM",
-					"CLOUDFLARE",
-					"NEW_RELIC",
-					"SENTRY",
-					"ROLLBAR",
-					"DATADOG",
-					"DO_SPACES",
-					"HONEYBADGER",
-					"VULTR",
-					"SENTRY_ENTERPRISE",
-					"LOGGLY",
-					"HIP_CHAT",
-					"FIREBASE",
-					"TELEGRAM",
-					"AZURE",
-					"UPCLOUD",
-					"GHOST_INSPECTOR",
-					"NETLIFY",
-					"AZURE_CLOUD",
-					"MICROSOFT_TEAMS",
-					"GOOGLE_SERVICE_ACCOUNT",
-					"GOOGLE_PLAY_STORE",
-					"DOCKER_HUB",
-					"APP_STORE",
-					"GIT_HUB_APP",
-					"GIT_HUB_APP_ENTERPRISE",
-					"GIT_HUB_API",
-					"ATOP",
-					"SNYK",
-					"STACK_HAWK",
-					"BLACKFIRE",
-					"BACKBLAZE",
-					"ONE_LOGIN",
-					"OKTA",
-					"CONTENTFUL",
-				])
-				.register(z.globalRegistry, {
-					description: "The type of integration",
-				}),
-		),
-		auth_type: z.optional(
-			z
-				.enum([
-					"OAUTH",
-					"TOKEN",
-					"API_KEY",
-					"APP",
-					"APP_SPRYKER",
-					"TOKEN_APP_EXTENSION",
-					"DEFAULT",
-					"OIDC",
-					"TRUSTED",
-					"APP_RW",
-				])
-				.register(z.globalRegistry, {
-					description: "The authentication method used by the integration",
-				}),
-		),
-		scope: z.optional(
-			z
-				.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"])
-				.register(z.globalRegistry, {
-					description: "The scope of the integration",
-				}),
-		),
-		project_name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"The human-readable ID of the project (required when scope is `PROJECT`)",
-			}),
-		),
-		app_id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The application ID for Azure Cloud integrations",
-			}),
-		),
-		google_project: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The Google Cloud project ID",
-			}),
-		),
-		host_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The host URL for custom integrations",
-			}),
-		),
-		webhook_address: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The webhook URL for receiving notifications",
-			}),
-		),
-		audience: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The JWT audience for token validation",
-			}),
-		),
-		atop_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The ATOP service URL",
-			}),
-		),
-		permissions: z.optional(zIntegrationPermissionsView),
-		all_pipelines_allowed: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Set to `true` to allow all pipelines to use this integration",
-			}),
-		),
-		allowed_pipelines: z.optional(
-			z.array(zShortPipelineViewWritable).register(z.globalRegistry, {
-				description:
-					"List of specific pipelines allowed to use this integration",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The integration to use for authentication",
-	});
+export const zIntegrationViewWritable = z.object({
+	identifier: z.optional(z.string()),
+	hash_id: z.optional(z.string()),
+	name: z.optional(z.string()),
+	type: z.optional(
+		z.enum([
+			"GIT_HUB",
+			"BITBUCKET",
+			"GOOGLE",
+			"DIGITAL_OCEAN",
+			"SLACK",
+			"MODULUS",
+			"HEROKU",
+			"AMAZON",
+			"GIT_LAB",
+			"SHOPIFY",
+			"GIT_HUB_ENTERPRISE",
+			"GIT_LAB_ENTERPRISE",
+			"PUSHOVER",
+			"PUSHBULLET",
+			"RACKSPACE",
+			"CUSTOM",
+			"CLOUDFLARE",
+			"NEW_RELIC",
+			"SENTRY",
+			"ROLLBAR",
+			"DATADOG",
+			"DO_SPACES",
+			"HONEYBADGER",
+			"VULTR",
+			"SENTRY_ENTERPRISE",
+			"LOGGLY",
+			"HIP_CHAT",
+			"FIREBASE",
+			"TELEGRAM",
+			"AZURE",
+			"UPCLOUD",
+			"GHOST_INSPECTOR",
+			"NETLIFY",
+			"AZURE_CLOUD",
+			"MICROSOFT_TEAMS",
+			"GOOGLE_SERVICE_ACCOUNT",
+			"GOOGLE_PLAY_STORE",
+			"DOCKER_HUB",
+			"APP_STORE",
+			"GIT_HUB_APP",
+			"GIT_HUB_APP_ENTERPRISE",
+			"GIT_HUB_API",
+			"ATOP",
+			"SNYK",
+			"STACK_HAWK",
+			"BLACKFIRE",
+			"BACKBLAZE",
+			"ONE_LOGIN",
+			"OKTA",
+			"CONTENTFUL",
+		]),
+	),
+	auth_type: z.optional(
+		z.enum([
+			"OAUTH",
+			"TOKEN",
+			"API_KEY",
+			"APP",
+			"APP_SPRYKER",
+			"TOKEN_APP_EXTENSION",
+			"DEFAULT",
+			"OIDC",
+			"TRUSTED",
+			"APP_RW",
+		]),
+	),
+	scope: z.optional(z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"])),
+	project_name: z.optional(z.string()),
+	app_id: z.optional(z.string()),
+	google_project: z.optional(z.string()),
+	host_url: z.optional(z.string()),
+	webhook_address: z.optional(z.string()),
+	audience: z.optional(z.string()),
+	atop_url: z.optional(z.string()),
+	permissions: z.optional(zIntegrationPermissionsView),
+	all_pipelines_allowed: z.optional(z.boolean()),
+	allowed_pipelines: z.optional(z.array(zShortPipelineViewWritable)),
+});
 
 export const zIntegrationsViewWritable = z.object({
 	integrations: z.optional(z.array(zIntegrationViewWritable)),
 });
 
 export const zIdsViewWritable = z.object({
-	domain: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-	),
-	project_identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the project",
-		}),
-	),
+	domain: z.optional(z.string()),
+	project_identifier: z.optional(z.string()),
 	pipeline_id: z.optional(
 		z
 			.int()
@@ -4233,282 +1680,144 @@ export const zIdsViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the pipeline",
 			}),
 	),
-	environment_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the environment",
-		}),
-	),
-	pkg_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the package",
-		}),
-	),
-	pkg_version_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the package version",
-		}),
-	),
-	sandbox_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-	),
+	environment_id: z.optional(z.string()),
+	pkg_id: z.optional(z.string()),
+	pkg_version_id: z.optional(z.string()),
+	sandbox_id: z.optional(z.string()),
 });
 
 /**
  * Sandbox reference
  */
-export const zSandboxIdViewWritable = z
-	.object({
-		id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The ID of the sandbox",
-			}),
-		),
-		identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the sandbox",
-			}),
-		),
-		status: z.optional(
-			z
-				.enum([
-					"STARTING",
-					"STOPPING",
-					"FAILED",
-					"RUNNING",
-					"STOPPED",
-					"RESTORING",
-				])
-				.register(z.globalRegistry, {
-					description: "The current status of the sandbox",
-				}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Sandbox reference",
-	});
+export const zSandboxIdViewWritable = z.object({
+	id: z.optional(z.string()),
+	identifier: z.optional(z.string()),
+	name: z.optional(z.string()),
+	status: z.optional(
+		z.enum([
+			"STARTING",
+			"STOPPING",
+			"FAILED",
+			"RUNNING",
+			"STOPPED",
+			"RESTORING",
+		]),
+	),
+});
 
 /**
  * Integration reference
  */
-export const zIntegrationIdViewWritable = z
-	.object({
-		identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "A human-readable ID of the integration",
-			}),
-		),
-		hash_id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The unique hash ID of the integration",
-			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the integration",
-			}),
-		),
-		type: z.optional(
-			z
-				.enum([
-					"GIT_HUB",
-					"BITBUCKET",
-					"GOOGLE",
-					"DIGITAL_OCEAN",
-					"SLACK",
-					"MODULUS",
-					"HEROKU",
-					"AMAZON",
-					"GIT_LAB",
-					"SHOPIFY",
-					"GIT_HUB_ENTERPRISE",
-					"GIT_LAB_ENTERPRISE",
-					"PUSHOVER",
-					"PUSHBULLET",
-					"RACKSPACE",
-					"CUSTOM",
-					"CLOUDFLARE",
-					"NEW_RELIC",
-					"SENTRY",
-					"ROLLBAR",
-					"DATADOG",
-					"DO_SPACES",
-					"HONEYBADGER",
-					"VULTR",
-					"SENTRY_ENTERPRISE",
-					"LOGGLY",
-					"HIP_CHAT",
-					"FIREBASE",
-					"TELEGRAM",
-					"AZURE",
-					"UPCLOUD",
-					"GHOST_INSPECTOR",
-					"NETLIFY",
-					"AZURE_CLOUD",
-					"MICROSOFT_TEAMS",
-					"GOOGLE_SERVICE_ACCOUNT",
-					"GOOGLE_PLAY_STORE",
-					"DOCKER_HUB",
-					"APP_STORE",
-					"GIT_HUB_APP",
-					"GIT_HUB_APP_ENTERPRISE",
-					"GIT_HUB_API",
-					"ATOP",
-					"SNYK",
-					"STACK_HAWK",
-					"BLACKFIRE",
-					"BACKBLAZE",
-					"ONE_LOGIN",
-					"OKTA",
-					"CONTENTFUL",
-				])
-				.register(z.globalRegistry, {
-					description: "The type of integration",
-				}),
-		),
-		auth_type: z.optional(
-			z
-				.enum([
-					"OAUTH",
-					"TOKEN",
-					"API_KEY",
-					"APP",
-					"APP_SPRYKER",
-					"TOKEN_APP_EXTENSION",
-					"DEFAULT",
-					"OIDC",
-					"TRUSTED",
-					"APP_RW",
-				])
-				.register(z.globalRegistry, {
-					description: "The authentication method used by the integration",
-				}),
-		),
-		host_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The host URL for custom integrations",
-			}),
-		),
-		webhook_address: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The webhook URL for receiving notifications",
-			}),
-		),
-		atop_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The ATOP service URL",
-			}),
-		),
-		app_id: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The application ID for Azure Cloud integrations",
-			}),
-		),
-		google_project: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The Google Cloud project ID",
-			}),
-		),
-		audience: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The JWT audience for token validation",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Integration reference",
-	});
+export const zIntegrationIdViewWritable = z.object({
+	identifier: z.optional(z.string()),
+	hash_id: z.optional(z.string()),
+	name: z.optional(z.string()),
+	type: z.optional(
+		z.enum([
+			"GIT_HUB",
+			"BITBUCKET",
+			"GOOGLE",
+			"DIGITAL_OCEAN",
+			"SLACK",
+			"MODULUS",
+			"HEROKU",
+			"AMAZON",
+			"GIT_LAB",
+			"SHOPIFY",
+			"GIT_HUB_ENTERPRISE",
+			"GIT_LAB_ENTERPRISE",
+			"PUSHOVER",
+			"PUSHBULLET",
+			"RACKSPACE",
+			"CUSTOM",
+			"CLOUDFLARE",
+			"NEW_RELIC",
+			"SENTRY",
+			"ROLLBAR",
+			"DATADOG",
+			"DO_SPACES",
+			"HONEYBADGER",
+			"VULTR",
+			"SENTRY_ENTERPRISE",
+			"LOGGLY",
+			"HIP_CHAT",
+			"FIREBASE",
+			"TELEGRAM",
+			"AZURE",
+			"UPCLOUD",
+			"GHOST_INSPECTOR",
+			"NETLIFY",
+			"AZURE_CLOUD",
+			"MICROSOFT_TEAMS",
+			"GOOGLE_SERVICE_ACCOUNT",
+			"GOOGLE_PLAY_STORE",
+			"DOCKER_HUB",
+			"APP_STORE",
+			"GIT_HUB_APP",
+			"GIT_HUB_APP_ENTERPRISE",
+			"GIT_HUB_API",
+			"ATOP",
+			"SNYK",
+			"STACK_HAWK",
+			"BLACKFIRE",
+			"BACKBLAZE",
+			"ONE_LOGIN",
+			"OKTA",
+			"CONTENTFUL",
+		]),
+	),
+	auth_type: z.optional(
+		z.enum([
+			"OAUTH",
+			"TOKEN",
+			"API_KEY",
+			"APP",
+			"APP_SPRYKER",
+			"TOKEN_APP_EXTENSION",
+			"DEFAULT",
+			"OIDC",
+			"TRUSTED",
+			"APP_RW",
+		]),
+	),
+	host_url: z.optional(z.string()),
+	webhook_address: z.optional(z.string()),
+	atop_url: z.optional(z.string()),
+	app_id: z.optional(z.string()),
+	google_project: z.optional(z.string()),
+	audience: z.optional(z.string()),
+});
 
 /**
  * User/member reference
  */
-export const zMemberViewWritable = z
-	.object({
-		id: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description: "The ID of the user",
-				}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the user",
+export const zMemberViewWritable = z.object({
+	id: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		avatar_url: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The avatar URL of the user",
-			}),
-		),
-		email: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The email address of the user",
-			}),
-		),
-		admin: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Whether the user has admin privileges",
-			}),
-		),
-		workspace_owner: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Whether the user is workspace owner",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "User/member reference",
-	});
+	),
+	name: z.optional(z.string()),
+	avatar_url: z.optional(z.string()),
+	email: z.optional(z.string()),
+	admin: z.optional(z.boolean()),
+	workspace_owner: z.optional(z.boolean()),
+});
 
 export const zProjectViewWritable = z.object({
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the project",
-		}),
-	),
-	display_name: z.string().register(z.globalRegistry, {
-		description: "The Name of the project",
-	}),
-	status: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The status of the project",
-		}),
-	),
-	access: z.optional(
-		z.enum(["PRIVATE", "PUBLIC"]).register(z.globalRegistry, {
-			description: "Indicates if this is a public project",
-		}),
-	),
-	create_date: z.optional(
-		z.iso.datetime().register(z.globalRegistry, {
-			description: "The creation date of the project",
-		}),
-	),
-	external_project_id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Repo slug of the Bitbucket, GitHub or GitLab project. Required when adding the integrated project",
-		}),
-	),
+	name: z.optional(z.string()),
+	display_name: z.string(),
+	status: z.optional(z.string()),
+	access: z.optional(z.enum(["PRIVATE", "PUBLIC"])),
+	create_date: z.optional(z.iso.datetime()),
+	external_project_id: z.optional(z.string()),
 	git_lab_project_id: z.optional(
 		z
 			.int()
@@ -4517,29 +1826,11 @@ export const zProjectViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "ID of the project in GitLab",
 			}),
 	),
-	custom_repo_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"SSH or HTTPS url of the git repository. Required when adding the project integrated with custom git repository",
-		}),
-	),
-	custom_repo_user: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Username used to authorize access to the git repository. Required when adding the project integrated with custom git repository",
-		}),
-	),
-	custom_repo_pass: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Password used to authorize access to the git repository. Required when adding the project integrated with custom git repository and the provided `custom_repo_url` is the HTTPS url",
-		}),
-	),
+	custom_repo_url: z.optional(z.string()),
+	custom_repo_user: z.optional(z.string()),
+	custom_repo_pass: z.optional(z.string()),
 	custom_repo_ssh_key_id: z.optional(
 		z
 			.int()
@@ -4548,327 +1839,105 @@ export const zProjectViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description:
-					"The ID of the private SSH key used to authorize access to the git repository. Required when adding the project integrated with private git server by SSH url",
 			}),
 	),
 	created_by: z.optional(zMemberViewWritable),
-	http_repository: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The HTTP repository URL",
-		}),
-	),
-	ssh_repository: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The SSH repository URL",
-		}),
-	),
-	default_branch: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The default branch name",
-		}),
-	),
+	http_repository: z.optional(z.string()),
+	ssh_repository: z.optional(z.string()),
+	default_branch: z.optional(z.string()),
 	integration: z.optional(zIntegrationIdViewWritable),
-	fetch_submodules: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"Defines whether the submodules are fetched during the runs in this project",
-		}),
-	),
-	fetch_submodules_env_key: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"Name of the key that will be used to authorize while fetching the submodules. Required when `fetch_submodules` is set to `true`",
-		}),
-	),
-	allow_pull_requests: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"Enables/disables pull requests in the project. Available only for projects synchronized with GitHub or GitHub Enterprise repository",
-		}),
-	),
-	update_default_branch_from_external: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"If set to true, the default branch will be updated from GitHub/GitLab/Bitbucket.",
-		}),
-	),
-	without_repository: z.optional(
-		z.boolean().register(z.globalRegistry, {
-			description:
-				"If set to true, the project is created without any repository attached.",
-		}),
-	),
+	fetch_submodules: z.optional(z.boolean()),
+	fetch_submodules_env_key: z.optional(z.string()),
+	allow_pull_requests: z.optional(z.boolean()),
+	update_default_branch_from_external: z.optional(z.boolean()),
+	without_repository: z.optional(z.boolean()),
 });
 
 /**
  * Short representation of a project
  */
-export const zShortProjectViewWritable = z
-	.object({
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The human-readable ID of the project",
-			}),
-		),
-		display_name: z.string().register(z.globalRegistry, {
-			description: "The Name of the project",
-		}),
-		status: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The status of the project",
-			}),
-		),
-		access: z.optional(
-			z.enum(["PRIVATE", "PUBLIC"]).register(z.globalRegistry, {
-				description: "Indicates if this is a public project",
-			}),
-		),
-		create_date: z.optional(
-			z.iso.datetime().register(z.globalRegistry, {
-				description: "The creation date of the project",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Short representation of a project",
-	});
+export const zShortProjectViewWritable = z.object({
+	name: z.optional(z.string()),
+	display_name: z.string(),
+	status: z.optional(z.string()),
+	access: z.optional(z.enum(["PRIVATE", "PUBLIC"])),
+	create_date: z.optional(z.iso.datetime()),
+});
 
 /**
  * The environment variables of the sandbox
  */
-export const zAddVariableInObjectRequestWritable = z
-	.object({
-		key: z.string().register(z.globalRegistry, {
-			description: "The name of the variable",
-		}),
-		value: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The value of the variable",
-			}),
-		),
-		settable: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to `true` the variable value can be set by Buddy actions",
-			}),
-		),
-		run_only_settable: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"Available only if `type=VAR`. If set to `true` the variable value can be set by Buddy actions only for execution time",
-			}),
-		),
-		encrypted: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description:
-					"If set to `true` the variable value will be encrypted and hidden",
-			}),
-		),
-		description: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The optional description of the variable",
-			}),
-		),
-		init_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Initial path for the variable",
-			}),
-		),
-		defaults: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Default value for the variable",
-			}),
-		),
-		file_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"Specifies where to copy the file on each run. Set if `type` is `SSH_KEY`",
-			}),
-		),
-		file_chmod: z.optional(
-			z.string().register(z.globalRegistry, {
-				description:
-					"File permission set on copy to a container on each run. Set if `type` is `SSH_KEY`",
-			}),
-		),
-		file_place: z.optional(
-			z.enum(["NONE", "CONTAINER"]).register(z.globalRegistry, {
-				description:
-					"Set if `type` is `SSH_KEY`. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run",
-			}),
-		),
-		password: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Password for certificates",
-			}),
-		),
-		passphrase: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Passphrase for encrypted SSH keys",
-			}),
-		),
-		key_identifier: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "GPG key identifier",
-			}),
-		),
-		type: z
-			.enum([
-				"VAR",
-				"FILE",
-				"SSH_KEY",
-				"IOS_KEYCHAIN",
-				"IOS_PROVISION_PROFILES",
-				"SSH_PUBLIC_KEY",
-				"GPG_KEY",
-			])
-			.register(z.globalRegistry, {
-				description: "The type of the added variable",
-			}),
-	})
-	.register(z.globalRegistry, {
-		description: "The environment variables of the sandbox",
-	});
+export const zAddVariableInObjectRequestWritable = z.object({
+	key: z.string(),
+	value: z.optional(z.string()),
+	settable: z.optional(z.boolean()),
+	run_only_settable: z.optional(z.boolean()),
+	encrypted: z.optional(z.boolean()),
+	description: z.optional(z.string()),
+	init_path: z.optional(z.string()),
+	defaults: z.optional(z.string()),
+	file_path: z.optional(z.string()),
+	file_chmod: z.optional(z.string()),
+	file_place: z.optional(z.enum(["NONE", "CONTAINER"])),
+	password: z.optional(z.string()),
+	passphrase: z.optional(z.string()),
+	key_identifier: z.optional(z.string()),
+	type: z.enum([
+		"VAR",
+		"FILE",
+		"SSH_KEY",
+		"IOS_KEYCHAIN",
+		"IOS_PROVISION_PROFILES",
+		"SSH_PUBLIC_KEY",
+		"GPG_KEY",
+	]),
+});
 
 /**
  * The TLS/SSL encryption settings of the tunnel
  */
-export const zTlsSettingsViewWritable = z
-	.object({
-		private_key: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Private key for TLS certificate",
-			}),
-		),
-		certificate: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "TLS certificate",
-			}),
-		),
-		ca_certificate: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Certificate Authority certificate",
-			}),
-		),
-		terminate_at: z.optional(
-			z.enum(["REGION", "AGENT", "TARGET"]).register(z.globalRegistry, {
-				description: "Where to terminate TLS connection",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The TLS/SSL encryption settings of the tunnel",
-	});
+export const zTlsSettingsViewWritable = z.object({
+	private_key: z.optional(z.string()),
+	certificate: z.optional(z.string()),
+	ca_certificate: z.optional(z.string()),
+	terminate_at: z.optional(z.enum(["REGION", "AGENT", "TARGET"])),
+});
 
 /**
  * The HTTP-specific settings of the tunnel
  */
-export const zHttpSettingsViewWritable = z
-	.object({
-		verify_certificate: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Whether to verify SSL/TLS certificates",
+export const zHttpSettingsViewWritable = z.object({
+	verify_certificate: z.optional(z.boolean()),
+	compression: z.optional(z.boolean()),
+	http2: z.optional(z.boolean()),
+	log_requests: z.optional(z.boolean()),
+	request_headers: z.optional(z.array(z.record(z.string(), z.string()))),
+	whitelist_user_agents: z.optional(z.array(z.string())),
+	rewrite_host_header: z.optional(z.string()),
+	response_headers: z.optional(z.array(z.record(z.string(), z.string()))),
+	login: z.optional(z.string()),
+	password: z.optional(z.string()),
+	tls_ca: z.optional(z.string()),
+	circuit_breaker: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
-		),
-		compression: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Enable HTTP compression",
-			}),
-		),
-		http2: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Enable HTTP/2 protocol support",
-			}),
-		),
-		log_requests: z.optional(
-			z.boolean().register(z.globalRegistry, {
-				description: "Log incoming HTTP requests",
-			}),
-		),
-		request_headers: z.optional(
-			z.array(z.record(z.string(), z.string())).register(z.globalRegistry, {
-				description: "Custom HTTP headers to add to requests",
-			}),
-		),
-		whitelist_user_agents: z.optional(
-			z.array(z.string()).register(z.globalRegistry, {
-				description: "List of allowed User-Agent strings",
-			}),
-		),
-		rewrite_host_header: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Rewrite the Host header to this value",
-			}),
-		),
-		response_headers: z.optional(
-			z.array(z.record(z.string(), z.string())).register(z.globalRegistry, {
-				description: "Custom HTTP headers to add to responses",
-			}),
-		),
-		login: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Basic authentication username",
-			}),
-		),
-		password: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Basic authentication password",
-			}),
-		),
-		tls_ca: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Custom TLS Certificate Authority",
-			}),
-		),
-		circuit_breaker: z.optional(
-			z
-				.int()
-				.min(-2147483648, {
-					error: "Invalid value: Expected int32 to be >= -2147483648",
-				})
-				.max(2147483647, {
-					error: "Invalid value: Expected int32 to be <= 2147483647",
-				})
-				.register(z.globalRegistry, {
-					description: "Circuit breaker threshold (number of failed requests)",
-				}),
-		),
-		serve_path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "Base path for serving requests",
-			}),
-		),
-		auth_type: z.optional(
-			z.enum(["NONE", "BASIC", "BUDDY"]).register(z.globalRegistry, {
-				description: "Type of authentication used",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "The HTTP-specific settings of the tunnel",
-	});
+	),
+	serve_path: z.optional(z.string()),
+	auth_type: z.optional(z.enum(["NONE", "BASIC", "BUDDY"])),
+});
 
 export const zTunnelViewWritable = z.object({
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the tunnel",
-	}),
-	endpoint: z.string().register(z.globalRegistry, {
-		description: "The endpoint URL of the tunnel",
-	}),
-	type: z.enum(["TCP", "TLS", "HTTP", "SSH"]).register(z.globalRegistry, {
-		description: "The type of the tunnel",
-	}),
-	region: z.enum(["US", "EU", "AS"]).register(z.globalRegistry, {
-		description: "The region where the tunnel is deployed",
-	}),
-	whitelist: z.optional(
-		z.array(z.string()).register(z.globalRegistry, {
-			description: "The IP addresses or domains allowed to access the tunnel",
-		}),
-	),
+	name: z.string(),
+	endpoint: z.string(),
+	type: z.enum(["TCP", "TLS", "HTTP", "SSH"]),
+	region: z.enum(["US", "EU", "AS"]),
+	whitelist: z.optional(z.array(z.string())),
 	timeout: z.optional(
 		z
 			.int()
@@ -4877,95 +1946,40 @@ export const zTunnelViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The connection timeout of the tunnel in seconds",
 			}),
 	),
 	http: z.optional(zHttpSettingsViewWritable),
 	tls: z.optional(zTlsSettingsViewWritable),
-	endpoint_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The url of the tunnel",
-		}),
-	),
+	endpoint_url: z.optional(z.string()),
 });
 
 export const zUpdateSandboxRequestWritable = z.object({
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the sandbox",
-		}),
-	),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
+	name: z.optional(z.string()),
+	identifier: z.optional(z.string()),
 	resources: z.optional(
-		z
-			.enum([
-				"1x2",
-				"2x4",
-				"3x6",
-				"4x8",
-				"5x10",
-				"6x12",
-				"7x14",
-				"8x16",
-				"9x18",
-				"10x20",
-				"11x22",
-				"12x24",
-				"CUSTOM",
-			])
-			.register(z.globalRegistry, {
-				description: "The resource configuration of the sandbox (CPU x RAM)",
-			}),
+		z.enum([
+			"1x2",
+			"2x4",
+			"3x6",
+			"4x8",
+			"5x10",
+			"6x12",
+			"7x14",
+			"8x16",
+			"9x18",
+			"10x20",
+			"11x22",
+			"12x24",
+			"CUSTOM",
+		]),
 	),
-	install_commands: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The commands to run during setup of the sandbox",
-		}),
-	),
-	run_command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The run command of the sandbox",
-		}),
-	),
-	app_dir: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application directory of the sandbox",
-		}),
-	),
-	app_type: z.optional(
-		z.enum(["CMD", "SERVICE"]).register(z.globalRegistry, {
-			description:
-				"The application type of the sandbox (passed command or existent service eg. apache2)",
-		}),
-	),
-	tags: z.optional(
-		z
-			.array(
-				z.string().register(z.globalRegistry, {
-					description: "The list of tags associated with the sandbox",
-				}),
-			)
-			.register(z.globalRegistry, {
-				description: "The list of tags associated with the sandbox",
-			}),
-	),
-	endpoints: z.optional(
-		z.array(zTunnelViewWritable).register(z.globalRegistry, {
-			description: "The tunnel endpoints of the sandbox",
-		}),
-	),
-	variables: z.optional(
-		z.array(zAddVariableInObjectRequestWritable).register(z.globalRegistry, {
-			description: "The environment variables of the sandbox",
-		}),
-	),
+	install_commands: z.optional(z.string()),
+	run_command: z.optional(z.string()),
+	app_dir: z.optional(z.string()),
+	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	tags: z.optional(z.array(z.string())),
+	endpoints: z.optional(z.array(zTunnelViewWritable)),
+	variables: z.optional(z.array(zAddVariableInObjectRequestWritable)),
 	permissions: z.optional(zPermissionsView),
 });
 
@@ -4976,80 +1990,34 @@ export const zSandboxesViewWritable = z.object({
 /**
  * Content item in a sandbox
  */
-export const zSandboxContentItemWritable = z
-	.object({
-		type: z.optional(
-			z.enum(["FILE", "DIR"]).register(z.globalRegistry, {
-				description: "The content type (FILE or DIR)",
+export const zSandboxContentItemWritable = z.object({
+	type: z.optional(z.enum(["FILE", "DIR"])),
+	name: z.optional(z.string()),
+	path: z.optional(z.string()),
+	size: z.optional(
+		z.coerce
+			.bigint()
+			.min(BigInt("-9223372036854775808"), {
+				error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+			})
+			.max(BigInt("9223372036854775807"), {
+				error: "Invalid value: Expected int64 to be <= 9223372036854775807",
 			}),
-		),
-		name: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The name of the file or directory",
-			}),
-		),
-		path: z.optional(
-			z.string().register(z.globalRegistry, {
-				description: "The path to the file or directory",
-			}),
-		),
-		size: z.optional(
-			z.coerce
-				.bigint()
-				.min(BigInt("-9223372036854775808"), {
-					error: "Invalid value: Expected int64 to be >= -9223372036854775808",
-				})
-				.max(BigInt("9223372036854775807"), {
-					error: "Invalid value: Expected int64 to be <= 9223372036854775807",
-				})
-				.register(z.globalRegistry, {
-					description: "The size of the file in bytes",
-				}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Content item in a sandbox",
-	});
+	),
+});
 
 /**
  * Sandbox content listing
  */
-export const zSandboxContentViewWritable = z
-	.object({
-		contents: z.optional(
-			z.array(zSandboxContentItemWritable).register(z.globalRegistry, {
-				description: "List of content items in the directory",
-			}),
-		),
-	})
-	.register(z.globalRegistry, {
-		description: "Sandbox content listing",
-	});
+export const zSandboxContentViewWritable = z.object({
+	contents: z.optional(z.array(zSandboxContentItemWritable)),
+});
 
 export const zSandboxCommandViewWritable = z.object({
-	id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the command",
-		}),
-	),
-	command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Command to execute in the sandbox",
-		}),
-	),
-	runtime: z.optional(
-		z
-			.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"])
-			.register(z.globalRegistry, {
-				description:
-					"Runtime environment for command execution (default: `BASH`)",
-			}),
-	),
-	status: z.optional(
-		z.enum(["INPROGRESS", "SUCCESSFUL", "FAILED"]).register(z.globalRegistry, {
-			description: "Command execution status",
-		}),
-	),
+	id: z.optional(z.string()),
+	command: z.optional(z.string()),
+	runtime: z.optional(z.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"])),
+	status: z.optional(z.enum(["INPROGRESS", "SUCCESSFUL", "FAILED"])),
 	exit_code: z.optional(
 		z
 			.int()
@@ -5058,16 +2026,9 @@ export const zSandboxCommandViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "Command exit code",
 			}),
 	),
-	logs_url: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "API endpoint URL to retrieve logs for this command",
-		}),
-	),
+	logs_url: z.optional(z.string()),
 });
 
 export const zSandboxCommandsViewWritable = z.object({
@@ -5075,29 +2036,13 @@ export const zSandboxCommandsViewWritable = z.object({
 });
 
 export const zSandboxAppLogsViewWritable = z.object({
-	cursor: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Cursor for pagination",
-		}),
-	),
-	logs: z.optional(
-		z.array(z.string()).register(z.globalRegistry, {
-			description: "Application log entries",
-		}),
-	),
+	cursor: z.optional(z.string()),
+	logs: z.optional(z.array(z.string())),
 });
 
 export const zShortSnapshotViewWritable = z.object({
-	id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the snapshot",
-		}),
-	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Snapshot name",
-		}),
-	),
+	id: z.optional(z.string()),
+	name: z.optional(z.string()),
 	size: z.optional(
 		z
 			.int()
@@ -5106,44 +2051,19 @@ export const zShortSnapshotViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "Snapshot size in GB",
 			}),
 	),
-	status: z.optional(
-		z
-			.enum(["CREATING", "CREATED", "DELETING", "FAILED"])
-			.register(z.globalRegistry, {
-				description: "Snapshot status",
-			}),
-	),
-	create_date: z.optional(
-		z.iso.datetime().register(z.globalRegistry, {
-			description: "Snapshot creation date",
-		}),
-	),
+	status: z.optional(z.enum(["CREATING", "CREATED", "DELETING", "FAILED"])),
+	create_date: z.optional(z.iso.datetime()),
 });
 
 export const zSnapshotsViewWritable = z.object({
-	snapshots: z.optional(
-		z.array(zShortSnapshotViewWritable).register(z.globalRegistry, {
-			description: "Collection of snapshots",
-		}),
-	),
+	snapshots: z.optional(z.array(zShortSnapshotViewWritable)),
 });
 
 export const zSnapshotViewWritable = z.object({
-	id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the snapshot",
-		}),
-	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "Snapshot name",
-		}),
-	),
+	id: z.optional(z.string()),
+	name: z.optional(z.string()),
 	size: z.optional(
 		z
 			.int()
@@ -5152,308 +2072,122 @@ export const zSnapshotViewWritable = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "Snapshot size in GB",
 			}),
 	),
-	status: z.optional(
-		z
-			.enum(["CREATING", "CREATED", "DELETING", "FAILED"])
-			.register(z.globalRegistry, {
-				description: "Snapshot status",
-			}),
-	),
-	create_date: z.optional(
-		z.iso.datetime().register(z.globalRegistry, {
-			description: "Snapshot creation date",
-		}),
-	),
+	status: z.optional(z.enum(["CREATING", "CREATED", "DELETING", "FAILED"])),
+	create_date: z.optional(z.iso.datetime()),
 	created_by: z.optional(zMemberViewWritable),
 });
 
 export const zSandboxYamlViewWritable = z.object({
-	yaml: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The base64-encoded YAML configuration of the sandbox",
-		}),
-	),
+	yaml: z.optional(z.string()),
 });
 
 export const zCreateNewSandboxRequestWritable = z.object({
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the sandbox",
-	}),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
-	os: z.string().register(z.globalRegistry, {
-		description:
-			'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
-	}),
+	name: z.string(),
+	identifier: z.optional(z.string()),
+	os: z.string(),
 	resources: z.optional(
-		z
-			.enum([
-				"1x2",
-				"2x4",
-				"3x6",
-				"4x8",
-				"5x10",
-				"6x12",
-				"7x14",
-				"8x16",
-				"9x18",
-				"10x20",
-				"11x22",
-				"12x24",
-				"CUSTOM",
-			])
-			.register(z.globalRegistry, {
-				description: "The resource configuration of the sandbox (CPU x RAM)",
-			}),
+		z.enum([
+			"1x2",
+			"2x4",
+			"3x6",
+			"4x8",
+			"5x10",
+			"6x12",
+			"7x14",
+			"8x16",
+			"9x18",
+			"10x20",
+			"11x22",
+			"12x24",
+			"CUSTOM",
+		]),
 	),
-	install_commands: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The commands to run during setup of the sandbox",
-		}),
-	),
-	run_command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The run command of the sandbox",
-		}),
-	),
-	app_dir: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application directory of the sandbox",
-		}),
-	),
-	app_type: z.optional(
-		z.enum(["CMD", "SERVICE"]).register(z.globalRegistry, {
-			description:
-				"The application type of the sandbox (passed command or existent service eg. apache2)",
-		}),
-	),
-	tags: z.optional(
-		z
-			.array(
-				z.string().register(z.globalRegistry, {
-					description: "The list of tags associated with the sandbox",
-				}),
-			)
-			.register(z.globalRegistry, {
-				description: "The list of tags associated with the sandbox",
-			}),
-	),
-	endpoints: z.optional(
-		z.array(zTunnelViewWritable).register(z.globalRegistry, {
-			description: "The tunnel endpoints of the sandbox",
-		}),
-	),
-	variables: z.optional(
-		z.array(zAddVariableInObjectRequestWritable).register(z.globalRegistry, {
-			description: "The environment variables of the sandbox",
-		}),
-	),
+	install_commands: z.optional(z.string()),
+	run_command: z.optional(z.string()),
+	app_dir: z.optional(z.string()),
+	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	tags: z.optional(z.array(z.string())),
+	endpoints: z.optional(z.array(zTunnelViewWritable)),
+	variables: z.optional(z.array(zAddVariableInObjectRequestWritable)),
 });
 
 export const zCreateFromSnapshotRequestWritable = z.object({
-	snapshot_id: z.string().register(z.globalRegistry, {
-		description: "The ID of the snapshot to create from",
-	}),
-	name: z.string().register(z.globalRegistry, {
-		description: "The name of the sandbox",
-	}),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
-	os: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
-		}),
-	),
+	snapshot_id: z.string(),
+	name: z.string(),
+	identifier: z.optional(z.string()),
+	os: z.optional(z.string()),
 	resources: z.optional(
-		z
-			.enum([
-				"1x2",
-				"2x4",
-				"3x6",
-				"4x8",
-				"5x10",
-				"6x12",
-				"7x14",
-				"8x16",
-				"9x18",
-				"10x20",
-				"11x22",
-				"12x24",
-				"CUSTOM",
-			])
-			.register(z.globalRegistry, {
-				description: "The resource configuration of the sandbox (CPU x RAM)",
-			}),
+		z.enum([
+			"1x2",
+			"2x4",
+			"3x6",
+			"4x8",
+			"5x10",
+			"6x12",
+			"7x14",
+			"8x16",
+			"9x18",
+			"10x20",
+			"11x22",
+			"12x24",
+			"CUSTOM",
+		]),
 	),
-	install_commands: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The commands to run during setup of the sandbox",
-		}),
-	),
-	run_command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The run command of the sandbox",
-		}),
-	),
-	app_dir: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application directory of the sandbox",
-		}),
-	),
-	app_type: z.optional(
-		z.enum(["CMD", "SERVICE"]).register(z.globalRegistry, {
-			description:
-				"The application type of the sandbox (passed command or existent service eg. apache2)",
-		}),
-	),
-	tags: z.optional(
-		z
-			.array(
-				z.string().register(z.globalRegistry, {
-					description: "The list of tags associated with the sandbox",
-				}),
-			)
-			.register(z.globalRegistry, {
-				description: "The list of tags associated with the sandbox",
-			}),
-	),
-	endpoints: z.optional(
-		z.array(zTunnelViewWritable).register(z.globalRegistry, {
-			description: "The tunnel endpoints of the sandbox",
-		}),
-	),
-	variables: z.optional(
-		z.array(zEnvironmentVariableView).register(z.globalRegistry, {
-			description: "The environment variables of the sandbox",
-		}),
-	),
+	install_commands: z.optional(z.string()),
+	run_command: z.optional(z.string()),
+	app_dir: z.optional(z.string()),
+	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	tags: z.optional(z.array(z.string())),
+	endpoints: z.optional(z.array(zTunnelViewWritable)),
+	variables: z.optional(z.array(zEnvironmentVariableView)),
 });
 
 export const zSandboxResponseWritable = z.object({
-	id: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-	),
-	identifier: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				"A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).",
-		}),
-	),
-	name: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The name of the sandbox",
-		}),
-	),
+	id: z.optional(z.string()),
+	identifier: z.optional(z.string()),
+	name: z.optional(z.string()),
 	status: z.optional(
-		z
-			.enum([
-				"STARTING",
-				"STOPPING",
-				"FAILED",
-				"RUNNING",
-				"STOPPED",
-				"RESTORING",
-			])
-			.register(z.globalRegistry, {
-				description: "The current status of the sandbox",
-			}),
+		z.enum([
+			"STARTING",
+			"STOPPING",
+			"FAILED",
+			"RUNNING",
+			"STOPPED",
+			"RESTORING",
+		]),
 	),
-	os: z.optional(
-		z.string().register(z.globalRegistry, {
-			description:
-				'The operating system of the sandbox ["ubuntu:22.04", "ubuntu:24.04"]',
-		}),
-	),
+	os: z.optional(z.string()),
 	resources: z.optional(
-		z
-			.enum([
-				"1x2",
-				"2x4",
-				"3x6",
-				"4x8",
-				"5x10",
-				"6x12",
-				"7x14",
-				"8x16",
-				"9x18",
-				"10x20",
-				"11x22",
-				"12x24",
-				"CUSTOM",
-			])
-			.register(z.globalRegistry, {
-				description: "The resource configuration of the sandbox (CPU x RAM)",
-			}),
+		z.enum([
+			"1x2",
+			"2x4",
+			"3x6",
+			"4x8",
+			"5x10",
+			"6x12",
+			"7x14",
+			"8x16",
+			"9x18",
+			"10x20",
+			"11x22",
+			"12x24",
+			"CUSTOM",
+		]),
 	),
-	install_commands: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The commands to run during setup of the sandbox",
-		}),
-	),
-	run_command: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The run command of the sandbox",
-		}),
-	),
-	app_dir: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "The application directory of the sandbox",
-		}),
-	),
-	app_type: z.optional(
-		z.enum(["CMD", "SERVICE"]).register(z.globalRegistry, {
-			description:
-				"The application type of the sandbox (passed command or existent service eg. apache2)",
-		}),
-	),
-	tags: z.optional(
-		z.array(z.string()).register(z.globalRegistry, {
-			description: "The list of tags associated with the sandbox",
-		}),
-	),
-	app_status: z.optional(
-		z.enum(["NONE", "RUNNING", "ENDED", "FAILED"]).register(z.globalRegistry, {
-			description: "The current application status of the sandbox",
-		}),
-	),
-	boot_logs: z.optional(
-		z.array(z.string()).register(z.globalRegistry, {
-			description: "The boot logs of the sandbox",
-		}),
-	),
-	setup_status: z.optional(
-		z.enum(["INPROGRESS", "SUCCESS", "FAILED"]).register(z.globalRegistry, {
-			description: "The current setup status of the sandbox",
-		}),
-	),
-	endpoints: z.optional(
-		z.array(zTunnelViewWritable).register(z.globalRegistry, {
-			description: "The tunnel endpoints of the sandbox",
-		}),
-	),
+	install_commands: z.optional(z.string()),
+	run_command: z.optional(z.string()),
+	app_dir: z.optional(z.string()),
+	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	tags: z.optional(z.array(z.string())),
+	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
+	boot_logs: z.optional(z.array(z.string())),
+	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED"])),
+	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	project: z.optional(zProjectViewWritable),
 	permissions: z.optional(zPermissionsView),
-	variables: z.optional(
-		z.array(zEnvironmentVariableView).register(z.globalRegistry, {
-			description: "The environment variables of the sandbox",
-		}),
-	),
+	variables: z.optional(z.array(zEnvironmentVariableView)),
 });
 
 export const zProjectsViewWritable = z.object({
@@ -5471,9 +2205,7 @@ export const zGetWorkspacesResponse = zWorkspacesView;
 export const zGetWorkspaceData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5483,9 +2215,7 @@ export const zGetWorkspaceResponse = zWorkspaceView;
 export const zDisableSsoData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5493,9 +2223,7 @@ export const zDisableSsoData = z.object({
 export const zEnableSsoData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5503,42 +2231,16 @@ export const zEnableSsoData = z.object({
 export const zGetIdentifiersData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(
 		z.object({
-			project: z.optional(
-				z.string().register(z.globalRegistry, {
-					description: "The human-readable ID of the project",
-				}),
-			),
-			pipeline: z.optional(
-				z.string().register(z.globalRegistry, {
-					description: "The human-readable ID of the pipeline",
-				}),
-			),
-			environment: z.optional(
-				z.string().register(z.globalRegistry, {
-					description: "The human-readable ID of the environment",
-				}),
-			),
-			package: z.optional(
-				z.string().register(z.globalRegistry, {
-					description: "The human-readable ID of the package",
-				}),
-			),
-			package_version: z.optional(
-				z.string().register(z.globalRegistry, {
-					description: "The version of the package",
-				}),
-			),
-			sandbox: z.optional(
-				z.string().register(z.globalRegistry, {
-					description: "The human-readable ID of the sandbox",
-				}),
-			),
+			project: z.optional(z.string()),
+			pipeline: z.optional(z.string()),
+			environment: z.optional(z.string()),
+			package: z.optional(z.string()),
+			package_version: z.optional(z.string()),
+			sandbox: z.optional(z.string()),
 		}),
 	),
 });
@@ -5548,9 +2250,7 @@ export const zGetIdentifiersResponse = zIdsView;
 export const zGetIntegrationsData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5560,9 +2260,7 @@ export const zGetIntegrationsResponse = zIntegrationsView;
 export const zAddIntegrationData = z.object({
 	body: z.optional(zAddIntegrationRequest),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5572,12 +2270,8 @@ export const zAddIntegrationResponse = zIntegrationView;
 export const zDeleteIntegrationData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		hash_id: z.string().register(z.globalRegistry, {
-			description: "The hash ID of the integration",
-		}),
+		workspace_domain: z.string(),
+		hash_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5585,19 +2279,13 @@ export const zDeleteIntegrationData = z.object({
 /**
  * Integration deleted successfully
  */
-export const zDeleteIntegrationResponse = z.void().register(z.globalRegistry, {
-	description: "Integration deleted successfully",
-});
+export const zDeleteIntegrationResponse = z.void();
 
 export const zGetIntegrationData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		hash_id: z.string().register(z.globalRegistry, {
-			description: "The hash ID of the integration",
-		}),
+		workspace_domain: z.string(),
+		hash_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5607,12 +2295,8 @@ export const zGetIntegrationResponse = zIntegrationView;
 export const zUpdateIntegrationData = z.object({
 	body: z.optional(zUpdateIntegrationRequest),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		hash_id: z.string().register(z.globalRegistry, {
-			description: "The hash ID of the integration",
-		}),
+		workspace_domain: z.string(),
+		hash_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5622,9 +2306,7 @@ export const zUpdateIntegrationResponse = zIntegrationView;
 export const zGetWorkspaceMembersData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(
 		z.object({
@@ -5636,10 +2318,6 @@ export const zGetWorkspaceMembersData = z.object({
 					})
 					.max(2147483647, {
 						error: "Invalid value: Expected int32 to be <= 2147483647",
-					})
-					.register(z.globalRegistry, {
-						description:
-							"The number of the successive pages (results are split into pages of per_page elements each).",
 					}),
 			),
 			per_page: z.optional(
@@ -5650,24 +2328,10 @@ export const zGetWorkspaceMembersData = z.object({
 					})
 					.max(2147483647, {
 						error: "Invalid value: Expected int32 to be <= 2147483647",
-					})
-					.register(z.globalRegistry, {
-						description:
-							"Specifies the number of returned elements on the page. The default value is 20.",
 					}),
 			),
-			sort_by: z.optional(
-				z.string().register(z.globalRegistry, {
-					description:
-						"Specifies ordering for workspace members. Can be one of `id` or `name`.",
-				}),
-			),
-			sort_direction: z.optional(
-				z.string().register(z.globalRegistry, {
-					description:
-						"Specifies the direction of the ordering. Can be one of `ASC` or `DESC`",
-				}),
-			),
+			sort_by: z.optional(z.string()),
+			sort_direction: z.optional(z.string()),
 		}),
 	),
 });
@@ -5677,9 +2341,7 @@ export const zGetWorkspaceMembersResponse = zWorkspaceMembersView;
 export const zAddWorkspaceMemberData = z.object({
 	body: z.optional(zAddWorkspaceMemberRequest),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5689,9 +2351,7 @@ export const zAddWorkspaceMemberResponse = zWorkspaceMemberView;
 export const zDeleteWorkspaceMemberData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 		id: z
 			.int()
 			.min(-2147483648, {
@@ -5699,9 +2359,6 @@ export const zDeleteWorkspaceMemberData = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the member",
 			}),
 	}),
 	query: z.optional(z.never()),
@@ -5710,18 +2367,12 @@ export const zDeleteWorkspaceMemberData = z.object({
 /**
  * Workspace member deleted successfully
  */
-export const zDeleteWorkspaceMemberResponse = z
-	.void()
-	.register(z.globalRegistry, {
-		description: "Workspace member deleted successfully",
-	});
+export const zDeleteWorkspaceMemberResponse = z.void();
 
 export const zGetWorkspaceMemberData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 		id: z
 			.int()
 			.min(-2147483648, {
@@ -5729,9 +2380,6 @@ export const zGetWorkspaceMemberData = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the member",
 			}),
 	}),
 	query: z.optional(z.never()),
@@ -5742,9 +2390,7 @@ export const zGetWorkspaceMemberResponse = zWorkspaceMemberView;
 export const zUpdateWorkspaceMemberData = z.object({
 	body: z.optional(zUpdateWorkspaceMemberRequest),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 		id: z
 			.int()
 			.min(-2147483648, {
@@ -5752,9 +2398,6 @@ export const zUpdateWorkspaceMemberData = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the member",
 			}),
 	}),
 	query: z.optional(z.never()),
@@ -5765,9 +2408,7 @@ export const zUpdateWorkspaceMemberResponse = zWorkspaceMemberView;
 export const zGetWorkspaceMemberProjectsData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 		user_id: z
 			.int()
 			.min(-2147483648, {
@@ -5775,9 +2416,6 @@ export const zGetWorkspaceMemberProjectsData = z.object({
 			})
 			.max(2147483647, {
 				error: "Invalid value: Expected int32 to be <= 2147483647",
-			})
-			.register(z.globalRegistry, {
-				description: "The ID of the user",
 			}),
 	}),
 	query: z.optional(
@@ -5790,10 +2428,6 @@ export const zGetWorkspaceMemberProjectsData = z.object({
 					})
 					.max(2147483647, {
 						error: "Invalid value: Expected int32 to be <= 2147483647",
-					})
-					.register(z.globalRegistry, {
-						description:
-							"The number of the successive pages (results are split into pages of per_page elements each).",
 					}),
 			),
 			per_page: z.optional(
@@ -5804,36 +2438,12 @@ export const zGetWorkspaceMemberProjectsData = z.object({
 					})
 					.max(2147483647, {
 						error: "Invalid value: Expected int32 to be <= 2147483647",
-					})
-					.register(z.globalRegistry, {
-						description:
-							"Specifies the number of returned elements on the page. The default value is 20.",
 					}),
 			),
-			status: z.optional(
-				z.string().register(z.globalRegistry, {
-					description:
-						"Filters projects by the specified status. Can be one of `ACTIVE` or `CLOSED`",
-				}),
-			),
-			sort_by: z.optional(
-				z.string().register(z.globalRegistry, {
-					description:
-						"Specifies ordering. Can be one of `name`, `create_date` or `repository_size`",
-				}),
-			),
-			sort_direction: z.optional(
-				z.string().register(z.globalRegistry, {
-					description:
-						"Specifies the direction of the ordering. Can be one of `ASC` or `DESC`",
-				}),
-			),
-			all: z.optional(
-				z.string().register(z.globalRegistry, {
-					description:
-						"If set to true, returns all projects accessible to the user",
-				}),
-			),
+			status: z.optional(z.string()),
+			sort_by: z.optional(z.string()),
+			sort_direction: z.optional(z.string()),
+			all: z.optional(z.string()),
 		}),
 	),
 });
@@ -5843,14 +2453,10 @@ export const zGetWorkspaceMemberProjectsResponse = zProjectsView;
 export const zGetSandboxesData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.object({
-		project_name: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the project to filter sandboxes",
-		}),
+		project_name: z.string(),
 	}),
 });
 
@@ -5865,14 +2471,10 @@ export const zAddSandboxData = z.object({
 		]),
 	),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.object({
-		project_name: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the project to filter sandboxes",
-		}),
+		project_name: z.string(),
 	}),
 });
 
@@ -5881,12 +2483,8 @@ export const zAddSandboxResponse = zSandboxResponse;
 export const zDeleteSandboxData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5894,19 +2492,13 @@ export const zDeleteSandboxData = z.object({
 /**
  * Sandbox deleted successfully
  */
-export const zDeleteSandboxResponse = z.void().register(z.globalRegistry, {
-	description: "Sandbox deleted successfully",
-});
+export const zDeleteSandboxResponse = z.void();
 
 export const zGetSandboxData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5916,12 +2508,8 @@ export const zGetSandboxResponse = zSandboxResponse;
 export const zUpdateSandboxData = z.object({
 	body: z.optional(zUpdateSandboxRequestWritable),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5931,20 +2519,12 @@ export const zUpdateSandboxResponse = zSandboxResponse;
 export const zGetSandboxAppLogsData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(
 		z.object({
-			cursor: z.optional(
-				z.string().register(z.globalRegistry, {
-					description: "Cursor for pagination",
-				}),
-			),
+			cursor: z.optional(z.string()),
 		}),
 	),
 });
@@ -5954,12 +2534,8 @@ export const zGetSandboxAppLogsResponse = zSandboxAppLogsView;
 export const zGetSandboxCommandsData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5969,12 +2545,8 @@ export const zGetSandboxCommandsResponse = zSandboxCommandsView;
 export const zExecuteSandboxCommandData = z.object({
 	body: z.optional(zExecuteSandboxCommandRequest),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -5984,15 +2556,9 @@ export const zExecuteSandboxCommandResponse = zSandboxCommandView;
 export const zGetSandboxCommandData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		id: z.string().register(z.globalRegistry, {
-			description: "The ID of the command",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6002,23 +2568,13 @@ export const zGetSandboxCommandResponse = zSandboxCommandView;
 export const zGetSandboxCommandLogsData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		command_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the command",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		command_id: z.string(),
 	}),
 	query: z.optional(
 		z.object({
-			follow: z.optional(
-				z.boolean().register(z.globalRegistry, {
-					description: "If true, streams logs until the command completes",
-				}),
-			),
+			follow: z.optional(z.boolean()),
 		}),
 	),
 });
@@ -6028,15 +2584,9 @@ export const zGetSandboxCommandLogsResponse = zSandboxCommandLog;
 export const zTerminateSandboxCommandData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		command_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the command",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		command_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6046,15 +2596,9 @@ export const zTerminateSandboxCommandResponse = zSandboxCommandView;
 export const zDeleteSandboxFileData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		path: z.string().regex(/.*/).register(z.globalRegistry, {
-			description: "Absolute path to the file or directory to delete",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		path: z.string().regex(/.*/),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6062,23 +2606,14 @@ export const zDeleteSandboxFileData = z.object({
 /**
  * File or directory deleted successfully
  */
-export const zDeleteSandboxFileResponse = z.void().register(z.globalRegistry, {
-	description: "File or directory deleted successfully",
-});
+export const zDeleteSandboxFileResponse = z.void();
 
 export const zGetSandboxContentData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		path: z.string().regex(/.*/).register(z.globalRegistry, {
-			description:
-				"Absolute path to the file or directory. Recommended directory is `/buddy`",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		path: z.string().regex(/.*/),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6091,15 +2626,9 @@ export const zGetSandboxContentResponse = zSandboxContentView;
 export const zCreateSandboxDirectoryData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		path: z.string().regex(/.*/).register(z.globalRegistry, {
-			description: "Absolute path where the directory should be created",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		path: z.string().regex(/.*/),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6110,22 +2639,11 @@ export const zCreateSandboxDirectoryData = z.object({
 export const zCreateSandboxDirectoryResponse = zSandboxContentItem;
 
 export const zUploadSandboxFileData = z.object({
-	body: z.optional(
-		z.string().register(z.globalRegistry, {
-			description: "File to upload",
-		}),
-	),
+	body: z.optional(z.string()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		path: z.string().regex(/.*/).register(z.globalRegistry, {
-			description:
-				"Absolute path where the file should be uploaded. Recommended directory is `/buddy`",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		path: z.string().regex(/.*/),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6138,15 +2656,9 @@ export const zUploadSandboxFileResponse = zSandboxContentItem;
 export const zDownloadSandboxContentData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		path: z.string().regex(/.*/).register(z.globalRegistry, {
-			description: "Absolute path to the file or directory to download",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		path: z.string().regex(/.*/),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6154,21 +2666,13 @@ export const zDownloadSandboxContentData = z.object({
 /**
  * File download
  */
-export const zDownloadSandboxContentResponse = z
-	.string()
-	.register(z.globalRegistry, {
-		description: "File download",
-	});
+export const zDownloadSandboxContentResponse = z.string();
 
 export const zRestartSandboxData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6178,12 +2682,8 @@ export const zRestartSandboxResponse = zSandboxResponse;
 export const zGetSandboxSnapshotsData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6193,12 +2693,8 @@ export const zGetSandboxSnapshotsResponse = zSnapshotsView;
 export const zAddSandboxSnapshotData = z.object({
 	body: z.optional(zAddSnapshotRequest),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6208,15 +2704,9 @@ export const zAddSandboxSnapshotResponse = zSnapshotView;
 export const zDeleteSandboxSnapshotData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		id: z.string().register(z.globalRegistry, {
-			description: "The ID of the snapshot",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6224,24 +2714,14 @@ export const zDeleteSandboxSnapshotData = z.object({
 /**
  * Sandbox snapshot deleted successfully
  */
-export const zDeleteSandboxSnapshotResponse = z
-	.void()
-	.register(z.globalRegistry, {
-		description: "Sandbox snapshot deleted successfully",
-	});
+export const zDeleteSandboxSnapshotResponse = z.void();
 
 export const zGetSandboxSnapshotData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
-		id: z.string().register(z.globalRegistry, {
-			description: "The ID of the snapshot",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6251,12 +2731,8 @@ export const zGetSandboxSnapshotResponse = zSnapshotView;
 export const zStartSandboxData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6266,12 +2742,8 @@ export const zStartSandboxResponse = zSandboxResponse;
 export const zStopSandboxData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6281,12 +2753,8 @@ export const zStopSandboxResponse = zSandboxResponse;
 export const zGetSandboxYamlData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6296,12 +2764,8 @@ export const zGetSandboxYamlResponse = zSandboxYamlView;
 export const zUpdateSandboxByYamlData = z.object({
 	body: z.optional(zSandboxYamlViewWritable),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		sandbox_id: z.string().register(z.globalRegistry, {
-			description: "The ID of the sandbox",
-		}),
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6311,14 +2775,10 @@ export const zUpdateSandboxByYamlResponse = zSandboxResponse;
 export const zGetProjectSnapshotsData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.object({
-		project_name: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the project to filter sandboxes",
-		}),
+		project_name: z.string(),
 	}),
 });
 
@@ -6327,12 +2787,8 @@ export const zGetProjectSnapshotsResponse = zSnapshotsView;
 export const zDeleteSnapshotData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
-		id: z.string().register(z.globalRegistry, {
-			description: "The ID of the snapshot",
-		}),
+		workspace_domain: z.string(),
+		id: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6340,21 +2796,15 @@ export const zDeleteSnapshotData = z.object({
 /**
  * Sandbox snapshot deleted successfully
  */
-export const zDeleteSnapshotResponse = z.void().register(z.globalRegistry, {
-	description: "Sandbox snapshot deleted successfully",
-});
+export const zDeleteSnapshotResponse = z.void();
 
 export const zAddSandboxByYamlData = z.object({
 	body: z.optional(zSandboxYamlViewWritable),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.object({
-		project_name: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the project to filter sandboxes",
-		}),
+		project_name: z.string(),
 	}),
 });
 
@@ -6363,9 +2813,7 @@ export const zAddSandboxByYamlResponse = zSandboxResponse;
 export const zGetSsoData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
@@ -6375,9 +2823,7 @@ export const zGetSsoResponse = zSsoView;
 export const zUpdateSsoData = z.object({
 	body: z.optional(zUpdateSsoRequest),
 	path: z.object({
-		workspace_domain: z.string().register(z.globalRegistry, {
-			description: "The human-readable ID of the workspace",
-		}),
+		workspace_domain: z.string(),
 	}),
 	query: z.optional(z.never()),
 });
