@@ -150,7 +150,7 @@ export class Sandbox {
 
 			const sandboxId = await client
 				.getIdentifiers({
-					query: { sandbox: identifier },
+					query: { project: client.project_name, sandbox: identifier },
 				})
 				.then((res) => res.sandbox_id);
 
