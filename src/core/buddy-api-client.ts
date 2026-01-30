@@ -13,6 +13,8 @@ import {
 	type DownloadSandboxContentData,
 	type ExecuteSandboxCommandData,
 	type ExecuteSandboxCommandResponse,
+	type GetIdentifiersData,
+	type GetIdentifiersResponse,
 	type GetSandboxCommandData,
 	type GetSandboxCommandLogsData,
 	type GetSandboxCommandResponse,
@@ -50,6 +52,8 @@ import {
 	zDownloadSandboxContentData,
 	zExecuteSandboxCommandData,
 	zExecuteSandboxCommandResponse,
+	zGetIdentifiersData,
+	zGetIdentifiersResponse,
 	zGetSandboxCommandData,
 	zGetSandboxCommandLogsData,
 	zGetSandboxCommandResponse,
@@ -161,10 +165,8 @@ export class BuddyApiClient extends HttpClient {
 		data: ClientData<D>;
 		dataSchema: z.ZodObject<{
 			body: z.ZodType;
-			path: z.ZodObject<Record<string, z.ZodString>>;
-			query:
-				| z.ZodObject<Record<string, z.ZodString | z.ZodBoolean>>
-				| z.ZodOptional<z.ZodNever>;
+			path: z.ZodType;
+			query: z.ZodType;
 		}>;
 		responseSchema: z.ZodType<Response>;
 		skipRetry?: boolean;
@@ -195,11 +197,13 @@ export class BuddyApiClient extends HttpClient {
 
 		const parameterizedUrl = this.#buildUrl<D>({
 			url,
-			path: validatedData.path,
+			path: validatedData.path as Record<string, string>,
 		});
 
 		const requestConfig: RequestConfig = {
-			queryParams: validatedData.query,
+			queryParams: validatedData.query as
+				| Record<string, string | number | boolean>
+				| undefined,
 			skipRetry,
 		};
 
@@ -253,6 +257,19 @@ export class BuddyApiClient extends HttpClient {
 			responseSchema: zGetSandboxResponse.transform(
 				getSandboxResponseTransformer,
 			),
+		});
+	}
+
+	/** Get a specific sandbox by its ID */
+	async getIdentifiers<const Data extends GetIdentifiersData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetIdentifiersResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/identifiers",
+			dataSchema: zGetIdentifiersData,
+			responseSchema: zGetIdentifiersResponse,
 		});
 	}
 
