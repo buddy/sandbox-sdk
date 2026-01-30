@@ -29,18 +29,17 @@ export default defineConfig({
 		{
 			name: "@hey-api/typescript",
 			enums: "javascript",
-			exportFromIndex: true,
+			exportFromIndex: false,
 		},
 		{
 			name: "zod",
-			metadata: true,
-			exportFromIndex: true,
+			exportFromIndex: false,
 		},
 		{
 			name: "@hey-api/transformers",
 			bigInt: true,
 			dates: true,
-			exportFromIndex: true,
+			exportFromIndex: false,
 		},
 	],
 });

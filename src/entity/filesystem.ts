@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import type { SandboxContentItem } from "@/api/openapi";
+import type { SandboxContentItem } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 import { withErrorHandler } from "@/errors";
 import { type ConnectionConfig, createClient } from "@/utils/client";

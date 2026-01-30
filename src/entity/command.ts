@@ -1,4 +1,4 @@
-import type { ExecuteSandboxCommandResponse } from "@/api/openapi";
+import type { ExecuteSandboxCommandResponse } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 
 /** Represents a running or completed command execution in a sandbox */

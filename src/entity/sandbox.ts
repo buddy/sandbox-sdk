@@ -4,7 +4,7 @@ import type {
 	ExecuteSandboxCommandRequest,
 	GetSandboxResponse,
 	SandboxIdView,
-} from "@/api/openapi";
+} from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 import { Command } from "@/entity/command";
 import { FileSystem } from "@/entity/filesystem";

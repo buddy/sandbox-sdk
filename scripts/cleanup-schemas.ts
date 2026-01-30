@@ -9,10 +9,4 @@ typesContent = typesContent.replace(
 );
 writeFileSync(typesFile, typesContent);
 
-// Remove ClientOptions export from index.ts
-const indexFile = "src/api/openapi/index.ts";
-let indexContent = readFileSync(indexFile, "utf8");
-indexContent = indexContent.replace(/\bClientOptions,?\s*/, "");
-writeFileSync(indexFile, indexContent);
-
 console.log("Removed ClientOptions from generated schemas");

@@ -1,4 +1,4 @@
-export type { SandboxIdView } from "@/api/openapi";
+export type { SandboxIdView } from "@/api/openapi/types.gen";
 export { BuddyApiClient } from "@/core/buddy-api-client";
 export { Command } from "@/entity/command";
 export type { FileInfo, GetFileSystemConfig } from "@/entity/filesystem";
