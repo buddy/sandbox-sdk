@@ -1,4 +1,4 @@
-import * as fs from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
 import type { SandboxContentItem } from "@/api/openapi";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 import { withErrorHandler } from "@/errors";
@@ -132,7 +132,7 @@ export class FileSystem {
 			const buffer = Buffer.from(data);
 
 			if (localPath) {
-				await fs.promises.writeFile(localPath, buffer);
+				await writeFile(localPath, buffer);
 			}
 
 			return buffer;
@@ -153,7 +153,7 @@ export class FileSystem {
 				blob = new Blob([source]);
 			} else {
 				// Read local file
-				const fileContent = await fs.promises.readFile(source);
+				const fileContent = await readFile(source);
 				blob = new Blob([fileContent]);
 			}
 
