@@ -157,7 +157,7 @@ export class Sandbox {
 				sandboxId = identifiers.sandbox_id;
 			} catch {}
 
-			// <TODO>: Remove this fallback when the identifiers endpoint is rolled out to prod
+			// <TODO>: Remove this fallback when the identifiers endpoint is rolled out to prod (should be out by March 2026)
 			if (!sandboxId) {
 				try {
 					const sandboxList = await client.getSandboxes({});
