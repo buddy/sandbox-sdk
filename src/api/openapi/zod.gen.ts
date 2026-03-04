@@ -1057,10 +1057,9 @@ export const zUpdateSandboxRequest = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelView)),
 	variables: z.optional(z.array(zAddVariableInObjectRequest)),
@@ -1103,6 +1102,12 @@ export const zSandboxContentView = z.object({
 	contents: z.optional(z.array(zSandboxContentItem)),
 });
 
+export const zSandboxAppView = z.object({
+	id: z.optional(z.string()),
+	command: z.optional(z.string()),
+	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
+});
+
 export const zSandboxCommandView = z.object({
 	url: z.optional(z.string().readonly()),
 	html_url: z.optional(z.string().readonly()),
@@ -1121,6 +1126,8 @@ export const zSandboxCommandView = z.object({
 			}),
 	),
 	logs_url: z.optional(z.string()),
+	start_date: z.optional(z.string()),
+	finish_date: z.optional(z.string()),
 });
 
 export const zSandboxCommandsView = z.object({
@@ -1222,10 +1229,9 @@ export const zCreateNewSandboxRequest = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelView)),
 	variables: z.optional(z.array(zAddVariableInObjectRequest)),
@@ -1298,10 +1304,9 @@ export const zCreateFromSnapshotRequest = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelView)),
 	variables: z.optional(z.array(zEnvironmentVariableView)),
@@ -1347,14 +1352,12 @@ export const zSandboxResponse = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
 	tags: z.optional(z.array(z.string())),
-	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
+	apps: z.optional(z.array(zSandboxAppView)),
 	boot_logs: z.optional(z.array(z.string())),
-	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED"])),
+	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED", "STALE"])),
 	endpoints: z.optional(z.array(zTunnelView)),
 	project: z.optional(zProjectView),
 	permissions: z.optional(zPermissionsView),
@@ -1973,10 +1976,9 @@ export const zUpdateSandboxRequestWritable = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	variables: z.optional(z.array(zAddVariableInObjectRequestWritable)),
@@ -2013,6 +2015,12 @@ export const zSandboxContentViewWritable = z.object({
 	contents: z.optional(z.array(zSandboxContentItemWritable)),
 });
 
+export const zSandboxAppViewWritable = z.object({
+	id: z.optional(z.string()),
+	command: z.optional(z.string()),
+	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
+});
+
 export const zSandboxCommandViewWritable = z.object({
 	id: z.optional(z.string()),
 	command: z.optional(z.string()),
@@ -2029,6 +2037,8 @@ export const zSandboxCommandViewWritable = z.object({
 			}),
 	),
 	logs_url: z.optional(z.string()),
+	start_date: z.optional(z.string()),
+	finish_date: z.optional(z.string()),
 });
 
 export const zSandboxCommandsViewWritable = z.object({
@@ -2104,10 +2114,9 @@ export const zCreateNewSandboxRequestWritable = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	variables: z.optional(z.array(zAddVariableInObjectRequestWritable)),
@@ -2135,10 +2144,9 @@ export const zCreateFromSnapshotRequestWritable = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	variables: z.optional(z.array(zEnvironmentVariableView)),
@@ -2176,14 +2184,12 @@ export const zSandboxResponseWritable = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
 	tags: z.optional(z.array(z.string())),
-	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
+	apps: z.optional(z.array(zSandboxAppViewWritable)),
 	boot_logs: z.optional(z.array(z.string())),
-	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED"])),
+	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED", "STALE"])),
 	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	project: z.optional(zProjectViewWritable),
 	permissions: z.optional(zPermissionsView),
@@ -2530,6 +2536,46 @@ export const zGetSandboxAppLogsData = z.object({
 });
 
 export const zGetSandboxAppLogsResponse = zSandboxAppLogsView;
+
+export const zStartSandboxAppData = z.object({
+	body: z.optional(z.never()),
+	path: z.object({
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		app_id: z.string(),
+	}),
+	query: z.optional(z.never()),
+});
+
+export const zStartSandboxAppResponse = z.void();
+
+export const zStopSandboxAppData = z.object({
+	body: z.optional(z.never()),
+	path: z.object({
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		app_id: z.string(),
+	}),
+	query: z.optional(z.never()),
+});
+
+export const zStopSandboxAppResponse = z.void();
+
+export const zGetSandboxAppLogsByAppData = z.object({
+	body: z.optional(z.never()),
+	path: z.object({
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		app_id: z.string(),
+	}),
+	query: z.optional(
+		z.object({
+			cursor: z.optional(z.string()),
+		}),
+	),
+});
+
+export const zGetSandboxAppLogsByAppResponse = zSandboxAppLogsView;
 
 export const zGetSandboxCommandsData = z.object({
 	body: z.optional(z.never()),

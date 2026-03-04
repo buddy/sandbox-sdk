@@ -1643,21 +1643,17 @@ export type UpdateSandboxRequest = {
 		| "12x24"
 		| "CUSTOM";
 	/**
-	 * The commands to run during setup of the sandbox
+	 * The commands to run on first boot of the sandbox
 	 */
-	install_commands?: string;
-	/**
-	 * The run command of the sandbox
-	 */
-	run_command?: string;
+	first_boot_commands?: string;
 	/**
 	 * The application directory of the sandbox
 	 */
 	app_dir?: string;
 	/**
-	 * The application type of the sandbox (passed command or existent service eg. apache2)
+	 * The list of app commands for the sandbox
 	 */
-	app_type?: "CMD" | "SERVICE";
+	apps?: Array<string>;
 	/**
 	 * The list of tags associated with the sandbox
 	 */
@@ -1951,6 +1947,12 @@ export type SandboxCommandsView = {
 	commands?: Array<SandboxCommandView>;
 };
 
+export type SandboxAppView = {
+	id?: string;
+	command?: string;
+	app_status?: "NONE" | "RUNNING" | "ENDED" | "FAILED";
+};
+
 export type SandboxCommandView = {
 	/**
 	 * API endpoint to GET this object
@@ -1984,6 +1986,14 @@ export type SandboxCommandView = {
 	 * API endpoint URL to retrieve logs for this command
 	 */
 	logs_url?: string;
+	/**
+	 * Command start date
+	 */
+	start_date?: string;
+	/**
+	 * Command finish date
+	 */
+	finish_date?: string;
 };
 
 export type SandboxCommandLog = {
@@ -2158,21 +2168,17 @@ export type CreateNewSandboxRequest = {
 		| "12x24"
 		| "CUSTOM";
 	/**
-	 * The commands to run during setup of the sandbox
+	 * The commands to run on first boot of the sandbox
 	 */
-	install_commands?: string;
-	/**
-	 * The run command of the sandbox
-	 */
-	run_command?: string;
+	first_boot_commands?: string;
 	/**
 	 * The application directory of the sandbox
 	 */
 	app_dir?: string;
 	/**
-	 * The application type of the sandbox (passed command or existent service eg. apache2)
+	 * The list of app commands for the sandbox
 	 */
-	app_type?: "CMD" | "SERVICE";
+	apps?: Array<string>;
 	/**
 	 * The list of tags associated with the sandbox
 	 */
@@ -2222,21 +2228,17 @@ export type CreateFromSnapshotRequest = {
 		| "12x24"
 		| "CUSTOM";
 	/**
-	 * The commands to run during setup of the sandbox
+	 * The commands to run on first boot of the sandbox
 	 */
-	install_commands?: string;
-	/**
-	 * The run command of the sandbox
-	 */
-	run_command?: string;
+	first_boot_commands?: string;
 	/**
 	 * The application directory of the sandbox
 	 */
 	app_dir?: string;
 	/**
-	 * The application type of the sandbox (passed command or existent service eg. apache2)
+	 * The list of app commands for the sandbox
 	 */
-	app_type?: "CMD" | "SERVICE";
+	apps?: Array<string>;
 	/**
 	 * The list of tags associated with the sandbox
 	 */
@@ -2412,29 +2414,21 @@ export type SandboxResponse = {
 		| "12x24"
 		| "CUSTOM";
 	/**
-	 * The commands to run during setup of the sandbox
+	 * The commands to run on first boot of the sandbox
 	 */
-	install_commands?: string;
-	/**
-	 * The run command of the sandbox
-	 */
-	run_command?: string;
+	first_boot_commands?: string;
 	/**
 	 * The application directory of the sandbox
 	 */
 	app_dir?: string;
 	/**
-	 * The application type of the sandbox (passed command or existent service eg. apache2)
-	 */
-	app_type?: "CMD" | "SERVICE";
-	/**
 	 * The list of tags associated with the sandbox
 	 */
 	tags?: Array<string>;
 	/**
-	 * The current application status of the sandbox
+	 * The sandbox applications
 	 */
-	app_status?: "NONE" | "RUNNING" | "ENDED" | "FAILED";
+	apps?: Array<SandboxAppView>;
 	/**
 	 * The boot logs of the sandbox
 	 */
@@ -2442,7 +2436,7 @@ export type SandboxResponse = {
 	/**
 	 * The current setup status of the sandbox
 	 */
-	setup_status?: "INPROGRESS" | "SUCCESS" | "FAILED";
+	setup_status?: "INPROGRESS" | "SUCCESS" | "FAILED" | "STALE";
 	/**
 	 * The tunnel endpoints of the sandbox
 	 */
@@ -3272,21 +3266,17 @@ export type UpdateSandboxRequestWritable = {
 		| "12x24"
 		| "CUSTOM";
 	/**
-	 * The commands to run during setup of the sandbox
+	 * The commands to run on first boot of the sandbox
 	 */
-	install_commands?: string;
-	/**
-	 * The run command of the sandbox
-	 */
-	run_command?: string;
+	first_boot_commands?: string;
 	/**
 	 * The application directory of the sandbox
 	 */
 	app_dir?: string;
 	/**
-	 * The application type of the sandbox (passed command or existent service eg. apache2)
+	 * The list of app commands for the sandbox
 	 */
-	app_type?: "CMD" | "SERVICE";
+	apps?: Array<string>;
 	/**
 	 * The list of tags associated with the sandbox
 	 */
@@ -3536,6 +3526,12 @@ export type SandboxCommandsViewWritable = {
 	commands?: Array<SandboxCommandViewWritable>;
 };
 
+export type SandboxAppViewWritable = {
+	id?: string;
+	command?: string;
+	app_status?: "NONE" | "RUNNING" | "ENDED" | "FAILED";
+};
+
 export type SandboxCommandViewWritable = {
 	/**
 	 * The ID of the command
@@ -3561,6 +3557,14 @@ export type SandboxCommandViewWritable = {
 	 * API endpoint URL to retrieve logs for this command
 	 */
 	logs_url?: string;
+	/**
+	 * Command start date
+	 */
+	start_date?: string;
+	/**
+	 * Command finish date
+	 */
+	finish_date?: string;
 };
 
 export type SandboxAppLogsViewWritable = {
@@ -3666,21 +3670,17 @@ export type CreateNewSandboxRequestWritable = {
 		| "12x24"
 		| "CUSTOM";
 	/**
-	 * The commands to run during setup of the sandbox
+	 * The commands to run on first boot of the sandbox
 	 */
-	install_commands?: string;
-	/**
-	 * The run command of the sandbox
-	 */
-	run_command?: string;
+	first_boot_commands?: string;
 	/**
 	 * The application directory of the sandbox
 	 */
 	app_dir?: string;
 	/**
-	 * The application type of the sandbox (passed command or existent service eg. apache2)
+	 * The list of app commands for the sandbox
 	 */
-	app_type?: "CMD" | "SERVICE";
+	apps?: Array<string>;
 	/**
 	 * The list of tags associated with the sandbox
 	 */
@@ -3730,21 +3730,17 @@ export type CreateFromSnapshotRequestWritable = {
 		| "12x24"
 		| "CUSTOM";
 	/**
-	 * The commands to run during setup of the sandbox
+	 * The commands to run on first boot of the sandbox
 	 */
-	install_commands?: string;
-	/**
-	 * The run command of the sandbox
-	 */
-	run_command?: string;
+	first_boot_commands?: string;
 	/**
 	 * The application directory of the sandbox
 	 */
 	app_dir?: string;
 	/**
-	 * The application type of the sandbox (passed command or existent service eg. apache2)
+	 * The list of app commands for the sandbox
 	 */
-	app_type?: "CMD" | "SERVICE";
+	apps?: Array<string>;
 	/**
 	 * The list of tags associated with the sandbox
 	 */
@@ -3804,29 +3800,21 @@ export type SandboxResponseWritable = {
 		| "12x24"
 		| "CUSTOM";
 	/**
-	 * The commands to run during setup of the sandbox
+	 * The commands to run on first boot of the sandbox
 	 */
-	install_commands?: string;
-	/**
-	 * The run command of the sandbox
-	 */
-	run_command?: string;
+	first_boot_commands?: string;
 	/**
 	 * The application directory of the sandbox
 	 */
 	app_dir?: string;
 	/**
-	 * The application type of the sandbox (passed command or existent service eg. apache2)
-	 */
-	app_type?: "CMD" | "SERVICE";
-	/**
 	 * The list of tags associated with the sandbox
 	 */
 	tags?: Array<string>;
 	/**
-	 * The current application status of the sandbox
+	 * The sandbox applications
 	 */
-	app_status?: "NONE" | "RUNNING" | "ENDED" | "FAILED";
+	apps?: Array<SandboxAppViewWritable>;
 	/**
 	 * The boot logs of the sandbox
 	 */
@@ -3834,7 +3822,7 @@ export type SandboxResponseWritable = {
 	/**
 	 * The current setup status of the sandbox
 	 */
-	setup_status?: "INPROGRESS" | "SUCCESS" | "FAILED";
+	setup_status?: "INPROGRESS" | "SUCCESS" | "FAILED" | "STALE";
 	/**
 	 * The tunnel endpoints of the sandbox
 	 */
@@ -4399,6 +4387,62 @@ export type GetSandboxAppLogsResponses = {
 
 export type GetSandboxAppLogsResponse =
 	GetSandboxAppLogsResponses[keyof GetSandboxAppLogsResponses];
+
+export type StartSandboxAppData = {
+	body?: never;
+	path: {
+		workspace_domain: string;
+		sandbox_id: string;
+		app_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/start";
+};
+
+export type StartSandboxAppResponses = {
+	200: void;
+};
+
+export type StartSandboxAppResponse =
+	StartSandboxAppResponses[keyof StartSandboxAppResponses];
+
+export type StopSandboxAppData = {
+	body?: never;
+	path: {
+		workspace_domain: string;
+		sandbox_id: string;
+		app_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/stop";
+};
+
+export type StopSandboxAppResponses = {
+	200: void;
+};
+
+export type StopSandboxAppResponse =
+	StopSandboxAppResponses[keyof StopSandboxAppResponses];
+
+export type GetSandboxAppLogsByAppData = {
+	body?: never;
+	path: {
+		workspace_domain: string;
+		sandbox_id: string;
+		app_id: string;
+	};
+	query?: {
+		cursor?: string;
+	};
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/logs";
+};
+
+export type GetSandboxAppLogsByAppResponses = {
+	200: SandboxAppLogsView;
+};
+
+export type GetSandboxAppLogsByAppResponse =
+	GetSandboxAppLogsByAppResponses[keyof GetSandboxAppLogsByAppResponses];
 
 export type GetSandboxCommandsData = {
 	body?: never;

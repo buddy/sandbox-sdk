@@ -23,6 +23,8 @@ import type {
 	ExecuteSandboxCommandResponse,
 	GetIdentifiersData,
 	GetIdentifiersResponse,
+	GetSandboxAppLogsByAppData,
+	GetSandboxAppLogsByAppResponse,
 	GetSandboxCommandData,
 	GetSandboxCommandLogsData,
 	GetSandboxCommandResponse,
@@ -35,8 +37,12 @@ import type {
 	RestartSandboxData,
 	RestartSandboxResponse,
 	SandboxCommandLog,
+	StartSandboxAppData,
+	StartSandboxAppResponse,
 	StartSandboxData,
 	StartSandboxResponse,
+	StopSandboxAppData,
+	StopSandboxAppResponse,
 	StopSandboxData,
 	StopSandboxResponse,
 	TerminateSandboxCommandData,
@@ -58,6 +64,8 @@ import {
 	zExecuteSandboxCommandResponse,
 	zGetIdentifiersData,
 	zGetIdentifiersResponse,
+	zGetSandboxAppLogsByAppData,
+	zGetSandboxAppLogsByAppResponse,
 	zGetSandboxCommandData,
 	zGetSandboxCommandLogsData,
 	zGetSandboxCommandResponse,
@@ -70,8 +78,12 @@ import {
 	zRestartSandboxData,
 	zRestartSandboxResponse,
 	zSandboxCommandLog,
+	zStartSandboxAppData,
+	zStartSandboxAppResponse,
 	zStartSandboxData,
 	zStartSandboxResponse,
+	zStopSandboxAppData,
+	zStopSandboxAppResponse,
 	zStopSandboxData,
 	zStopSandboxResponse,
 	zTerminateSandboxCommandData,
@@ -393,6 +405,45 @@ export class BuddyApiClient extends HttpClient {
 			responseSchema: zRestartSandboxResponse.transform(
 				restartSandboxResponseTransformer,
 			),
+		});
+	}
+
+	/** Start a sandbox app */
+	async startSandboxApp<const Data extends StartSandboxAppData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, StartSandboxAppResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/start",
+			dataSchema: zStartSandboxAppData,
+			responseSchema: zStartSandboxAppResponse,
+		});
+	}
+
+	/** Stop a sandbox app */
+	async stopSandboxApp<const Data extends StopSandboxAppData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, StopSandboxAppResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/stop",
+			dataSchema: zStopSandboxAppData,
+			responseSchema: zStopSandboxAppResponse,
+		});
+	}
+
+	/** Get logs for a specific sandbox app */
+	async getSandboxAppLogs<const Data extends GetSandboxAppLogsByAppData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxAppLogsByAppResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/logs",
+			dataSchema: zGetSandboxAppLogsByAppData,
+			responseSchema: zGetSandboxAppLogsByAppResponse,
 		});
 	}
 
