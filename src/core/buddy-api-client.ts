@@ -2,11 +2,16 @@ import { prettifyError, z } from "zod";
 import {
 	addSandboxResponseTransformer,
 	createSandboxDirectoryResponseTransformer,
+	executeSandboxCommandResponseTransformer,
+	getSandboxCommandResponseTransformer,
 	getSandboxContentResponseTransformer,
 	getSandboxResponseTransformer,
 	restartSandboxResponseTransformer,
+	startSandboxAppResponseTransformer,
 	startSandboxResponseTransformer,
+	stopSandboxAppResponseTransformer,
 	stopSandboxResponseTransformer,
+	terminateSandboxCommandResponseTransformer,
 	uploadSandboxFileResponseTransformer,
 } from "@/api/openapi/transformers.gen";
 import type {
@@ -23,8 +28,8 @@ import type {
 	ExecuteSandboxCommandResponse,
 	GetIdentifiersData,
 	GetIdentifiersResponse,
-	GetSandboxAppLogsByAppData,
-	GetSandboxAppLogsByAppResponse,
+	GetSandboxAppLogsByIdData,
+	GetSandboxAppLogsByIdResponse,
 	GetSandboxCommandData,
 	GetSandboxCommandLogsData,
 	GetSandboxCommandResponse,
@@ -64,8 +69,8 @@ import {
 	zExecuteSandboxCommandResponse,
 	zGetIdentifiersData,
 	zGetIdentifiersResponse,
-	zGetSandboxAppLogsByAppData,
-	zGetSandboxAppLogsByAppResponse,
+	zGetSandboxAppLogsByIdData,
+	zGetSandboxAppLogsByIdResponse,
 	zGetSandboxCommandData,
 	zGetSandboxCommandLogsData,
 	zGetSandboxCommandResponse,
@@ -298,7 +303,9 @@ export class BuddyApiClient extends HttpClient {
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
 			dataSchema: zExecuteSandboxCommandData,
-			responseSchema: zExecuteSandboxCommandResponse,
+			responseSchema: zExecuteSandboxCommandResponse.transform(
+				executeSandboxCommandResponseTransformer,
+			),
 		});
 	}
 
@@ -311,7 +318,9 @@ export class BuddyApiClient extends HttpClient {
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{id}",
 			dataSchema: zGetSandboxCommandData,
-			responseSchema: zGetSandboxCommandResponse,
+			responseSchema: zGetSandboxCommandResponse.transform(
+				getSandboxCommandResponseTransformer,
+			),
 		});
 	}
 
@@ -324,7 +333,9 @@ export class BuddyApiClient extends HttpClient {
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/terminate",
 			dataSchema: zTerminateSandboxCommandData,
-			responseSchema: zTerminateSandboxCommandResponse,
+			responseSchema: zTerminateSandboxCommandResponse.transform(
+				terminateSandboxCommandResponseTransformer,
+			),
 		});
 	}
 
@@ -417,7 +428,9 @@ export class BuddyApiClient extends HttpClient {
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/start",
 			dataSchema: zStartSandboxAppData,
-			responseSchema: zStartSandboxAppResponse,
+			responseSchema: zStartSandboxAppResponse.transform(
+				startSandboxAppResponseTransformer,
+			),
 		});
 	}
 
@@ -430,20 +443,22 @@ export class BuddyApiClient extends HttpClient {
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/stop",
 			dataSchema: zStopSandboxAppData,
-			responseSchema: zStopSandboxAppResponse,
+			responseSchema: zStopSandboxAppResponse.transform(
+				stopSandboxAppResponseTransformer,
+			),
 		});
 	}
 
 	/** Get logs for a specific sandbox app */
-	async getSandboxAppLogs<const Data extends GetSandboxAppLogsByAppData>(
+	async getSandboxAppLogs<const Data extends GetSandboxAppLogsByIdData>(
 		data: ClientData<Data>,
 	) {
-		return this.#requestWithValidation<Data, GetSandboxAppLogsByAppResponse>({
+		return this.#requestWithValidation<Data, GetSandboxAppLogsByIdResponse>({
 			method: "GET",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/logs",
-			dataSchema: zGetSandboxAppLogsByAppData,
-			responseSchema: zGetSandboxAppLogsByAppResponse,
+			dataSchema: zGetSandboxAppLogsByIdData,
+			responseSchema: zGetSandboxAppLogsByIdResponse,
 		});
 	}
 
