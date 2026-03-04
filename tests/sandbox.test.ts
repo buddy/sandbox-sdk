@@ -313,6 +313,67 @@ describe("Sandbox", () => {
 		});
 	});
 
+	describe("apps", () => {
+		let appSandbox: Sandbox;
+
+		beforeAll(async () => {
+			appSandbox = await Sandbox.create({
+				name: `test-apps-${Date.now()}`,
+				identifier: `test_apps_${Date.now()}`,
+				apps: ["echo 'app running' && sleep 3600"],
+			});
+			await appSandbox.waitUntilRunning();
+		}, 60_000);
+
+		afterAll(async () => {
+			await appSandbox?.destroy();
+		}, 30_000);
+
+		it("should have apps in response", () => {
+			expect(appSandbox.data.apps).toBeDefined();
+			expect(appSandbox.data.apps!.length).toBeGreaterThan(0);
+		});
+
+		it("should have app with id, command, and app_status", () => {
+			const apps = appSandbox.data.apps;
+			expect(apps).toBeDefined();
+			expect(apps!.length).toBeGreaterThan(0);
+
+			const app = apps![0];
+			expect(app).toBeDefined();
+			expect(app!.id).toBeDefined();
+			expect(app!.command).toBeDefined();
+			expect(["NONE", "RUNNING", "ENDED", "FAILED"]).toContain(app!.app_status);
+		});
+
+		it("should stop an app", async () => {
+			const appId = appSandbox.data.apps![0]!.id!;
+			await appSandbox.stopApp(appId);
+
+			const app = appSandbox.data.apps?.find((a) => a.id === appId);
+			expect(app).toBeDefined();
+			expect(["ENDED", "NONE"]).toContain(app!.app_status);
+		});
+
+		it("should start an app", async () => {
+			const appId = appSandbox.data.apps![0]!.id!;
+			await appSandbox.startApp(appId);
+
+			const app = appSandbox.data.apps?.find((a) => a.id === appId);
+			expect(app).toBeDefined();
+			expect(app!.app_status).toBe("RUNNING");
+		});
+
+		it("should get app logs", async () => {
+			const appId = appSandbox.data.apps![0]!.id!;
+			const logs = await appSandbox.getAppLogs(appId);
+
+			expect(logs).toBeDefined();
+			expect(logs.logs).toBeDefined();
+			expect(Array.isArray(logs.logs)).toBe(true);
+		});
+	});
+
 	describe("state management", () => {
 		it("should stop the sandbox", async () => {
 			await sandbox.stop();
