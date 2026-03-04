@@ -320,7 +320,7 @@ describe("Sandbox", () => {
 			appSandbox = await Sandbox.create({
 				name: `test-apps-${Date.now()}`,
 				identifier: `test_apps_${Date.now()}`,
-				apps: ["echo 'app running' && sleep 3600"],
+				apps: ["echo 'app1 running' && sleep 3600", "echo 'app2 running' && sleep 3600"],
 			});
 			await appSandbox.waitUntilRunning();
 		}, 60_000);
@@ -329,33 +329,43 @@ describe("Sandbox", () => {
 			await appSandbox?.destroy();
 		}, 30_000);
 
-		it("should have apps in response", () => {
-			expect(appSandbox.data.apps).toBeDefined();
-			expect(appSandbox.data.apps!.length).toBeGreaterThan(0);
-		});
-
-		it("should have app with id, command, and app_status", () => {
+		it("should have multiple apps in response", () => {
 			const apps = appSandbox.data.apps;
 			expect(apps).toBeDefined();
-			expect(apps!.length).toBeGreaterThan(0);
+			expect(apps!.length).toBe(2);
 
-			const app = apps![0];
-			expect(app).toBeDefined();
-			expect(app!.id).toBeDefined();
-			expect(app!.command).toBeDefined();
-			expect(["NONE", "RUNNING", "ENDED", "FAILED"]).toContain(app!.app_status);
+			for (const app of apps!) {
+				expect(app.id).toBeDefined();
+				expect(app.command).toBeDefined();
+				expect(["NONE", "RUNNING", "ENDED", "FAILED"]).toContain(app.app_status);
+			}
 		});
 
-		it("should stop an app", async () => {
-			const appId = appSandbox.data.apps![0]!.id!;
-			await appSandbox.stopApp(appId);
+		it("should have distinct app ids and commands", () => {
+			const apps = appSandbox.data.apps!;
+			const ids = apps.map((a) => a.id);
+			const commands = apps.map((a) => a.command);
 
-			const app = appSandbox.data.apps?.find((a) => a.id === appId);
-			expect(app).toBeDefined();
-			expect(["ENDED", "NONE"]).toContain(app!.app_status);
+			expect(new Set(ids).size).toBe(2);
+			expect(new Set(commands).size).toBe(2);
 		});
 
-		it("should start an app", async () => {
+		it("should stop one app without affecting the other", async () => {
+			const apps = appSandbox.data.apps!;
+			const firstId = apps[0]!.id!;
+			const secondId = apps[1]!.id!;
+
+			await appSandbox.stopApp(firstId);
+
+			const stopped = appSandbox.data.apps?.find((a) => a.id === firstId);
+			const other = appSandbox.data.apps?.find((a) => a.id === secondId);
+			expect(stopped).toBeDefined();
+			expect(["ENDED", "NONE"]).toContain(stopped!.app_status);
+			expect(other).toBeDefined();
+			expect(other!.app_status).toBe("RUNNING");
+		});
+
+		it("should start a stopped app", async () => {
 			const appId = appSandbox.data.apps![0]!.id!;
 			await appSandbox.startApp(appId);
 
