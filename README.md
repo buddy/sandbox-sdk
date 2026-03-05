@@ -45,6 +45,34 @@ export BUDDY_PROJECT="your-project"
 export BUDDY_REGION="US"  # Optional: US (default), EU, or AP
 ```
 
+## Apps
+
+Sandboxes can run multiple apps simultaneously. Each app is a long-running process defined by a command string.
+
+```typescript
+const sandbox = await Sandbox.create({
+    identifier: "my-sandbox",
+    name: "My Sandbox",
+    os: "ubuntu:24.04",
+    first_boot_commands: "apt-get update && apt-get install -y curl",
+    apps: ["node server.js", "python worker.py"],
+});
+
+// List apps
+for (const app of sandbox.data.apps ?? []) {
+    console.log(`${app.id}: "${app.command}" -> ${app.app_status}`);
+}
+
+// Control individual apps
+const appId = sandbox.data.apps![0].id!;
+
+await sandbox.stopApp(appId);
+await sandbox.startApp(appId);
+
+const { logs } = await sandbox.getAppLogs(appId);
+console.log(logs);
+```
+
 ## Regions
 
 Configure the API region:
