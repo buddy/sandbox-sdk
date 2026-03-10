@@ -24,7 +24,7 @@ describe("Sandbox", () => {
 
 	afterAll(async () => {
 		await sandbox?.destroy();
-	}, 30_000);
+	}, 60_000);
 
 	describe("data properties", () => {
 		it("should have id", () => {
@@ -346,7 +346,7 @@ describe("Sandbox", () => {
 
 		afterAll(async () => {
 			await appSandbox?.destroy();
-		}, 30_000);
+		}, 60_000);
 
 		it("should have multiple apps in response", () => {
 			const apps = getApps();

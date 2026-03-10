@@ -22,7 +22,7 @@ describe("FileSystem", () => {
 
 	afterAll(async () => {
 		await sandbox?.destroy();
-	}, 30_000);
+	}, 60_000);
 
 	describe("FileSystem.forSandbox()", () => {
 		it("should create FileSystem instance for sandbox ID", () => {

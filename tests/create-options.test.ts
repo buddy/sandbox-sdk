@@ -11,7 +11,7 @@ describe("Sandbox.create options", () => {
 	afterAll(async () => {
 		// Clean up all created sandboxes
 		await Promise.all(sandboxes.map((s) => s.destroy()));
-	});
+	}, 60_000);
 
 	it("should create sandbox with default options", async () => {
 		const sandbox = await Sandbox.create({

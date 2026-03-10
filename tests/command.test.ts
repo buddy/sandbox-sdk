@@ -18,7 +18,7 @@ describe("Command", () => {
 
 	afterAll(async () => {
 		await sandbox?.destroy();
-	}, 30_000);
+	}, 60_000);
 
 	describe("data getter", () => {
 		it("should return command response data", async () => {
