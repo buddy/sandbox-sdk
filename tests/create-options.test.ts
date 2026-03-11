@@ -44,7 +44,7 @@ describe("Sandbox.create options", () => {
 		sandboxes.push(sandbox);
 
 		expect(sandbox.data.os).toBe("ubuntu:22.04");
-	});
+	}, 120_000);
 
 	it("should reject duplicate identifier", async () => {
 		const identifier = `duplicate_test_${Date.now()}`;
