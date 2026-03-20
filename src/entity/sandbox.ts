@@ -2,7 +2,9 @@ import type { Writable } from "node:stream";
 import type {
 	CreateNewSandboxRequestWritable,
 	ExecuteSandboxCommandRequest,
+	GetSandboxAppLogsByIdResponse,
 	GetSandboxResponse,
+	SandboxAppView,
 	SandboxIdView,
 } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
@@ -326,6 +328,12 @@ export class Sandbox {
 					);
 				}
 
+				if (this.data.setup_status === "STALE") {
+					throw new Error(
+						`Sandbox ${sandboxId} setup is stale. The first_boot_commands were changed but not applied. Recreate the sandbox to apply them.`,
+					);
+				}
+
 				await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
 			}
 		});
@@ -494,6 +502,57 @@ export class Sandbox {
 			logger.debug(
 				`Sandbox ${sandboxId} has been restarted and is ready. Status: ${this.data.status}, Setup status: ${this.data.setup_status}`,
 			);
+		});
+	}
+
+	/**
+	 * Start a specific app within the sandbox
+	 *
+	 * Updates the internal sandbox data with the latest state after starting.
+	 * @param appId - The auto-generated ID of the app (from sandbox.data.apps)
+	 */
+	async startApp(appId: NonNullable<SandboxAppView["id"]>): Promise<void> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to start app", async () => {
+			this.#sandboxData = await this.#client.startSandboxApp({
+				path: { sandbox_id: sandboxId, app_id: appId },
+			});
+		});
+	}
+
+	/**
+	 * Stop a specific app within the sandbox
+	 *
+	 * Updates the internal sandbox data with the latest state after stopping.
+	 * @param appId - The auto-generated ID of the app (from sandbox.data.apps)
+	 */
+	async stopApp(appId: NonNullable<SandboxAppView["id"]>): Promise<void> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to stop app", async () => {
+			this.#sandboxData = await this.#client.stopSandboxApp({
+				path: { sandbox_id: sandboxId, app_id: appId },
+			});
+		});
+	}
+
+	/**
+	 * Get logs for a specific app within the sandbox
+	 *
+	 * Returns paginated log entries. Pass the returned cursor to fetch the next page.
+	 * @param appId - The auto-generated ID of the app (from sandbox.data.apps)
+	 * @param cursor - Pagination cursor from a previous response
+	 * @returns Log entries and a cursor for the next page
+	 */
+	async getAppLogs(
+		appId: NonNullable<SandboxAppView["id"]>,
+		cursor?: string,
+	): Promise<GetSandboxAppLogsByIdResponse> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to get app logs", async () => {
+			return this.#client.getSandboxAppLogs({
+				path: { sandbox_id: sandboxId, app_id: appId },
+				query: { cursor },
+			});
 		});
 	}
 
