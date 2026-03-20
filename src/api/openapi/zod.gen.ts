@@ -556,6 +556,7 @@ export const zIntegrationView = z.object({
 			"ONE_LOGIN",
 			"OKTA",
 			"CONTENTFUL",
+			"JIRA",
 		]),
 	),
 	auth_type: z.optional(
@@ -731,6 +732,7 @@ export const zAddIntegrationRequest = z.object({
 		"ONE_LOGIN",
 		"OKTA",
 		"CONTENTFUL",
+		"JIRA",
 	]),
 	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"]),
 	project_name: z.optional(z.string()),
@@ -755,6 +757,7 @@ export const zSandboxIdView = z.object({
 			"RESTORING",
 		]),
 	),
+	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED"])),
 });
 
 /**
@@ -818,6 +821,7 @@ export const zIntegrationIdView = z.object({
 			"ONE_LOGIN",
 			"OKTA",
 			"CONTENTFUL",
+			"JIRA",
 		]),
 	),
 	auth_type: z.optional(
@@ -995,10 +999,10 @@ export const zHttpSettingsView = z.object({
 	compression: z.optional(z.boolean()),
 	http2: z.optional(z.boolean()),
 	log_requests: z.optional(z.boolean()),
-	request_headers: z.optional(z.array(z.record(z.string(), z.string()))),
+	request_headers: z.optional(z.record(z.string(), z.string())),
 	whitelist_user_agents: z.optional(z.array(z.string())),
 	rewrite_host_header: z.optional(z.string()),
-	response_headers: z.optional(z.array(z.record(z.string(), z.string()))),
+	response_headers: z.optional(z.record(z.string(), z.string())),
 	login: z.optional(z.string()),
 	circuit_breaker: z.optional(
 		z
@@ -1037,6 +1041,12 @@ export const zTunnelView = z.object({
 	endpoint_url: z.optional(z.string()),
 });
 
+export const zSandboxAppView = z.object({
+	id: z.optional(z.string()),
+	command: z.optional(z.string()),
+	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
+});
+
 export const zUpdateSandboxRequest = z.object({
 	name: z.optional(z.string()),
 	identifier: z.optional(z.string()),
@@ -1057,10 +1067,19 @@ export const zUpdateSandboxRequest = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(zSandboxAppView)),
+	timeout: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
+			}),
+	),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelView)),
 	variables: z.optional(z.array(zAddVariableInObjectRequest)),
@@ -1120,6 +1139,8 @@ export const zSandboxCommandView = z.object({
 				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
 	),
+	start_date: z.optional(z.iso.datetime()),
+	finish_date: z.optional(z.iso.datetime()),
 	logs_url: z.optional(z.string()),
 });
 
@@ -1222,18 +1243,25 @@ export const zCreateNewSandboxRequest = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelView)),
 	variables: z.optional(z.array(zAddVariableInObjectRequest)),
+	timeout: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
+			}),
+	),
+	permissions: z.optional(zPermissionsView),
 });
 
-/**
- * The list of variables you can use the action
- */
 export const zEnvironmentVariableView = z.object({
 	id: z.optional(
 		z
@@ -1298,10 +1326,9 @@ export const zCreateFromSnapshotRequest = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelView)),
 	variables: z.optional(z.array(zEnvironmentVariableView)),
@@ -1329,6 +1356,9 @@ export const zSandboxResponse = z.object({
 			"RESTORING",
 		]),
 	),
+	setup_status: z.optional(
+		z.enum(["INPROGRESS", "SUCCESS", "FAILED", "STALE"]),
+	),
 	os: z.optional(z.string()),
 	resources: z.optional(
 		z.enum([
@@ -1347,14 +1377,21 @@ export const zSandboxResponse = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(zSandboxAppView)),
+	timeout: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
+			}),
+	),
 	tags: z.optional(z.array(z.string())),
-	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
 	boot_logs: z.optional(z.array(z.string())),
-	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED"])),
 	endpoints: z.optional(z.array(zTunnelView)),
 	project: z.optional(zProjectView),
 	permissions: z.optional(zPermissionsView),
@@ -1636,6 +1673,7 @@ export const zIntegrationViewWritable = z.object({
 			"ONE_LOGIN",
 			"OKTA",
 			"CONTENTFUL",
+			"JIRA",
 		]),
 	),
 	auth_type: z.optional(
@@ -1705,6 +1743,7 @@ export const zSandboxIdViewWritable = z.object({
 			"RESTORING",
 		]),
 	),
+	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED"])),
 });
 
 /**
@@ -1766,6 +1805,7 @@ export const zIntegrationIdViewWritable = z.object({
 			"ONE_LOGIN",
 			"OKTA",
 			"CONTENTFUL",
+			"JIRA",
 		]),
 	),
 	auth_type: z.optional(
@@ -1911,10 +1951,10 @@ export const zHttpSettingsViewWritable = z.object({
 	compression: z.optional(z.boolean()),
 	http2: z.optional(z.boolean()),
 	log_requests: z.optional(z.boolean()),
-	request_headers: z.optional(z.array(z.record(z.string(), z.string()))),
+	request_headers: z.optional(z.record(z.string(), z.string())),
 	whitelist_user_agents: z.optional(z.array(z.string())),
 	rewrite_host_header: z.optional(z.string()),
-	response_headers: z.optional(z.array(z.record(z.string(), z.string()))),
+	response_headers: z.optional(z.record(z.string(), z.string())),
 	login: z.optional(z.string()),
 	password: z.optional(z.string()),
 	tls_ca: z.optional(z.string()),
@@ -1973,10 +2013,19 @@ export const zUpdateSandboxRequestWritable = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(zSandboxAppView)),
+	timeout: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
+			}),
+	),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	variables: z.optional(z.array(zAddVariableInObjectRequestWritable)),
@@ -2028,6 +2077,8 @@ export const zSandboxCommandViewWritable = z.object({
 				error: "Invalid value: Expected int32 to be <= 2147483647",
 			}),
 	),
+	start_date: z.optional(z.iso.datetime()),
+	finish_date: z.optional(z.iso.datetime()),
 	logs_url: z.optional(z.string()),
 });
 
@@ -2104,13 +2155,23 @@ export const zCreateNewSandboxRequestWritable = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	variables: z.optional(z.array(zAddVariableInObjectRequestWritable)),
+	timeout: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
+			}),
+	),
+	permissions: z.optional(zPermissionsView),
 });
 
 export const zCreateFromSnapshotRequestWritable = z.object({
@@ -2135,10 +2196,9 @@ export const zCreateFromSnapshotRequestWritable = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(z.string())),
 	tags: z.optional(z.array(z.string())),
 	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	variables: z.optional(z.array(zEnvironmentVariableView)),
@@ -2158,6 +2218,9 @@ export const zSandboxResponseWritable = z.object({
 			"RESTORING",
 		]),
 	),
+	setup_status: z.optional(
+		z.enum(["INPROGRESS", "SUCCESS", "FAILED", "STALE"]),
+	),
 	os: z.optional(z.string()),
 	resources: z.optional(
 		z.enum([
@@ -2176,14 +2239,21 @@ export const zSandboxResponseWritable = z.object({
 			"CUSTOM",
 		]),
 	),
-	install_commands: z.optional(z.string()),
-	run_command: z.optional(z.string()),
+	first_boot_commands: z.optional(z.string()),
 	app_dir: z.optional(z.string()),
-	app_type: z.optional(z.enum(["CMD", "SERVICE"])),
+	apps: z.optional(z.array(zSandboxAppView)),
+	timeout: z.optional(
+		z
+			.int()
+			.min(-2147483648, {
+				error: "Invalid value: Expected int32 to be >= -2147483648",
+			})
+			.max(2147483647, {
+				error: "Invalid value: Expected int32 to be <= 2147483647",
+			}),
+	),
 	tags: z.optional(z.array(z.string())),
-	app_status: z.optional(z.enum(["NONE", "RUNNING", "ENDED", "FAILED"])),
 	boot_logs: z.optional(z.array(z.string())),
-	setup_status: z.optional(z.enum(["INPROGRESS", "SUCCESS", "FAILED"])),
 	endpoints: z.optional(z.array(zTunnelViewWritable)),
 	project: z.optional(zProjectViewWritable),
 	permissions: z.optional(zPermissionsView),
@@ -2516,11 +2586,12 @@ export const zUpdateSandboxData = z.object({
 
 export const zUpdateSandboxResponse = zSandboxResponse;
 
-export const zGetSandboxAppLogsData = z.object({
+export const zGetSandboxAppLogsByIdData = z.object({
 	body: z.optional(z.never()),
 	path: z.object({
 		workspace_domain: z.string(),
 		sandbox_id: z.string(),
+		app_id: z.string(),
 	}),
 	query: z.optional(
 		z.object({
@@ -2529,7 +2600,31 @@ export const zGetSandboxAppLogsData = z.object({
 	),
 });
 
-export const zGetSandboxAppLogsResponse = zSandboxAppLogsView;
+export const zGetSandboxAppLogsByIdResponse = zSandboxAppLogsView;
+
+export const zStartSandboxAppData = z.object({
+	body: z.optional(z.never()),
+	path: z.object({
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		app_id: z.string(),
+	}),
+	query: z.optional(z.never()),
+});
+
+export const zStartSandboxAppResponse = zSandboxResponse;
+
+export const zStopSandboxAppData = z.object({
+	body: z.optional(z.never()),
+	path: z.object({
+		workspace_domain: z.string(),
+		sandbox_id: z.string(),
+		app_id: z.string(),
+	}),
+	query: z.optional(z.never()),
+});
+
+export const zStopSandboxAppResponse = zSandboxResponse;
 
 export const zGetSandboxCommandsData = z.object({
 	body: z.optional(z.never()),

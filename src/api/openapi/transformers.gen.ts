@@ -6,9 +6,12 @@ import type {
 	AddSandboxResponse,
 	AddSandboxSnapshotResponse,
 	CreateSandboxDirectoryResponse,
+	ExecuteSandboxCommandResponse,
 	GetIntegrationResponse,
 	GetIntegrationsResponse,
 	GetProjectSnapshotsResponse,
+	GetSandboxCommandResponse,
+	GetSandboxCommandsResponse,
 	GetSandboxContentResponse,
 	GetSandboxResponse,
 	GetSandboxSnapshotResponse,
@@ -16,8 +19,11 @@ import type {
 	GetWorkspaceMemberProjectsResponse,
 	GetWorkspaceResponse,
 	RestartSandboxResponse,
+	StartSandboxAppResponse,
 	StartSandboxResponse,
+	StopSandboxAppResponse,
 	StopSandboxResponse,
+	TerminateSandboxCommandResponse,
 	UpdateIntegrationResponse,
 	UpdateSandboxByYamlResponse,
 	UpdateSandboxResponse,
@@ -161,6 +167,67 @@ export const updateSandboxResponseTransformer = async (
 	data: any,
 ): Promise<UpdateSandboxResponse> => {
 	data = sandboxResponseSchemaResponseTransformer(data);
+	return data;
+};
+
+export const startSandboxAppResponseTransformer = async (
+	data: any,
+): Promise<StartSandboxAppResponse> => {
+	data = sandboxResponseSchemaResponseTransformer(data);
+	return data;
+};
+
+export const stopSandboxAppResponseTransformer = async (
+	data: any,
+): Promise<StopSandboxAppResponse> => {
+	data = sandboxResponseSchemaResponseTransformer(data);
+	return data;
+};
+
+const sandboxCommandViewSchemaResponseTransformer = (data: any) => {
+	if (data.start_date) {
+		data.start_date = new Date(data.start_date);
+	}
+	if (data.finish_date) {
+		data.finish_date = new Date(data.finish_date);
+	}
+	return data;
+};
+
+const sandboxCommandsViewSchemaResponseTransformer = (data: any) => {
+	if (data.commands) {
+		data.commands = data.commands.map((item: any) =>
+			sandboxCommandViewSchemaResponseTransformer(item),
+		);
+	}
+	return data;
+};
+
+export const getSandboxCommandsResponseTransformer = async (
+	data: any,
+): Promise<GetSandboxCommandsResponse> => {
+	data = sandboxCommandsViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const executeSandboxCommandResponseTransformer = async (
+	data: any,
+): Promise<ExecuteSandboxCommandResponse> => {
+	data = sandboxCommandViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const getSandboxCommandResponseTransformer = async (
+	data: any,
+): Promise<GetSandboxCommandResponse> => {
+	data = sandboxCommandViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const terminateSandboxCommandResponseTransformer = async (
+	data: any,
+): Promise<TerminateSandboxCommandResponse> => {
+	data = sandboxCommandViewSchemaResponseTransformer(data);
 	return data;
 };
 
