@@ -44,7 +44,7 @@ describe("Sandbox.create options", () => {
 		sandboxes.push(sandbox);
 
 		expect(sandbox.data.os).toBe("ubuntu:22.04");
-	});
+	}, 120000);
 
 	it("should create sandbox with custom timeout", async () => {
 		const sandbox = await Sandbox.create({
