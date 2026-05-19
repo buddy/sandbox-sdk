@@ -46,6 +46,40 @@ describe("Sandbox.create options", () => {
 		expect(sandbox.data.os).toBe("ubuntu:22.04");
 	});
 
+	it("should create sandbox with custom timeout", async () => {
+		const sandbox = await Sandbox.create({
+			identifier: `timeout_${Date.now()}`,
+			timeout: 600,
+		});
+		sandboxes.push(sandbox);
+
+		expect(sandbox.data.timeout).toBe(600);
+	});
+
+	it("should create sandbox with fetch (public repo)", async () => {
+		const sandbox = await Sandbox.create({
+			identifier: `fetch_${Date.now()}`,
+			fetch: [
+				{
+					type: "PUBLIC_REPO",
+					repository: "https://github.com/octocat/Hello-World",
+					ref: "master",
+				},
+			],
+		});
+		sandboxes.push(sandbox);
+
+		expect(sandbox.data.fetch).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					type: "PUBLIC_REPO",
+					repository: "https://github.com/octocat/Hello-World",
+					ref: "master",
+				}),
+			]),
+		);
+	});
+
 	it("should reject duplicate identifier", async () => {
 		const identifier = `duplicate_test_${Date.now()}`;
 
