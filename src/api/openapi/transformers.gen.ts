@@ -44,12 +44,34 @@ export const getWorkspaceResponseTransformer = async (
 	return data;
 };
 
+const shortProjectViewSchemaResponseTransformer = (data: any) => {
+	if (data.create_date) {
+		data.create_date = new Date(data.create_date);
+	}
+	return data;
+};
+
+const targetViewSchemaResponseTransformer = (data: any) => {
+	if (data.project) {
+		data.project = shortProjectViewSchemaResponseTransformer(data.project);
+	}
+	if (data.pipeline) {
+		data.pipeline = shortPipelineViewSchemaResponseTransformer(data.pipeline);
+	}
+	return data;
+};
+
 const pipelineEventViewSchemaResponseTransformer = (data: any) => {
 	if (data.start_date) {
 		data.start_date = new Date(data.start_date);
 	}
 	if (data.delay) {
 		data.delay = BigInt(data.delay.toString());
+	}
+	if (data.targets) {
+		data.targets = data.targets.map((item: any) =>
+			targetViewSchemaResponseTransformer(item),
+		);
 	}
 	return data;
 };
@@ -109,13 +131,6 @@ export const updateIntegrationResponseTransformer = async (
 	data: any,
 ): Promise<UpdateIntegrationResponse> => {
 	data = integrationViewSchemaResponseTransformer(data);
-	return data;
-};
-
-const shortProjectViewSchemaResponseTransformer = (data: any) => {
-	if (data.create_date) {
-		data.create_date = new Date(data.create_date);
-	}
 	return data;
 };
 
