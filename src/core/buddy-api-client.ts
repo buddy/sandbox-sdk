@@ -1,4 +1,4 @@
-import { prettifyError, z } from "zod";
+import { prettifyError, type z } from "zod";
 import {
 	addSandboxResponseTransformer,
 	createSandboxDirectoryResponseTransformer,
@@ -56,44 +56,51 @@ import type {
 	UploadSandboxFileResponse,
 } from "@/api/openapi/types.gen";
 import {
-	zAddSandboxData,
+	zAddSandboxBody,
+	zAddSandboxPath,
+	zAddSandboxQuery,
 	zAddSandboxResponse,
-	zCreateSandboxDirectoryData,
+	zCreateSandboxDirectoryPath,
 	zCreateSandboxDirectoryResponse,
-	zDeleteSandboxData,
-	zDeleteSandboxFileData,
+	zDeleteSandboxFilePath,
 	zDeleteSandboxFileResponse,
+	zDeleteSandboxPath,
 	zDeleteSandboxResponse,
-	zDownloadSandboxContentData,
-	zExecuteSandboxCommandData,
+	zDownloadSandboxContentPath,
+	zExecuteSandboxCommandBody,
+	zExecuteSandboxCommandPath,
 	zExecuteSandboxCommandResponse,
-	zGetIdentifiersData,
+	zGetIdentifiersPath,
+	zGetIdentifiersQuery,
 	zGetIdentifiersResponse,
-	zGetSandboxAppLogsByIdData,
+	zGetSandboxAppLogsByIdPath,
+	zGetSandboxAppLogsByIdQuery,
 	zGetSandboxAppLogsByIdResponse,
-	zGetSandboxCommandData,
-	zGetSandboxCommandLogsData,
+	zGetSandboxCommandLogsPath,
+	zGetSandboxCommandLogsQuery,
+	zGetSandboxCommandPath,
 	zGetSandboxCommandResponse,
-	zGetSandboxContentData,
+	zGetSandboxContentPath,
 	zGetSandboxContentResponse,
-	zGetSandboxData,
-	zGetSandboxesData,
+	zGetSandboxesPath,
+	zGetSandboxesQuery,
 	zGetSandboxesResponse,
+	zGetSandboxPath,
 	zGetSandboxResponse,
-	zRestartSandboxData,
+	zRestartSandboxPath,
 	zRestartSandboxResponse,
 	zSandboxCommandLog,
-	zStartSandboxAppData,
+	zStartSandboxAppPath,
 	zStartSandboxAppResponse,
-	zStartSandboxData,
+	zStartSandboxPath,
 	zStartSandboxResponse,
-	zStopSandboxAppData,
+	zStopSandboxAppPath,
 	zStopSandboxAppResponse,
-	zStopSandboxData,
+	zStopSandboxPath,
 	zStopSandboxResponse,
-	zTerminateSandboxCommandData,
+	zTerminateSandboxCommandPath,
 	zTerminateSandboxCommandResponse,
-	zUploadSandboxFileData,
+	zUploadSandboxFilePath,
 	zUploadSandboxFileResponse,
 } from "@/api/openapi/zod.gen";
 import {
@@ -160,71 +167,66 @@ export class BuddyApiClient extends HttpClient {
 		return result.data;
 	}
 
-	/** Check if a schema expects query parameters (not ZodNever) */
-	#schemaExpectsQuery(schema: z.ZodObject<{ query: z.ZodType }>): boolean {
-		const querySchema = schema.shape.query;
-		if (querySchema instanceof z.ZodOptional) {
-			const inner = querySchema._def.innerType;
-			if (inner instanceof z.ZodNever) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 	/** Execute an HTTP request with input/output validation */
 	async #requestWithValidation<const D extends Data, Response>({
 		method,
 		url,
 		data,
-		dataSchema,
+		bodySchema,
+		pathSchema,
+		querySchema,
 		responseSchema,
 		skipRetry,
 	}: {
 		method: "GET" | "POST" | "DELETE";
 		url: DataUrl<D>;
 		data: ClientData<D>;
-		dataSchema: z.ZodObject<{
-			body: z.ZodType;
-			path: z.ZodType;
-			query: z.ZodType;
-		}>;
+		bodySchema?: z.ZodType;
+		pathSchema: z.ZodType;
+		querySchema?: z.ZodType;
 		responseSchema: z.ZodType<Response>;
 		skipRetry?: boolean;
 	}): Promise<Response> {
-		const expectsQuery = this.#schemaExpectsQuery(
-			dataSchema as z.ZodObject<{ query: z.ZodType }>,
-		);
-
-		const fullData = {
-			body: data.body,
-			path: {
-				workspace_domain: this.workspace,
-				...(data.path ?? {}),
-			},
-			query: expectsQuery
-				? {
-						project_name: this.project_name,
-						...(data.query ?? {}),
-					}
-				: undefined,
-		};
-
-		const result = await dataSchema.safeParseAsync(fullData);
-		if (!result.success) {
-			throw result.error;
+		const pathResult = await pathSchema.safeParseAsync({
+			workspace_domain: this.workspace,
+			...(data.path ?? {}),
+		});
+		if (!pathResult.success) {
+			throw pathResult.error;
 		}
-		const validatedData = result.data;
+		const validatedPath = pathResult.data as Record<string, string>;
+
+		let validatedQuery: Record<string, string | number | boolean> | undefined;
+		if (querySchema) {
+			const queryResult = await querySchema.safeParseAsync({
+				project_name: this.project_name,
+				...(data.query ?? {}),
+			});
+			if (!queryResult.success) {
+				throw queryResult.error;
+			}
+			validatedQuery = queryResult.data as Record<
+				string,
+				string | number | boolean
+			>;
+		}
+
+		let validatedBody: unknown = data.body;
+		if (bodySchema && data.body !== undefined) {
+			const bodyResult = await bodySchema.safeParseAsync(data.body);
+			if (!bodyResult.success) {
+				throw bodyResult.error;
+			}
+			validatedBody = bodyResult.data;
+		}
 
 		const parameterizedUrl = this.#buildUrl<D>({
 			url,
-			path: validatedData.path as Record<string, string>,
+			path: validatedPath,
 		});
 
 		const requestConfig: RequestConfig = {
-			queryParams: validatedData.query as
-				| Record<string, string | number | boolean>
-				| undefined,
+			queryParams: validatedQuery,
 			skipRetry,
 		};
 
@@ -234,7 +236,7 @@ export class BuddyApiClient extends HttpClient {
 			case "POST": {
 				request = this.post(
 					parameterizedUrl,
-					validatedData.body ?? {},
+					validatedBody ?? {},
 					requestConfig,
 				);
 				break;
@@ -259,7 +261,9 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes",
-			dataSchema: zAddSandboxData,
+			bodySchema: zAddSandboxBody,
+			pathSchema: zAddSandboxPath,
+			querySchema: zAddSandboxQuery,
 			responseSchema: zAddSandboxResponse.transform(
 				addSandboxResponseTransformer,
 			),
@@ -274,7 +278,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "GET",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{id}",
-			dataSchema: zGetSandboxData,
+			pathSchema: zGetSandboxPath,
 			responseSchema: zGetSandboxResponse.transform(
 				getSandboxResponseTransformer,
 			),
@@ -289,7 +293,8 @@ export class BuddyApiClient extends HttpClient {
 			method: "GET",
 			data,
 			url: "/workspaces/{workspace_domain}/identifiers",
-			dataSchema: zGetIdentifiersData,
+			pathSchema: zGetIdentifiersPath,
+			querySchema: zGetIdentifiersQuery,
 			responseSchema: zGetIdentifiersResponse,
 		});
 	}
@@ -302,7 +307,8 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
-			dataSchema: zExecuteSandboxCommandData,
+			bodySchema: zExecuteSandboxCommandBody,
+			pathSchema: zExecuteSandboxCommandPath,
 			responseSchema: zExecuteSandboxCommandResponse.transform(
 				executeSandboxCommandResponseTransformer,
 			),
@@ -317,7 +323,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "GET",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{id}",
-			dataSchema: zGetSandboxCommandData,
+			pathSchema: zGetSandboxCommandPath,
 			responseSchema: zGetSandboxCommandResponse.transform(
 				getSandboxCommandResponseTransformer,
 			),
@@ -332,7 +338,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/terminate",
-			dataSchema: zTerminateSandboxCommandData,
+			pathSchema: zTerminateSandboxCommandPath,
 			responseSchema: zTerminateSandboxCommandResponse.transform(
 				terminateSandboxCommandResponseTransformer,
 			),
@@ -348,7 +354,7 @@ export class BuddyApiClient extends HttpClient {
 				method: "DELETE",
 				data,
 				url: "/workspaces/{workspace_domain}/sandboxes/{id}",
-				dataSchema: zDeleteSandboxData,
+				pathSchema: zDeleteSandboxPath,
 				responseSchema: zDeleteSandboxResponse,
 				skipRetry: true,
 			});
@@ -369,7 +375,8 @@ export class BuddyApiClient extends HttpClient {
 			method: "GET",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes",
-			dataSchema: zGetSandboxesData,
+			pathSchema: zGetSandboxesPath,
+			querySchema: zGetSandboxesQuery,
 			responseSchema: zGetSandboxesResponse,
 		});
 	}
@@ -382,7 +389,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/start",
-			dataSchema: zStartSandboxData,
+			pathSchema: zStartSandboxPath,
 			responseSchema: zStartSandboxResponse.transform(
 				startSandboxResponseTransformer,
 			),
@@ -397,7 +404,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/stop",
-			dataSchema: zStopSandboxData,
+			pathSchema: zStopSandboxPath,
 			responseSchema: zStopSandboxResponse.transform(
 				stopSandboxResponseTransformer,
 			),
@@ -412,7 +419,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/restart",
-			dataSchema: zRestartSandboxData,
+			pathSchema: zRestartSandboxPath,
 			responseSchema: zRestartSandboxResponse.transform(
 				restartSandboxResponseTransformer,
 			),
@@ -427,7 +434,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/start",
-			dataSchema: zStartSandboxAppData,
+			pathSchema: zStartSandboxAppPath,
 			responseSchema: zStartSandboxAppResponse.transform(
 				startSandboxAppResponseTransformer,
 			),
@@ -442,7 +449,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/stop",
-			dataSchema: zStopSandboxAppData,
+			pathSchema: zStopSandboxAppPath,
 			responseSchema: zStopSandboxAppResponse.transform(
 				stopSandboxAppResponseTransformer,
 			),
@@ -457,7 +464,8 @@ export class BuddyApiClient extends HttpClient {
 			method: "GET",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/apps/{app_id}/logs",
-			dataSchema: zGetSandboxAppLogsByIdData,
+			pathSchema: zGetSandboxAppLogsByIdPath,
+			querySchema: zGetSandboxAppLogsByIdQuery,
 			responseSchema: zGetSandboxAppLogsByIdResponse,
 		});
 	}
@@ -470,7 +478,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "GET",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/content/{path}",
-			dataSchema: zGetSandboxContentData,
+			pathSchema: zGetSandboxContentPath,
 			responseSchema: zGetSandboxContentResponse.transform(
 				getSandboxContentResponseTransformer,
 			),
@@ -485,7 +493,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "DELETE",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/content/{path}",
-			dataSchema: zDeleteSandboxFileData,
+			pathSchema: zDeleteSandboxFilePath,
 			responseSchema: zDeleteSandboxFileResponse,
 		});
 	}
@@ -498,7 +506,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/content/{path}",
-			dataSchema: zCreateSandboxDirectoryData,
+			pathSchema: zCreateSandboxDirectoryPath,
 			responseSchema: zCreateSandboxDirectoryResponse.transform(
 				createSandboxDirectoryResponseTransformer,
 			),
@@ -510,27 +518,17 @@ export class BuddyApiClient extends HttpClient {
 		body: Blob | File;
 		path: { sandbox_id: string; path: string };
 	}): Promise<UploadSandboxFileResponse> {
-		const fullData = {
-			body: data.body,
-			path: {
-				workspace_domain: this.workspace,
-				...(data.path ?? {}),
-			},
-			query: undefined,
-		};
-
-		const validationResult = await zUploadSandboxFileData.safeParseAsync({
-			...fullData,
-			body: undefined, // Skip body validation for binary data
+		const pathResult = await zUploadSandboxFilePath.safeParseAsync({
+			workspace_domain: this.workspace,
+			...data.path,
 		});
-		if (!validationResult.success) {
-			throw validationResult.error;
+		if (!pathResult.success) {
+			throw pathResult.error;
 		}
-		const validatedData = validationResult.data;
 
 		const parameterizedUrl = this.#buildUrl<UploadSandboxFileData>({
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/content/upload/{path}",
-			path: validatedData.path,
+			path: pathResult.data,
 		});
 
 		const url = new URL(parameterizedUrl, this.#apiUrl);
@@ -590,25 +588,17 @@ export class BuddyApiClient extends HttpClient {
 	async downloadSandboxContent(data: {
 		path: { sandbox_id: string; path: string };
 	}): Promise<{ data: ArrayBuffer; filename: string }> {
-		const fullData = {
-			body: undefined,
-			path: {
-				workspace_domain: this.workspace,
-				...data.path,
-			},
-			query: undefined,
-		};
-
-		const validationResult =
-			await zDownloadSandboxContentData.safeParseAsync(fullData);
-		if (!validationResult.success) {
-			throw validationResult.error;
+		const pathResult = await zDownloadSandboxContentPath.safeParseAsync({
+			workspace_domain: this.workspace,
+			...data.path,
+		});
+		if (!pathResult.success) {
+			throw pathResult.error;
 		}
-		const validatedData = validationResult.data;
 
 		const parameterizedUrl = this.#buildUrl<DownloadSandboxContentData>({
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/download/{path}",
-			path: validatedData.path,
+			path: pathResult.data,
 		});
 
 		const url = new URL(parameterizedUrl, this.#apiUrl);
@@ -658,30 +648,29 @@ export class BuddyApiClient extends HttpClient {
 	async *streamCommandLogs<const Data extends GetSandboxCommandLogsData>(
 		data: ClientData<Data>,
 	): AsyncGenerator<SandboxCommandLog, void, unknown> {
-		const fullData = {
-			body: data.body,
-			path: {
-				workspace_domain: this.workspace,
-				...(data.path ?? {}),
-			},
-			query: data.query,
-		};
-
-		const validationResult =
-			await zGetSandboxCommandLogsData.safeParseAsync(fullData);
-		if (!validationResult.success) {
-			throw validationResult.error;
+		const pathResult = await zGetSandboxCommandLogsPath.safeParseAsync({
+			workspace_domain: this.workspace,
+			...(data.path ?? {}),
+		});
+		if (!pathResult.success) {
+			throw pathResult.error;
 		}
-		const validatedData = validationResult.data;
+
+		const queryResult = await zGetSandboxCommandLogsQuery.safeParseAsync(
+			data.query ?? {},
+		);
+		if (!queryResult.success) {
+			throw queryResult.error;
+		}
 
 		const parameterizedUrl = this.#buildUrl<Data>({
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/logs",
-			path: validatedData.path,
+			path: pathResult.data as Record<string, string>,
 		});
 
 		const url = new URL(parameterizedUrl, this.#apiUrl);
-		if (validatedData.query?.follow !== undefined) {
-			url.searchParams.set("follow", String(validatedData.query.follow));
+		if (queryResult.data.follow !== undefined) {
+			url.searchParams.set("follow", String(queryResult.data.follow));
 		}
 
 		const headers = {
