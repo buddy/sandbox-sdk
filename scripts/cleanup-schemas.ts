@@ -3,11 +3,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 const typesFile = "src/api/openapi/types.gen.ts";
 const zodFile = "src/api/openapi/zod.gen.ts";
 
-// Drop Target* types. hey-api emits the discriminated union with a circular
-// `Omit<TargetView, "type"> & {...}` pattern that TypeScript rejects (TS2456).
-// These types are pulled in transitively via PipelineEventView.targets and
-// are not referenced by any SDK surface, so we delete every Target* type and
-// widen the one reference to `unknown`.
 const dropBlocks = (content: string, pattern: RegExp) =>
 	content
 		.split(/\n\n/)
