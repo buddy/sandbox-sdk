@@ -118,11 +118,13 @@ const sandbox = await Sandbox.getByIdentifier("my-sandbox");
 // Create a snapshot. Returns immediately with status "CREATING".
 const snapshot = await sandbox.createSnapshot({ name: "before-deploy" });
 
-// Wait until the snapshot is "CREATED" before restoring from it.
+// Wait until the snapshot is "CREATED" before using it.
 await snapshot.waitUntilReady();
 
-// Restore: create a new sandbox from this snapshot.
-const restored = await snapshot.restore({ name: "restored-sandbox" });
+// Create a new sandbox from the snapshot.
+const restored = await Sandbox.createFromSnapshot(snapshot.id, {
+    name: "restored-sandbox",
+});
 
 // List all snapshots for this sandbox.
 const snapshots = await sandbox.listSnapshots();
@@ -135,15 +137,13 @@ If you already have a snapshot ID from elsewhere (e.g. persisted in your own sto
 
 ```typescript
 const snapshot = await Sandbox.getSnapshotById(sandboxId, snapshotId);
-await snapshot.restore();
 ```
 
-Equivalent convenience methods on `Sandbox` are available when you only have the ID:
+Equivalent convenience methods on `Sandbox` are available when you only have an ID and don't want to fetch the `Snapshot` first:
 
 ```typescript
 await sandbox.waitForSnapshotReady(snapshotId);
 await sandbox.deleteSnapshot(snapshotId);
-await Sandbox.createFromSnapshot(snapshotId, { name: "restored" });
 ```
 
 ## Regions

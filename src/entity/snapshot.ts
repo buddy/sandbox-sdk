@@ -1,6 +1,5 @@
 import type { SnapshotView } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
-import type { CreateFromSnapshotConfig, Sandbox } from "@/entity/sandbox";
 import { withErrorHandler } from "@/errors";
 
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("SnapshotConstructor");
@@ -92,21 +91,6 @@ export class Snapshot {
 				path: { sandbox_id: this.#sandboxId, id: this.id },
 			});
 		});
-	}
-
-	/**
-	 * Create a new sandbox restored from this snapshot.
-	 *
-	 * Blocks until the new sandbox is RUNNING. The snapshot must be in
-	 * `CREATED` state (call `waitUntilReady()` first if you just created it).
-	 *
-	 * @param config - Optional sandbox configuration overrides (name, identifier, …)
-	 */
-	async restore(config?: CreateFromSnapshotConfig): Promise<Sandbox> {
-		// Dynamic import avoids the circular `snapshot.ts` <-> `sandbox.ts`
-		// reference at module-load time.
-		const { Sandbox } = await import("@/entity/sandbox");
-		return Sandbox.createFromSnapshot(this.id, config);
 	}
 
 	/**
