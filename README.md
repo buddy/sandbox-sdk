@@ -95,6 +95,57 @@ await Sandbox.create({
 });
 ```
 
+## Updating a sandbox
+
+Use `sandbox.update()` to change configuration after creation - `timeout`, `apps`, `endpoints`, `variables`, `tags`, etc. The internal state is updated with the API's response.
+
+```typescript
+const sandbox = await Sandbox.getByIdentifier("my-sandbox");
+
+await sandbox.update({
+    timeout: 1200,
+    tags: ["staging", "feature-x"],
+});
+```
+
+## Snapshots
+
+Take point-in-time snapshots of a sandbox and restore from them later. Each snapshot is returned as a `Snapshot` instance with its own methods.
+
+```typescript
+const sandbox = await Sandbox.getByIdentifier("my-sandbox");
+
+// Create a snapshot. Returns immediately with status "CREATING".
+const snapshot = await sandbox.createSnapshot({ name: "before-deploy" });
+
+// Wait until the snapshot is "CREATED" before restoring from it.
+await snapshot.waitUntilReady();
+
+// Restore: create a new sandbox from this snapshot.
+const restored = await snapshot.restore({ name: "restored-sandbox" });
+
+// List all snapshots for this sandbox.
+const snapshots = await sandbox.listSnapshots();
+
+// Delete a snapshot.
+await snapshot.delete();
+```
+
+If you already have a snapshot ID from elsewhere (e.g. persisted in your own storage), get the entity directly:
+
+```typescript
+const snapshot = await Sandbox.getSnapshotById(sandboxId, snapshotId);
+await snapshot.restore();
+```
+
+Equivalent convenience methods on `Sandbox` are available when you only have the ID:
+
+```typescript
+await sandbox.waitForSnapshotReady(snapshotId);
+await sandbox.deleteSnapshot(snapshotId);
+await Sandbox.createFromSnapshot(snapshotId, { name: "restored" });
+```
+
 ## Regions
 
 Configure the API region:
