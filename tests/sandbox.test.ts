@@ -523,15 +523,19 @@ describe("Sandbox.createFromSnapshot", () => {
 		await baseSandbox?.destroy().catch(() => undefined);
 	}, 60_000);
 
-	it("should create a sandbox from a snapshot", async () => {
+	it("should create a sandbox from a snapshot with the given name and identifier", async () => {
 		if (!snapshotId) throw new Error("base snapshot was not created");
+		const restoredName = `test-snapshot-restored-${Date.now()}`;
+		const restoredIdentifier = `test_snapshot_restored_${Date.now()}`;
 		restoredSandbox = await Sandbox.createFromSnapshot(snapshotId, {
-			name: `test-snapshot-restored-${Date.now()}`,
-			identifier: `test_snapshot_restored_${Date.now()}`,
+			name: restoredName,
+			identifier: restoredIdentifier,
 		});
 
 		expect(restoredSandbox.data.id).toBeDefined();
 		expect(restoredSandbox.data.status).toBe("RUNNING");
+		expect(restoredSandbox.data.name).toBe(restoredName);
+		expect(restoredSandbox.data.identifier).toBe(restoredIdentifier);
 	}, 120_000);
 
 	it("restored sandbox should contain the file from the snapshot", async () => {
