@@ -1,28 +1,36 @@
 import { prettifyError, type z } from "zod";
 import {
 	addSandboxResponseTransformer,
+	addSandboxSnapshotResponseTransformer,
 	createSandboxDirectoryResponseTransformer,
 	executeSandboxCommandResponseTransformer,
 	getSandboxCommandResponseTransformer,
 	getSandboxContentResponseTransformer,
 	getSandboxResponseTransformer,
+	getSandboxSnapshotResponseTransformer,
+	getSandboxSnapshotsResponseTransformer,
 	restartSandboxResponseTransformer,
 	startSandboxAppResponseTransformer,
 	startSandboxResponseTransformer,
 	stopSandboxAppResponseTransformer,
 	stopSandboxResponseTransformer,
 	terminateSandboxCommandResponseTransformer,
+	updateSandboxResponseTransformer,
 	uploadSandboxFileResponseTransformer,
 } from "@/api/openapi/transformers.gen";
 import type {
 	AddSandboxData,
 	AddSandboxResponse,
+	AddSandboxSnapshotData,
+	AddSandboxSnapshotResponse,
 	CreateSandboxDirectoryData,
 	CreateSandboxDirectoryResponse,
 	DeleteSandboxData,
 	DeleteSandboxFileData,
 	DeleteSandboxFileResponse,
 	DeleteSandboxResponse,
+	DeleteSandboxSnapshotData,
+	DeleteSandboxSnapshotResponse,
 	DownloadSandboxContentData,
 	ExecuteSandboxCommandData,
 	ExecuteSandboxCommandResponse,
@@ -39,6 +47,10 @@ import type {
 	GetSandboxesData,
 	GetSandboxesResponse,
 	GetSandboxResponse,
+	GetSandboxSnapshotData,
+	GetSandboxSnapshotResponse,
+	GetSandboxSnapshotsData,
+	GetSandboxSnapshotsResponse,
 	RestartSandboxData,
 	RestartSandboxResponse,
 	SandboxCommandLog,
@@ -52,6 +64,8 @@ import type {
 	StopSandboxResponse,
 	TerminateSandboxCommandData,
 	TerminateSandboxCommandResponse,
+	UpdateSandboxData,
+	UpdateSandboxResponse,
 	UploadSandboxFileData,
 	UploadSandboxFileResponse,
 } from "@/api/openapi/types.gen";
@@ -60,12 +74,17 @@ import {
 	zAddSandboxPath,
 	zAddSandboxQuery,
 	zAddSandboxResponse,
+	zAddSandboxSnapshotBody,
+	zAddSandboxSnapshotPath,
+	zAddSandboxSnapshotResponse,
 	zCreateSandboxDirectoryPath,
 	zCreateSandboxDirectoryResponse,
 	zDeleteSandboxFilePath,
 	zDeleteSandboxFileResponse,
 	zDeleteSandboxPath,
 	zDeleteSandboxResponse,
+	zDeleteSandboxSnapshotPath,
+	zDeleteSandboxSnapshotResponse,
 	zDownloadSandboxContentPath,
 	zExecuteSandboxCommandBody,
 	zExecuteSandboxCommandPath,
@@ -87,6 +106,10 @@ import {
 	zGetSandboxesResponse,
 	zGetSandboxPath,
 	zGetSandboxResponse,
+	zGetSandboxSnapshotPath,
+	zGetSandboxSnapshotResponse,
+	zGetSandboxSnapshotsPath,
+	zGetSandboxSnapshotsResponse,
 	zRestartSandboxPath,
 	zRestartSandboxResponse,
 	zSandboxCommandLog,
@@ -100,6 +123,9 @@ import {
 	zStopSandboxResponse,
 	zTerminateSandboxCommandPath,
 	zTerminateSandboxCommandResponse,
+	zUpdateSandboxBody,
+	zUpdateSandboxPath,
+	zUpdateSandboxResponse,
 	zUploadSandboxFilePath,
 	zUploadSandboxFileResponse,
 } from "@/api/openapi/zod.gen";
@@ -178,7 +204,7 @@ export class BuddyApiClient extends HttpClient {
 		responseSchema,
 		skipRetry,
 	}: {
-		method: "GET" | "POST" | "DELETE";
+		method: "GET" | "POST" | "DELETE" | "PATCH";
 		url: DataUrl<D>;
 		data: ClientData<D>;
 		bodySchema?: z.ZodType;
@@ -249,6 +275,14 @@ export class BuddyApiClient extends HttpClient {
 				request = this.delete(parameterizedUrl, requestConfig);
 				break;
 			}
+			case "PATCH": {
+				request = this.patch(
+					parameterizedUrl,
+					validatedBody ?? {},
+					requestConfig,
+				);
+				break;
+			}
 		}
 
 		const response = await request;
@@ -268,6 +302,93 @@ export class BuddyApiClient extends HttpClient {
 				addSandboxResponseTransformer,
 			),
 		});
+	}
+
+	/** Update an existing sandbox's configuration (timeout, apps, endpoints, etc.) */
+	async updateSandbox<const Data extends UpdateSandboxData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, UpdateSandboxResponse>({
+			method: "PATCH",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{id}",
+			bodySchema: zUpdateSandboxBody,
+			pathSchema: zUpdateSandboxPath,
+			responseSchema: zUpdateSandboxResponse.transform(
+				updateSandboxResponseTransformer,
+			),
+		});
+	}
+
+	/** List snapshots for a sandbox */
+	async getSandboxSnapshots<const Data extends GetSandboxSnapshotsData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxSnapshotsResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/snapshots",
+			pathSchema: zGetSandboxSnapshotsPath,
+			responseSchema: zGetSandboxSnapshotsResponse.transform(
+				getSandboxSnapshotsResponseTransformer,
+			),
+		});
+	}
+
+	/** Create a snapshot of a sandbox */
+	async addSandboxSnapshot<const Data extends AddSandboxSnapshotData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, AddSandboxSnapshotResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/snapshots",
+			bodySchema: zAddSandboxSnapshotBody,
+			pathSchema: zAddSandboxSnapshotPath,
+			responseSchema: zAddSandboxSnapshotResponse.transform(
+				addSandboxSnapshotResponseTransformer,
+			),
+		});
+	}
+
+	/** Get a single sandbox snapshot by ID */
+	async getSandboxSnapshot<const Data extends GetSandboxSnapshotData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxSnapshotResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/snapshots/{id}",
+			pathSchema: zGetSandboxSnapshotPath,
+			responseSchema: zGetSandboxSnapshotResponse.transform(
+				getSandboxSnapshotResponseTransformer,
+			),
+		});
+	}
+
+	/** Delete a sandbox snapshot by ID */
+	async deleteSandboxSnapshot<const Data extends DeleteSandboxSnapshotData>(
+		data: ClientData<Data>,
+	) {
+		try {
+			return await this.#requestWithValidation<
+				Data,
+				DeleteSandboxSnapshotResponse
+			>({
+				method: "DELETE",
+				data,
+				url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/snapshots/{id}",
+				pathSchema: zDeleteSandboxSnapshotPath,
+				responseSchema: zDeleteSandboxSnapshotResponse,
+				skipRetry: true,
+			});
+		} catch (error) {
+			// Ignore 404 errors - snapshot already deleted
+			if (error instanceof HttpError && error.status === 404) {
+				return;
+			}
+			throw error;
+		}
 	}
 
 	/** Get a specific sandbox by its ID */
