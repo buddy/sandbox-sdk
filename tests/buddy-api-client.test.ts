@@ -156,6 +156,79 @@ describe("BuddyApiClient", () => {
 			expect(response?.id).toBe("new-sandbox-id");
 			expect(response?.name).toBe("New Sandbox");
 		});
+
+		it("should forward timeout in the request body", async () => {
+			let receivedBody: Record<string, unknown> | undefined;
+			server.use(
+				http.post(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
+					async ({ request }) => {
+						receivedBody = (await request.json()) as Record<string, unknown>;
+						return HttpResponse.json({
+							id: "with-timeout",
+							name: receivedBody["name"],
+							identifier: receivedBody["identifier"],
+							os: receivedBody["os"],
+							timeout: receivedBody["timeout"],
+							status: "STARTING",
+						});
+					},
+				),
+			);
+
+			const client = createClient();
+			const response = await client.addSandbox({
+				body: {
+					name: "Timeout Sandbox",
+					identifier: "timeout-sandbox",
+					os: "ubuntu:24.04",
+					timeout: 600,
+				},
+			});
+
+			expect(receivedBody?.["timeout"]).toBe(600);
+			expect(response?.timeout).toBe(600);
+		});
+
+		it("should forward fetch items in the request body", async () => {
+			let receivedBody: Record<string, unknown> | undefined;
+			const fetchItems = [
+				{
+					type: "PUBLIC_REPO" as const,
+					repository: "https://github.com/octocat/Hello-World",
+					ref: "master",
+				},
+			];
+			server.use(
+				http.post(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
+					async ({ request }) => {
+						receivedBody = (await request.json()) as Record<string, unknown>;
+						return HttpResponse.json({
+							id: "with-fetch",
+							name: receivedBody["name"],
+							identifier: receivedBody["identifier"],
+							os: receivedBody["os"],
+							fetch: receivedBody["fetch"],
+							status: "STARTING",
+						});
+					},
+				),
+			);
+
+			const client = createClient();
+			const response = await client.addSandbox({
+				body: {
+					name: "Fetch Sandbox",
+					identifier: "fetch-sandbox",
+					os: "ubuntu:24.04",
+					fetch: fetchItems,
+				},
+			});
+
+			expect(receivedBody?.["fetch"]).toEqual(fetchItems);
+			expect(response?.fetch).toEqual(fetchItems);
+		});
 	});
 
 	describe("deleteSandboxById", () => {
