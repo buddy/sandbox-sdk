@@ -427,5 +427,119 @@ describe("Sandbox", () => {
 			await sandbox.refresh();
 			expect(sandbox.data.status).toBe("RUNNING");
 		});
+
+		it("start() on a running sandbox should be a no-op", async () => {
+			await sandbox.refresh();
+			expect(sandbox.data.status).toBe("RUNNING");
+
+			await expect(sandbox.start()).resolves.toBeUndefined();
+			expect(sandbox.data.status).toBe("RUNNING");
+		});
+
+		it("stop() on an already stopped sandbox should be a no-op", async () => {
+			await sandbox.stop();
+			await sandbox.waitUntilStopped();
+			expect(sandbox.data.status).toBe("STOPPED");
+
+			await expect(sandbox.stop()).resolves.toBeUndefined();
+			expect(sandbox.data.status).toBe("STOPPED");
+
+			// leave the sandbox running for any later tests / cleanup
+			await sandbox.start();
+			await sandbox.waitUntilRunning();
+		});
 	});
+
+	describe("update", () => {
+		it("should update timeout and tags in place", async () => {
+			await sandbox.update({ timeout: 1200, tags: ["updated"] });
+
+			expect(sandbox.data.timeout).toBe(1200);
+			expect(sandbox.data.tags).toEqual(expect.arrayContaining(["updated"]));
+		});
+	});
+
+	describe("snapshots", () => {
+		const createdSnapshotIds: string[] = [];
+
+		afterAll(async () => {
+			await Promise.all(
+				createdSnapshotIds.map((id) =>
+					sandbox.deleteSnapshot(id).catch(() => undefined),
+				),
+			);
+		}, 30_000);
+
+		it("should create, list, get and delete a snapshot", async () => {
+			const snapshot = await sandbox.createSnapshot({
+				name: `test-snap-${Date.now()}`,
+			});
+			const snapshotId = snapshot.id;
+			if (!snapshotId) throw new Error("snapshot.id was not returned");
+			createdSnapshotIds.push(snapshotId);
+
+			const list = await sandbox.listSnapshots();
+			expect(list.some((s) => s.id === snapshotId)).toBe(true);
+
+			const fetched = await sandbox.getSnapshot(snapshotId);
+			expect(fetched.id).toBe(snapshotId);
+
+			await sandbox.deleteSnapshot(snapshotId);
+			createdSnapshotIds.splice(createdSnapshotIds.indexOf(snapshotId), 1);
+
+			const afterDelete = await sandbox.listSnapshots();
+			expect(afterDelete.some((s) => s.id === snapshotId)).toBe(false);
+		}, 120_000);
+	});
+});
+
+describe("Sandbox.createFromSnapshot", () => {
+	let baseSandbox: Sandbox;
+	let restoredSandbox: Sandbox | undefined;
+	let snapshotId: string | undefined;
+	const markerFilename = `snapshot_marker_${Date.now()}.txt`;
+	const markerContent = `restored at ${Date.now()}`;
+
+	beforeAll(async () => {
+		baseSandbox = await Sandbox.create({
+			name: `test-snapshot-base-${Date.now()}`,
+			identifier: `test_snapshot_base_${Date.now()}`,
+		});
+		await baseSandbox.fs.uploadFile(Buffer.from(markerContent), markerFilename);
+		const snapshot = await baseSandbox.createSnapshot({
+			name: `test-base-snap-${Date.now()}`,
+		});
+		snapshotId = snapshot.id;
+		if (snapshotId) {
+			await baseSandbox.waitForSnapshotReady(snapshotId);
+		}
+	}, 360_000);
+
+	afterAll(async () => {
+		await restoredSandbox?.destroy().catch(() => undefined);
+		if (snapshotId) {
+			await baseSandbox?.deleteSnapshot(snapshotId).catch(() => undefined);
+		}
+		await baseSandbox?.destroy().catch(() => undefined);
+	}, 60_000);
+
+	it("should create a sandbox from a snapshot", async () => {
+		if (!snapshotId) throw new Error("base snapshot was not created");
+		restoredSandbox = await Sandbox.createFromSnapshot(snapshotId, {
+			name: `test-snapshot-restored-${Date.now()}`,
+			identifier: `test_snapshot_restored_${Date.now()}`,
+		});
+
+		expect(restoredSandbox.data.id).toBeDefined();
+		expect(restoredSandbox.data.status).toBe("RUNNING");
+	}, 120_000);
+
+	it("restored sandbox should contain the file from the snapshot", async () => {
+		if (!restoredSandbox) {
+			throw new Error("restoredSandbox was not initialised by previous test");
+		}
+
+		const downloaded = await restoredSandbox.fs.downloadFile(markerFilename);
+		expect(downloaded.toString()).toBe(markerContent);
+	}, 60_000);
 });
