@@ -386,6 +386,101 @@ describe("BuddyApiClient", () => {
 		});
 	});
 
+	describe("sandbox apps", () => {
+		it("should start a sandbox app and return the updated sandbox", async () => {
+			server.use(
+				http.post(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/apps/app-1/start`,
+					() =>
+						HttpResponse.json({
+							id: "sandbox-id",
+							status: "RUNNING",
+							apps: [
+								{
+									id: "app-1",
+									command: "node server.js",
+									app_status: "RUNNING",
+								},
+								{
+									id: "app-2",
+									command: "python worker.py",
+									app_status: "RUNNING",
+								},
+							],
+						}),
+				),
+			);
+
+			const client = createClient();
+			const response = await client.startSandboxApp({
+				path: { sandbox_id: "sandbox-id", app_id: "app-1" },
+			});
+
+			expect(response?.apps?.find((a) => a.id === "app-1")?.app_status).toBe(
+				"RUNNING",
+			);
+		});
+
+		it("should stop a sandbox app without affecting others", async () => {
+			server.use(
+				http.post(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/apps/app-1/stop`,
+					() =>
+						HttpResponse.json({
+							id: "sandbox-id",
+							status: "RUNNING",
+							apps: [
+								{ id: "app-1", command: "node server.js", app_status: "ENDED" },
+								{
+									id: "app-2",
+									command: "python worker.py",
+									app_status: "RUNNING",
+								},
+							],
+						}),
+				),
+			);
+
+			const client = createClient();
+			const response = await client.stopSandboxApp({
+				path: { sandbox_id: "sandbox-id", app_id: "app-1" },
+			});
+
+			expect(response?.apps?.find((a) => a.id === "app-1")?.app_status).toBe(
+				"ENDED",
+			);
+			expect(response?.apps?.find((a) => a.id === "app-2")?.app_status).toBe(
+				"RUNNING",
+			);
+		});
+
+		it("should fetch app logs with pagination cursor", async () => {
+			let receivedCursor: string | null = null;
+			server.use(
+				http.get(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/apps/app-1/logs`,
+					({ request }) => {
+						receivedCursor = new URL(request.url).searchParams.get("cursor");
+						return HttpResponse.json({
+							logs: ["line 1", "line 2", "line 3"],
+							cursor: "next-page-cursor",
+						});
+					},
+				),
+			);
+
+			const client = createClient();
+			const response = await client.getSandboxAppLogs({
+				path: { sandbox_id: "sandbox-id", app_id: "app-1" },
+				query: { cursor: "prev-cursor" },
+			});
+
+			expect(receivedCursor).toBe("prev-cursor");
+			expect(response?.logs).toEqual(["line 1", "line 2", "line 3"]);
+			expect(response?.cursor).toBe("next-page-cursor");
+		});
+	});
+
 	describe("file operations", () => {
 		it("should get sandbox content", async () => {
 			server.use(
