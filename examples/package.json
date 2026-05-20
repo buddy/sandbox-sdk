@@ -12,6 +12,7 @@
 		"example:filesystem": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/filesystem.ts",
 		"example:apps": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/apps.ts",
 		"example:error-handling": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/error-handling.ts",
+		"example:update": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/update.ts",
 		"example:all": "concurrently 'pnpm:example:*(!all)'"
 	},
 	"keywords": [],
