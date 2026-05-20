@@ -56,6 +56,7 @@ const sandbox = await Sandbox.create({
     os: "ubuntu:24.04",
     first_boot_commands: "apt-get update && apt-get install -y curl",
     apps: ["node server.js", "python worker.py"],
+    timeout: 600, // auto-stop after 10 minutes of inactivity
 });
 
 // List apps
@@ -71,6 +72,27 @@ await sandbox.startApp(appId);
 
 const { logs } = await sandbox.getAppLogs(appId);
 console.log(logs);
+```
+
+## Fetching repositories and artifacts
+
+Use `fetch` to clone repositories or download artifacts into the sandbox on
+first boot. Each entry sets a `type` (`PROJECT_REPO`, `PUBLIC_REPO`, or
+`ARTIFACT`) plus the fields relevant to it.
+
+```typescript
+await Sandbox.create({
+    identifier: "my-sandbox",
+    fetch: [
+        {
+            type: "PUBLIC_REPO",
+            repository: "https://github.com/octocat/Hello-World",
+            ref: "master",
+            path: "/workspace/hello",
+            build_command: "echo built",
+        },
+    ],
+});
 ```
 
 ## Regions

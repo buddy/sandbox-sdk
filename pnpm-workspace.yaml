@@ -2,6 +2,8 @@ packages:
   - .
   - examples
 
+minimumReleaseAge: 2880
+
 catalog:
   '@dotenvx/dotenvx': 1.51.4
   '@tsconfig/node20': '20'
