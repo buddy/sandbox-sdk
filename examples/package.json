@@ -14,6 +14,7 @@
 		"example:error-handling": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/error-handling.ts",
 		"example:update": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/update.ts",
 		"example:snapshots": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/snapshots.ts",
+		"example:fetch": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/fetch.ts",
 		"example:all": "concurrently 'pnpm:example:*(!all)'"
 	},
 	"keywords": [],
