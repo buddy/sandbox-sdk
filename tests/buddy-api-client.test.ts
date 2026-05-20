@@ -500,4 +500,139 @@ describe("BuddyApiClient", () => {
 			).resolves.not.toThrow();
 		});
 	});
+
+	describe("updateSandbox", () => {
+		it("should PATCH sandbox with new config and return updated sandbox", async () => {
+			let receivedBody: Record<string, unknown> | undefined;
+			let receivedMethod: string | undefined;
+			server.use(
+				http.patch(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id`,
+					async ({ request }) => {
+						receivedMethod = request.method;
+						receivedBody = (await request.json()) as Record<string, unknown>;
+						return HttpResponse.json({
+							id: "sandbox-id",
+							timeout: receivedBody["timeout"],
+							tags: receivedBody["tags"],
+							status: "RUNNING",
+						});
+					},
+				),
+			);
+
+			const client = createClient();
+			const response = await client.updateSandbox({
+				body: { timeout: 1200, tags: ["updated"] },
+				path: { id: "sandbox-id" },
+			});
+
+			expect(receivedMethod).toBe("PATCH");
+			expect(receivedBody).toEqual({ timeout: 1200, tags: ["updated"] });
+			expect(response?.timeout).toBe(1200);
+			expect(response?.tags).toEqual(["updated"]);
+		});
+	});
+
+	describe("sandbox snapshots", () => {
+		it("should list snapshots for a sandbox", async () => {
+			server.use(
+				http.get(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots`,
+					() =>
+						HttpResponse.json({
+							snapshots: [
+								{ id: "snap-1", name: "First" },
+								{ id: "snap-2", name: "Second" },
+							],
+						}),
+				),
+			);
+
+			const client = createClient();
+			const response = await client.getSandboxSnapshots({
+				path: { sandbox_id: "sandbox-id" },
+			});
+
+			expect(response?.snapshots).toHaveLength(2);
+			expect(response?.snapshots?.[0]?.id).toBe("snap-1");
+		});
+
+		it("should create a snapshot with optional name", async () => {
+			let receivedBody: Record<string, unknown> | undefined;
+			server.use(
+				http.post(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots`,
+					async ({ request }) => {
+						receivedBody = (await request.json()) as Record<string, unknown>;
+						return HttpResponse.json(
+							{ id: "snap-new", name: receivedBody["name"] },
+							{ status: 201 },
+						);
+					},
+				),
+			);
+
+			const client = createClient();
+			const response = await client.addSandboxSnapshot({
+				body: { name: "before-deploy" },
+				path: { sandbox_id: "sandbox-id" },
+			});
+
+			expect(receivedBody).toEqual({ name: "before-deploy" });
+			expect(response?.id).toBe("snap-new");
+		});
+
+		it("should fetch a specific snapshot by ID", async () => {
+			server.use(
+				http.get(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots/snap-1`,
+					() => HttpResponse.json({ id: "snap-1", name: "First" }),
+				),
+			);
+
+			const client = createClient();
+			const response = await client.getSandboxSnapshot({
+				path: { sandbox_id: "sandbox-id", id: "snap-1" },
+			});
+
+			expect(response?.id).toBe("snap-1");
+		});
+
+		it("should delete a snapshot", async () => {
+			server.use(
+				http.delete(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots/snap-1`,
+					() => new HttpResponse(null, { status: 204 }),
+				),
+			);
+
+			const client = createClient();
+			await expect(
+				client.deleteSandboxSnapshot({
+					path: { sandbox_id: "sandbox-id", id: "snap-1" },
+				}),
+			).resolves.not.toThrow();
+		});
+
+		it("should not throw on 404 when deleting a snapshot (already gone)", async () => {
+			server.use(
+				http.delete(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots/snap-missing`,
+					() =>
+						HttpResponse.json(
+							{ errors: [{ message: "not found" }] },
+							{ status: 404 },
+						),
+				),
+			);
+
+			const client = createClient();
+			await expect(
+				client.deleteSandboxSnapshot({
+					path: { sandbox_id: "sandbox-id", id: "snap-missing" },
+				}),
+			).resolves.toBeUndefined();
+		});
+	});
 });
