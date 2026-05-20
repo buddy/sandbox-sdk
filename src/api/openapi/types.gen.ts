@@ -582,191 +582,6 @@ export type PipelinePropertyView = {
 };
 
 /**
- * MSSQL authentication credentials
- */
-export type MssqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MSSQL username
-	 */
-	username: string;
-	/**
-	 * The MSSQL password
-	 */
-	password: string;
-};
-
-/**
- * MongoDB authentication credentials
- */
-export type MongoAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MongoDB username
-	 */
-	username: string;
-	/**
-	 * The MongoDB password
-	 */
-	password: string;
-};
-
-/**
- * PostgreSQL authentication credentials
- */
-export type PostgresqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The PostgreSQL username
-	 */
-	username: string;
-	/**
-	 * The PostgreSQL password
-	 */
-	password: string;
-};
-
-/**
- * MySQL authentication credentials
- */
-export type MysqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MySQL username
-	 */
-	username: string;
-	/**
-	 * The MySQL password
-	 */
-	password: string;
-};
-
-/**
- * Define proxy servers' authentication method using the following parameters
- */
-export type SshAuthView = {
-	/**
-	 * Authentication method
-	 */
-	method:
-		| "PASSWORD"
-		| "SSH_KEY"
-		| "ASSETS_KEY"
-		| "PROXY_CREDENTIALS"
-		| "PROXY_KEY";
-	/**
-	 * The username required to connect to the server
-	 */
-	username?: string;
-	/**
-	 * The password required to connect to the server. Required for `PASSWORD` method
-	 */
-	password?: string;
-	/**
-	 * Name of the variable containing the private key. Required for `ASSETS_KEY` method
-	 */
-	asset?: string;
-	/**
-	 * Passphrase for the SSH key
-	 */
-	passphrase?: string;
-	/**
-	 * The private SSH key. Required when method is `SSH_KEY`
-	 */
-	key?: string;
-	/**
-	 * Path to the key on proxy server. Required for method `PROXY_KEY`
-	 */
-	key_path?: string;
-};
-
-/**
- * Kubernetes cluster authentication method
- */
-export type K8sAuthView = {
-	/**
-	 * Authentication method
-	 */
-	method: "PASS" | "CERT" | "TOKEN";
-	/**
-	 * Username to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
-	 */
-	username?: string;
-	/**
-	 * Password to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
-	 */
-	password?: string;
-	/**
-	 * Kuberenetes certificate authority. Required if the `auth.method` is `CERT`
-	 */
-	certificate_authority?: string;
-	/**
-	 * Kuberenetes client certificate. Required if the `auth.method` is `CERT`
-	 */
-	client_certificate?: string;
-	/**
-	 * Kuberenetes client key. Required if the `auth.method` is `CERT`
-	 */
-	client_key?: string;
-	/**
-	 * Token for the Kubernetes cluster. Required if the `auth.method` is `TOKEN`
-	 */
-	token?: string;
-};
-
-/**
- * Authentication details
- */
-export type GitAuthView = {
-	/**
-	 * The authentication for Git
-	 */
-	method: "HTTP" | "SSH_KEY" | "ASSETS_KEY" | "CURRENT";
-	/**
-	 * Username required to connect to the Git repository. Required when method is `HTTP`
-	 */
-	username?: string;
-	/**
-	 * Password required to connect to the Git repository. Required when method is `HTTP`
-	 */
-	password?: string;
-	/**
-	 * Name of the variable containing the private key. Required when method is `ASSETS_KEY`
-	 */
-	asset?: string;
-	/**
-	 * The private SSH key. Required when method is `SSH_KEY`
-	 */
-	key?: string;
-};
-
-/**
- * Authentication details
- */
-export type FtpAuthView = {
-	/**
-	 * The username required to connect to the server
-	 */
-	username: string;
-	/**
-	 * The password required to connect to the server
-	 */
-	password: string;
-};
-
-/**
  * Defines how the target can be used (as deployment target, proxy, or both)
  */
 export type UseAsView = {
@@ -1239,6 +1054,191 @@ export type ShortProjectView = {
 	 * The creation date of the project
 	 */
 	create_date?: Date;
+};
+
+/**
+ * MSSQL authentication credentials
+ */
+export type MssqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MSSQL username
+	 */
+	username: string;
+	/**
+	 * The MSSQL password
+	 */
+	password: string;
+};
+
+/**
+ * MongoDB authentication credentials
+ */
+export type MongoAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MongoDB username
+	 */
+	username: string;
+	/**
+	 * The MongoDB password
+	 */
+	password: string;
+};
+
+/**
+ * PostgreSQL authentication credentials
+ */
+export type PostgresqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The PostgreSQL username
+	 */
+	username: string;
+	/**
+	 * The PostgreSQL password
+	 */
+	password: string;
+};
+
+/**
+ * MySQL authentication credentials
+ */
+export type MysqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MySQL username
+	 */
+	username: string;
+	/**
+	 * The MySQL password
+	 */
+	password: string;
+};
+
+/**
+ * Define proxy servers' authentication method using the following parameters
+ */
+export type SshAuthView = {
+	/**
+	 * Authentication method
+	 */
+	method:
+		| "PASSWORD"
+		| "SSH_KEY"
+		| "ASSETS_KEY"
+		| "PROXY_CREDENTIALS"
+		| "PROXY_KEY";
+	/**
+	 * The username required to connect to the server
+	 */
+	username?: string;
+	/**
+	 * The password required to connect to the server. Required for `PASSWORD` method
+	 */
+	password?: string;
+	/**
+	 * Name of the variable containing the private key. Required for `ASSETS_KEY` method
+	 */
+	asset?: string;
+	/**
+	 * Passphrase for the SSH key
+	 */
+	passphrase?: string;
+	/**
+	 * The private SSH key. Required when method is `SSH_KEY`
+	 */
+	key?: string;
+	/**
+	 * Path to the key on proxy server. Required for method `PROXY_KEY`
+	 */
+	key_path?: string;
+};
+
+/**
+ * Kubernetes cluster authentication method
+ */
+export type K8sAuthView = {
+	/**
+	 * Authentication method
+	 */
+	method: "PASS" | "CERT" | "TOKEN";
+	/**
+	 * Username to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
+	 */
+	username?: string;
+	/**
+	 * Password to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
+	 */
+	password?: string;
+	/**
+	 * Kuberenetes certificate authority. Required if the `auth.method` is `CERT`
+	 */
+	certificate_authority?: string;
+	/**
+	 * Kuberenetes client certificate. Required if the `auth.method` is `CERT`
+	 */
+	client_certificate?: string;
+	/**
+	 * Kuberenetes client key. Required if the `auth.method` is `CERT`
+	 */
+	client_key?: string;
+	/**
+	 * Token for the Kubernetes cluster. Required if the `auth.method` is `TOKEN`
+	 */
+	token?: string;
+};
+
+/**
+ * Authentication details
+ */
+export type GitAuthView = {
+	/**
+	 * The authentication for Git
+	 */
+	method: "HTTP" | "SSH_KEY" | "ASSETS_KEY" | "CURRENT";
+	/**
+	 * Username required to connect to the Git repository. Required when method is `HTTP`
+	 */
+	username?: string;
+	/**
+	 * Password required to connect to the Git repository. Required when method is `HTTP`
+	 */
+	password?: string;
+	/**
+	 * Name of the variable containing the private key. Required when method is `ASSETS_KEY`
+	 */
+	asset?: string;
+	/**
+	 * The private SSH key. Required when method is `SSH_KEY`
+	 */
+	key?: string;
+};
+
+/**
+ * Authentication details
+ */
+export type FtpAuthView = {
+	/**
+	 * The username required to connect to the server
+	 */
+	username: string;
+	/**
+	 * The password required to connect to the server
+	 */
+	password: string;
 };
 
 /**
