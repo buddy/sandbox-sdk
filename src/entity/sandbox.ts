@@ -14,6 +14,7 @@ import type {
 	UpdateSandboxRequestWritable,
 } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
+import { HttpError } from "@/core/http-client";
 import { Command } from "@/entity/command";
 import { FileSystem } from "@/entity/filesystem";
 import { Snapshot } from "@/entity/snapshot";
@@ -253,17 +254,14 @@ export class Sandbox {
 					query: { project: client.project_name, sandbox: identifier },
 				});
 				sandboxId = identifiers.sandbox_id;
-			} catch {}
-
-			// <TODO>: Remove this fallback when the identifiers endpoint is rolled out to prod (should be out by March 2026)
-			if (!sandboxId) {
-				try {
-					const sandboxList = await client.getSandboxes({});
-					sandboxId = sandboxList?.sandboxes?.find(
-						(s) => s.identifier === identifier,
-					)?.id;
-				} catch {}
-			} // </TODO>
+			} catch (error) {
+				// 404 means the identifier doesn't exist - fall through to the
+				// "not found" error below. Anything else (auth, network, 5xx)
+				// surfaces to the caller.
+				if (!(error instanceof HttpError) || error.status !== 404) {
+					throw error;
+				}
+			}
 
 			if (!sandboxId) {
 				throw new Error(`Sandbox with identifier '${identifier}' not found`);

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
 
 /**
- * Contract tests for `sandbox.update()` — assert how the backend reacts to
+ * Contract tests for `sandbox.update()` - assert how the backend reacts to
  * PATCH on each field of UpdateSandboxRequestWritable. Documents and pins:
  *   - "soft" fields apply in place: sandbox stays RUNNING + setup SUCCESS
  *   - `first_boot_commands` transitions setup to STALE (recreate required)
@@ -24,7 +24,7 @@ const logFieldEffect = (
 	);
 };
 
-describe("Sandbox.update — soft fields (shared sandbox)", () => {
+describe("Sandbox.update - soft fields (shared sandbox)", () => {
 	let sandbox: Sandbox;
 
 	beforeAll(async () => {
@@ -133,7 +133,7 @@ describe("Sandbox.update — soft fields (shared sandbox)", () => {
 	});
 });
 
-describe("Sandbox.update — first_boot_commands (isolated sandbox)", () => {
+describe("Sandbox.update - first_boot_commands (isolated sandbox)", () => {
 	let sandbox: Sandbox;
 
 	beforeAll(async () => {
@@ -169,7 +169,7 @@ describe("Sandbox.update — first_boot_commands (isolated sandbox)", () => {
 	});
 });
 
-describe("Sandbox.update — resources (isolated sandbox)", () => {
+describe("Sandbox.update - resources (isolated sandbox)", () => {
 	let sandbox: Sandbox;
 
 	beforeAll(async () => {

@@ -221,7 +221,7 @@ describe("FileSystem", () => {
 				const content = await sandbox.fs.downloadFile(dirName);
 				expect(Buffer.isBuffer(content)).toBe(true);
 				expect(content.length).toBeGreaterThan(0);
-				// API serves directories as gzip — magic bytes 0x1f 0x8b. Soft check.
+				// API serves directories as gzip - magic bytes 0x1f 0x8b. Soft check.
 				if (content.length >= 2) {
 					expect(content[0]).toBe(0x1f);
 					expect(content[1]).toBe(0x8b);
