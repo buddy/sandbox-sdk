@@ -190,6 +190,36 @@ describe("BuddyApiClient", () => {
 			expect(response?.timeout).toBe(600);
 		});
 
+		it("should forward source_sandbox_id when cloning a sandbox", async () => {
+			let receivedBody: Record<string, unknown> | undefined;
+			server.use(
+				http.post(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
+					async ({ request }) => {
+						receivedBody = (await request.json()) as Record<string, unknown>;
+						return HttpResponse.json({
+							id: "clone-id",
+							name: receivedBody["name"],
+							identifier: receivedBody["identifier"],
+							status: "STARTING",
+						});
+					},
+				),
+			);
+
+			const client = createClient();
+			const response = await client.addSandbox({
+				body: {
+					source_sandbox_id: "source-sandbox",
+					name: "Clone Sandbox",
+					identifier: "clone-sandbox",
+				},
+			});
+
+			expect(receivedBody?.["source_sandbox_id"]).toBe("source-sandbox");
+			expect(response?.id).toBe("clone-id");
+		});
+
 		it("should forward fetch items in the request body", async () => {
 			let receivedBody: Record<string, unknown> | undefined;
 			const fetchItems = [
@@ -593,6 +623,39 @@ describe("BuddyApiClient", () => {
 					path: { sandbox_id: "sandbox-id", command_id: "cmd-123" },
 				}),
 			).resolves.not.toThrow();
+		});
+
+		it("should list commands in a sandbox", async () => {
+			server.use(
+				http.get(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands`,
+					() =>
+						HttpResponse.json({
+							commands: [
+								{
+									id: "cmd-a",
+									command: "echo first",
+									status: "SUCCESSFUL",
+									exit_code: 0,
+								},
+								{
+									id: "cmd-b",
+									command: "sleep 60",
+									status: "INPROGRESS",
+								},
+							],
+						}),
+				),
+			);
+
+			const client = createClient();
+			const response = await client.getSandboxCommands({
+				path: { sandbox_id: "sandbox-id" },
+			});
+
+			expect(response?.commands).toHaveLength(2);
+			expect(response?.commands?.[0]?.id).toBe("cmd-a");
+			expect(response?.commands?.[1]?.status).toBe("INPROGRESS");
 		});
 	});
 

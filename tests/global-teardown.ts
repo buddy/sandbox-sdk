@@ -7,9 +7,12 @@ async function cleanupTestSandboxes() {
 	const testSandboxes = sandboxes.filter(
 		(s) =>
 			s.name?.startsWith("Sandbox 202") ||
-			s.name?.startsWith("test-sandbox-") ||
+			s.name?.startsWith("test-") ||
 			s.name?.startsWith("command-test-") ||
-			s.name?.startsWith("filesystem-test-"),
+			s.name?.startsWith("filesystem-test-") ||
+			s.name?.startsWith("fbc-probe-") ||
+			s.name?.startsWith("resources-probe-") ||
+			s.name?.startsWith("update-probe-"),
 	);
 
 	if (testSandboxes.length === 0) {

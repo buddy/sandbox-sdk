@@ -260,6 +260,21 @@ describe("Sandbox", () => {
 			expect(command.data.id).toBeDefined();
 			expect(command.data.status).toBeDefined();
 		});
+
+		it("should list commands history including previously executed ones", async () => {
+			const marker = `echo list-commands-marker-${Date.now()}`;
+			const command = await sandbox.runCommand({
+				command: marker,
+				stdout: null,
+				stderr: null,
+			});
+			await command.wait();
+
+			const history = await sandbox.listCommands();
+			expect(Array.isArray(history)).toBe(true);
+			expect(history.length).toBeGreaterThan(0);
+			expect(history.some((c) => c.data.command === marker)).toBe(true);
+		});
 	});
 
 	describe("filesystem", () => {
@@ -589,4 +604,37 @@ describe("Sandbox.createFromSnapshot", () => {
 		const all = await Sandbox.listSnapshots();
 		expect(all.some((s) => s.id === extra.id)).toBe(false);
 	}, 180_000);
+});
+
+describe("Sandbox.clone", () => {
+	let source: Sandbox;
+	let clone: Sandbox | undefined;
+
+	beforeAll(async () => {
+		source = await Sandbox.create({
+			name: `test-clone-source-${Date.now()}`,
+			identifier: `test_clone_source_${Date.now()}`,
+		});
+	}, 120_000);
+
+	afterAll(async () => {
+		await clone?.destroy().catch(() => undefined);
+		await source?.destroy().catch(() => undefined);
+	}, 60_000);
+
+	it("should clone an existing sandbox under a new name and identifier", async () => {
+		const cloneName = `test-clone-target-${Date.now()}`;
+		const cloneIdentifier = `test_clone_target_${Date.now()}`;
+
+		clone = await Sandbox.clone(source.initializedId, {
+			name: cloneName,
+			identifier: cloneIdentifier,
+		});
+
+		expect(clone.data.id).toBeDefined();
+		expect(clone.data.id).not.toBe(source.data.id);
+		expect(clone.data.status).toBe("RUNNING");
+		expect(clone.data.name).toBe(cloneName);
+		expect(clone.data.identifier).toBe(cloneIdentifier);
+	}, 120_000);
 });
