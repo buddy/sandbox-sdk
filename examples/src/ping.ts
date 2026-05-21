@@ -24,75 +24,76 @@ try {
 	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
 }
 
-await sandbox.start();
+try {
+	await sandbox.start();
 
-log("\n=== Mode 1: Real-time streaming ===");
-log("Output appears as the command runs:\n");
+	log("\n=== Mode 1: Real-time streaming ===");
+	log("Output appears as the command runs:\n");
 
-await sandbox.runCommand({
-	command: "ping -c 4 buddy.works",
-	runtime: "BASH",
-});
+	await sandbox.runCommand({
+		command: "ping -c 4 buddy.works",
+		runtime: "BASH",
+	});
 
-log("\n=== Mode 2: Parallel execution ===");
-log("Run multiple commands simultaneously, results print as they complete.");
+	log("\n=== Mode 2: Parallel execution ===");
+	log("Run multiple commands simultaneously, results print as they complete.");
 
-const [cmd1, cmd2] = await Promise.all([
-	sandbox.runCommand({
-		command:
-			"echo 'Starting slow task...' && sleep 3 && echo 'Slow task done!'",
+	const [cmd1, cmd2] = await Promise.all([
+		sandbox.runCommand({
+			command:
+				"echo 'Starting slow task...' && sleep 3 && echo 'Slow task done!'",
+			runtime: "BASH",
+			detached: true,
+			stdout: null,
+			stderr: null,
+		}),
+		sandbox.runCommand({
+			command:
+				"echo 'Starting fast task...' && sleep 1 && echo 'Fast task done!'",
+			runtime: "BASH",
+			detached: true,
+			stdout: null,
+			stderr: null,
+		}),
+	]);
+
+	log("Both commands started in background! Waiting for results...\n");
+
+	await Promise.all([
+		cmd1.wait().then(async (finished) => {
+			log(`[Slow] Exit code: ${finished.data.exit_code}`);
+			log(`[Slow] Output:\n${await finished.output()}`);
+		}),
+		cmd2.wait().then(async (finished) => {
+			log(`[Fast] Exit code: ${finished.data.exit_code}`);
+			log(`[Fast] Output:\n${await finished.output()}`);
+		}),
+	]);
+
+	log("\n=== Mode 3: Fire and forget ===");
+	log("Commands run on the server independently - you can check back anytime.");
+	log("Launching a 2-second task, then doing other work for 5 seconds...\n");
+
+	const cmd3 = await sandbox.runCommand({
+		command: "echo 'Quick task' && sleep 2 && echo 'Done!'",
 		runtime: "BASH",
 		detached: true,
 		stdout: null,
 		stderr: null,
-	}),
-	sandbox.runCommand({
-		command:
-			"echo 'Starting fast task...' && sleep 1 && echo 'Fast task done!'",
-		runtime: "BASH",
-		detached: true,
-		stdout: null,
-		stderr: null,
-	}),
-]);
+	});
 
-log("Both commands started in background! Waiting for results...\n");
+	log("Command running on server. Doing other work locally...");
+	await new Promise((resolve) => setTimeout(resolve, 5000));
 
-await Promise.all([
-	cmd1.wait().then(async (finished) => {
-		log(`[Slow] Exit code: ${finished.data.exit_code}`);
-		log(`[Slow] Output:\n${await finished.output()}`);
-	}),
-	cmd2.wait().then(async (finished) => {
-		log(`[Fast] Exit code: ${finished.data.exit_code}`);
-		log(`[Fast] Output:\n${await finished.output()}`);
-	}),
-]);
-
-log("\n=== Mode 3: Fire and forget ===");
-log("Commands run on the server independently - you can check back anytime.");
-log("Launching a 2-second task, then doing other work for 5 seconds...\n");
-
-const cmd3 = await sandbox.runCommand({
-	command: "echo 'Quick task' && sleep 2 && echo 'Done!'",
-	runtime: "BASH",
-	detached: true,
-	stdout: null,
-	stderr: null,
-});
-
-log("Command running on server. Doing other work locally...");
-await new Promise((resolve) => setTimeout(resolve, 5000));
-
-log("Done with local work. Checking if server command finished...");
-const start = Date.now();
-const finished3 = await cmd3.wait();
-log(
-	`Status check took ${Date.now() - start}ms (instant - command already done!)`,
-);
-log(`Output:\n${await finished3.output()}`);
-
-log("\nStopping sandbox...");
-await sandbox.stop();
-
-log("Ping example completed!");
+	log("Done with local work. Checking if server command finished...");
+	const start = Date.now();
+	const finished3 = await cmd3.wait();
+	log(
+		`Status check took ${Date.now() - start}ms (instant - command already done!)`,
+	);
+	log(`Output:\n${await finished3.output()}`);
+} finally {
+	log("\nStopping sandbox...");
+	await sandbox.stop().catch(() => undefined);
+	log("Ping example completed!");
+}

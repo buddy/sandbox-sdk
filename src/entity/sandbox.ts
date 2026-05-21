@@ -1,15 +1,23 @@
 import type { Writable } from "node:stream";
 import type {
+	AddSnapshotRequest,
+	CloneSandboxRequest,
+	CreateFromSnapshotRequestWritable,
 	CreateNewSandboxRequestWritable,
 	ExecuteSandboxCommandRequest,
 	GetSandboxAppLogsByIdResponse,
 	GetSandboxResponse,
 	SandboxAppView,
 	SandboxIdView,
+	ShortSnapshotView,
+	SnapshotView,
+	UpdateSandboxRequestWritable,
 } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
+import { HttpError } from "@/core/http-client";
 import { Command } from "@/entity/command";
 import { FileSystem } from "@/entity/filesystem";
+import { Snapshot } from "@/entity/snapshot";
 import { withErrorHandler } from "@/errors";
 import { type ConnectionConfig, createClient } from "@/utils/client";
 import logger from "@/utils/logger";
@@ -42,6 +50,24 @@ export interface GetSandboxConfig {
  * Configuration for listing sandboxes
  */
 export interface ListSandboxesConfig {
+	/** Optional connection configuration to override defaults */
+	connection?: ConnectionConfig;
+}
+
+/**
+ * Configuration for creating a sandbox from an existing snapshot
+ */
+export interface CreateFromSnapshotConfig
+	extends Partial<Omit<CreateFromSnapshotRequestWritable, "snapshot_id">> {
+	/** Optional connection configuration to override defaults */
+	connection?: ConnectionConfig;
+}
+
+/**
+ * Configuration for cloning an existing sandbox
+ */
+export interface CloneSandboxConfig
+	extends Partial<Omit<CloneSandboxRequest, "source_sandbox_id">> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 }
@@ -92,6 +118,34 @@ export class Sandbox {
 	}
 
 	/**
+	 * Create a Sandbox instance from an `addSandbox` response and wait for it
+	 * to reach a RUNNING state. Shared between `create` and `createFromSnapshot`.
+	 */
+	static async #finalizeNewSandbox(
+		sandboxResponse: NonNullable<GetSandboxResponse>,
+		client: BuddyApiClient,
+	): Promise<Sandbox> {
+		const sandbox = new Sandbox(
+			sandboxResponse,
+			client,
+			PRIVATE_CONSTRUCTOR_KEY,
+		);
+
+		logger.debug(`Waiting for sandbox ${sandbox.data.id} to be ready...`);
+		await sandbox.waitUntilReady();
+		logger.debug(
+			`Sandbox ${sandbox.data.id} is ready (Setup status: ${sandbox.data.setup_status})`,
+		);
+
+		await sandbox.waitUntilRunning();
+		logger.debug(
+			`Sandbox ${sandbox.data.id} is now running. Status: ${sandbox.data.status}`,
+		);
+
+		return sandbox;
+	}
+
+	/**
 	 * Create a new sandbox
 	 * @param config - Sandbox configuration including identifier, name, os, and optional connection settings
 	 * @returns A ready-to-use Sandbox instance
@@ -103,7 +157,7 @@ export class Sandbox {
 
 			const requestBody: CreateNewSandboxRequestWritable = {
 				name: `Sandbox ${new Date().toISOString()}`,
-				identifier: config?.identifier || `sandbox_${String(Date.now())}`,
+				identifier: `sandbox_${String(Date.now())}`,
 				os: "ubuntu:24.04",
 				...sandboxConfig,
 			};
@@ -112,27 +166,70 @@ export class Sandbox {
 				body: requestBody,
 			});
 
-			const sandbox = new Sandbox(
-				sandboxResponse,
-				client,
-				PRIVATE_CONSTRUCTOR_KEY,
-			);
+			return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
+		});
+	}
 
-			logger.debug(`Waiting for sandbox ${sandbox.data.id} to be ready...`);
+	/**
+	 * Create a new sandbox from an existing snapshot
+	 *
+	 * @param snapshotId - ID of the snapshot to create from
+	 * @param config - Optional sandbox configuration overrides (name, identifier, …)
+	 * @returns A ready-to-use Sandbox instance restored from the snapshot
+	 */
+	static async createFromSnapshot(
+		snapshotId: string,
+		config?: CreateFromSnapshotConfig,
+	) {
+		return withErrorHandler(
+			"Failed to create sandbox from snapshot",
+			async () => {
+				const { connection, ...snapshotConfig } = config ?? {};
+				const client = createClient(connection);
 
-			await sandbox.waitUntilReady();
+				const requestBody: CreateFromSnapshotRequestWritable = {
+					snapshot_id: snapshotId,
+					name: `Sandbox ${new Date().toISOString()}`,
+					identifier: `sandbox_${String(Date.now())}`,
+					...snapshotConfig,
+				};
 
-			logger.debug(
-				`Sandbox ${sandbox.data.id} is ready (Setup status: ${sandbox.data.setup_status})`,
-			);
+				const sandboxResponse = await client.addSandbox({
+					body: requestBody,
+				});
 
-			await sandbox.waitUntilRunning();
+				return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
+			},
+		);
+	}
 
-			logger.debug(
-				`Sandbox ${sandbox.data.id} is now running. Status: ${sandbox.data.status}`,
-			);
+	/**
+	 * Clone an existing sandbox by ID into a new one.
+	 *
+	 * Differs from `createFromSnapshot` in that it copies the current state of
+	 * a live sandbox directly, without going through a snapshot.
+	 *
+	 * @param sourceSandboxId - ID of the sandbox to clone
+	 * @param config - Optional sandbox configuration overrides (name, identifier)
+	 * @returns A ready-to-use Sandbox instance cloned from the source
+	 */
+	static async clone(sourceSandboxId: string, config?: CloneSandboxConfig) {
+		return withErrorHandler("Failed to clone sandbox", async () => {
+			const { connection, ...cloneConfig } = config ?? {};
+			const client = createClient(connection);
 
-			return sandbox;
+			const requestBody: CloneSandboxRequest = {
+				source_sandbox_id: sourceSandboxId,
+				name: `Sandbox ${new Date().toISOString()}`,
+				identifier: `sandbox_${String(Date.now())}`,
+				...cloneConfig,
+			};
+
+			const sandboxResponse = await client.addSandbox({
+				body: requestBody,
+			});
+
+			return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
 		});
 	}
 
@@ -157,17 +254,14 @@ export class Sandbox {
 					query: { project: client.project_name, sandbox: identifier },
 				});
 				sandboxId = identifiers.sandbox_id;
-			} catch {}
-
-			// <TODO>: Remove this fallback when the identifiers endpoint is rolled out to prod (should be out by March 2026)
-			if (!sandboxId) {
-				try {
-					const sandboxList = await client.getSandboxes({});
-					sandboxId = sandboxList?.sandboxes?.find(
-						(s) => s.identifier === identifier,
-					)?.id;
-				} catch {}
-			} // </TODO>
+			} catch (error) {
+				// 404 means the identifier doesn't exist - fall through to the
+				// "not found" error below. Anything else (auth, network, 5xx)
+				// surfaces to the caller.
+				if (!(error instanceof HttpError) || error.status !== 404) {
+					throw error;
+				}
+			}
 
 			if (!sandboxId) {
 				throw new Error(`Sandbox with identifier '${identifier}' not found`);
@@ -232,6 +326,32 @@ export class Sandbox {
 	}
 
 	/**
+	 * Get a single snapshot by its sandbox + snapshot ID without first fetching
+	 * the parent sandbox. Useful when you already have both IDs (e.g. from a
+	 * persisted reference).
+	 *
+	 * @param sandboxId - ID of the sandbox the snapshot belongs to
+	 * @param snapshotId - ID of the snapshot to fetch
+	 * @param config - Optional configuration including connection settings
+	 */
+	static async getSnapshotById(
+		sandboxId: string,
+		snapshotId: NonNullable<SnapshotView["id"]>,
+		config?: GetSandboxConfig,
+	): Promise<Snapshot> {
+		return withErrorHandler("Failed to get snapshot", async () => {
+			const { connection } = config ?? {};
+			const client = createClient(connection);
+
+			const data = await client.getSandboxSnapshot({
+				path: { sandbox_id: sandboxId, id: snapshotId },
+			});
+
+			return Snapshot._build(data, client, sandboxId);
+		});
+	}
+
+	/**
 	 * Execute a command in the sandbox
 	 * @returns Command instance (call wait() for blocking execution)
 	 */
@@ -283,6 +403,175 @@ export class Sandbox {
 			]);
 			return finishedCommand;
 		});
+	}
+
+	/**
+	 * List all command executions in this sandbox (history).
+	 *
+	 * Returns one `Command` instance per past execution. Useful for inspecting
+	 * previous runs, fetching their logs, or killing still-running detached
+	 * commands.
+	 */
+	async listCommands(): Promise<Command[]> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to list commands", async () => {
+			const response = await this.#client.getSandboxCommands({
+				path: { sandbox_id: sandboxId },
+			});
+			return (response?.commands ?? []).map(
+				(commandResponse) =>
+					new Command({
+						commandResponse,
+						client: this.#client,
+						sandboxId,
+					}),
+			);
+		});
+	}
+
+	/**
+	 * Update the sandbox configuration in place
+	 *
+	 * Accepts a partial update of any mutable sandbox field (`timeout`, `apps`,
+	 * `endpoints`, `variables`, `tags`, `resources`, …). Updates the internal
+	 * state with the API's response.
+	 *
+	 * @remarks Changing `first_boot_commands` leaves the sandbox in
+	 * `setup_status: STALE` — the new commands only apply on first boot, so
+	 * the sandbox must be recreated to take effect.
+	 */
+	async update(config: Partial<UpdateSandboxRequestWritable>): Promise<void> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to update sandbox", async () => {
+			this.#sandboxData = await this.#client.updateSandbox({
+				body: config,
+				path: { id: sandboxId },
+			});
+		});
+	}
+
+	/**
+	 * Create a snapshot of the current sandbox
+	 *
+	 * Returns immediately with a snapshot whose `status` is `"CREATING"`. Call
+	 * `snapshot.waitUntilReady()` (or `sandbox.waitForSnapshotReady(snapshot.id)`)
+	 * before restoring from it.
+	 *
+	 * @param config - Optional snapshot configuration (name, description, …)
+	 */
+	async createSnapshot(config?: AddSnapshotRequest): Promise<Snapshot> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to create snapshot", async () => {
+			const data = await this.#client.addSandboxSnapshot({
+				body: config ?? {},
+				path: { sandbox_id: sandboxId },
+			});
+			return Snapshot._build(data, this.#client, sandboxId);
+		});
+	}
+
+	/**
+	 * List all snapshots in the project across every sandbox, including
+	 * snapshots whose parent sandbox has been deleted.
+	 *
+	 * Use `Sandbox.createFromSnapshot(snapshot.id, …)` to provision a new
+	 * sandbox from any item in the list.
+	 *
+	 * @param config - Optional configuration including connection settings
+	 */
+	static async listSnapshots(
+		config?: ListSandboxesConfig,
+	): Promise<ShortSnapshotView[]> {
+		return withErrorHandler("Failed to list project snapshots", async () => {
+			const { connection } = config ?? {};
+			const client = createClient(connection);
+
+			const response = await client.getProjectSnapshots({});
+			return response?.snapshots ?? [];
+		});
+	}
+
+	/**
+	 * List snapshots of this sandbox
+	 */
+	async listSnapshots(): Promise<Snapshot[]> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to list snapshots", async () => {
+			const response = await this.#client.getSandboxSnapshots({
+				path: { sandbox_id: sandboxId },
+			});
+			return (response?.snapshots ?? []).map((data) =>
+				Snapshot._build(data, this.#client, sandboxId),
+			);
+		});
+	}
+
+	/**
+	 * Get a single snapshot of this sandbox by ID
+	 */
+	async getSnapshot(
+		snapshotId: NonNullable<SnapshotView["id"]>,
+	): Promise<Snapshot> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to get snapshot", async () => {
+			const data = await this.#client.getSandboxSnapshot({
+				path: { sandbox_id: sandboxId, id: snapshotId },
+			});
+			return Snapshot._build(data, this.#client, sandboxId);
+		});
+	}
+
+	/**
+	 * Delete a snapshot by ID without needing the parent sandbox. Useful for
+	 * cleaning up snapshots whose parent sandbox has already been deleted.
+	 *
+	 * @param snapshotId - ID of the snapshot to delete
+	 * @param config - Optional configuration including connection settings
+	 */
+	static async deleteSnapshot(
+		snapshotId: NonNullable<SnapshotView["id"]>,
+		config?: GetSandboxConfig,
+	): Promise<void> {
+		return withErrorHandler("Failed to delete snapshot", async () => {
+			const { connection } = config ?? {};
+			const client = createClient(connection);
+
+			await client.deleteSnapshot({ path: { id: snapshotId } });
+		});
+	}
+
+	/**
+	 * Delete a snapshot of this sandbox by ID
+	 */
+	async deleteSnapshot(
+		snapshotId: NonNullable<SnapshotView["id"]>,
+	): Promise<void> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to delete snapshot", async () => {
+			await this.#client.deleteSandboxSnapshot({
+				path: { sandbox_id: sandboxId, id: snapshotId },
+			});
+		});
+	}
+
+	/**
+	 * Wait until a snapshot reaches CREATED state.
+	 *
+	 * `createSnapshot()` returns immediately with `status: "CREATING"`. The
+	 * snapshot cannot be used as input to `Sandbox.createFromSnapshot()` until
+	 * it transitions to `"CREATED"`. Use this method to block until it does.
+	 *
+	 * @param snapshotId - ID of the snapshot to wait for
+	 * @param pollIntervalMs - How often to check the status (default: 2000ms (2s))
+	 * @param maxWaitMs - Maximum time to wait before timing out (default: 180000ms (180s))
+	 */
+	async waitForSnapshotReady(
+		snapshotId: NonNullable<SnapshotView["id"]>,
+		pollIntervalMs = 2000,
+		maxWaitMs = 180_000,
+	): Promise<void> {
+		const snapshot = await this.getSnapshot(snapshotId);
+		await snapshot.waitUntilReady(pollIntervalMs, maxWaitMs);
 	}
 
 	/**
