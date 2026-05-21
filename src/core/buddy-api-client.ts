@@ -6,6 +6,7 @@ import {
 	executeSandboxCommandResponseTransformer,
 	getProjectSnapshotsResponseTransformer,
 	getSandboxCommandResponseTransformer,
+	getSandboxCommandsResponseTransformer,
 	getSandboxContentResponseTransformer,
 	getSandboxResponseTransformer,
 	getSandboxSnapshotResponseTransformer,
@@ -46,6 +47,8 @@ import type {
 	GetSandboxCommandData,
 	GetSandboxCommandLogsData,
 	GetSandboxCommandResponse,
+	GetSandboxCommandsData,
+	GetSandboxCommandsResponse,
 	GetSandboxContentData,
 	GetSandboxContentResponse,
 	GetSandboxData,
@@ -109,6 +112,8 @@ import {
 	zGetSandboxCommandLogsQuery,
 	zGetSandboxCommandPath,
 	zGetSandboxCommandResponse,
+	zGetSandboxCommandsPath,
+	zGetSandboxCommandsResponse,
 	zGetSandboxContentPath,
 	zGetSandboxContentResponse,
 	zGetSandboxesPath,
@@ -483,6 +488,21 @@ export class BuddyApiClient extends HttpClient {
 			pathSchema: zExecuteSandboxCommandPath,
 			responseSchema: zExecuteSandboxCommandResponse.transform(
 				executeSandboxCommandResponseTransformer,
+			),
+		});
+	}
+
+	/** List all command executions in a sandbox (history) */
+	async getSandboxCommands<const Data extends GetSandboxCommandsData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxCommandsResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
+			pathSchema: zGetSandboxCommandsPath,
+			responseSchema: zGetSandboxCommandsResponse.transform(
+				getSandboxCommandsResponseTransformer,
 			),
 		});
 	}
