@@ -106,6 +106,34 @@ export class Sandbox {
 	}
 
 	/**
+	 * Create a Sandbox instance from an `addSandbox` response and wait for it
+	 * to reach a RUNNING state. Shared between `create` and `createFromSnapshot`.
+	 */
+	static async #finalizeNewSandbox(
+		sandboxResponse: NonNullable<GetSandboxResponse>,
+		client: BuddyApiClient,
+	): Promise<Sandbox> {
+		const sandbox = new Sandbox(
+			sandboxResponse,
+			client,
+			PRIVATE_CONSTRUCTOR_KEY,
+		);
+
+		logger.debug(`Waiting for sandbox ${sandbox.data.id} to be ready...`);
+		await sandbox.waitUntilReady();
+		logger.debug(
+			`Sandbox ${sandbox.data.id} is ready (Setup status: ${sandbox.data.setup_status})`,
+		);
+
+		await sandbox.waitUntilRunning();
+		logger.debug(
+			`Sandbox ${sandbox.data.id} is now running. Status: ${sandbox.data.status}`,
+		);
+
+		return sandbox;
+	}
+
+	/**
 	 * Create a new sandbox
 	 * @param config - Sandbox configuration including identifier, name, os, and optional connection settings
 	 * @returns A ready-to-use Sandbox instance
@@ -117,7 +145,7 @@ export class Sandbox {
 
 			const requestBody: CreateNewSandboxRequestWritable = {
 				name: `Sandbox ${new Date().toISOString()}`,
-				identifier: config?.identifier || `sandbox_${String(Date.now())}`,
+				identifier: `sandbox_${String(Date.now())}`,
 				os: "ubuntu:24.04",
 				...sandboxConfig,
 			};
@@ -126,27 +154,7 @@ export class Sandbox {
 				body: requestBody,
 			});
 
-			const sandbox = new Sandbox(
-				sandboxResponse,
-				client,
-				PRIVATE_CONSTRUCTOR_KEY,
-			);
-
-			logger.debug(`Waiting for sandbox ${sandbox.data.id} to be ready...`);
-
-			await sandbox.waitUntilReady();
-
-			logger.debug(
-				`Sandbox ${sandbox.data.id} is ready (Setup status: ${sandbox.data.setup_status})`,
-			);
-
-			await sandbox.waitUntilRunning();
-
-			logger.debug(
-				`Sandbox ${sandbox.data.id} is now running. Status: ${sandbox.data.status}`,
-			);
-
-			return sandbox;
+			return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
 		});
 	}
 
@@ -169,9 +177,8 @@ export class Sandbox {
 
 				const requestBody: CreateFromSnapshotRequestWritable = {
 					snapshot_id: snapshotId,
-					name: snapshotConfig.name ?? `Sandbox ${new Date().toISOString()}`,
-					identifier:
-						snapshotConfig.identifier || `sandbox_${String(Date.now())}`,
+					name: `Sandbox ${new Date().toISOString()}`,
+					identifier: `sandbox_${String(Date.now())}`,
 					...snapshotConfig,
 				};
 
@@ -179,27 +186,7 @@ export class Sandbox {
 					body: requestBody,
 				});
 
-				const sandbox = new Sandbox(
-					sandboxResponse,
-					client,
-					PRIVATE_CONSTRUCTOR_KEY,
-				);
-
-				logger.debug(`Waiting for sandbox ${sandbox.data.id} to be ready...`);
-
-				await sandbox.waitUntilReady();
-
-				logger.debug(
-					`Sandbox ${sandbox.data.id} is ready (Setup status: ${sandbox.data.setup_status})`,
-				);
-
-				await sandbox.waitUntilRunning();
-
-				logger.debug(
-					`Sandbox ${sandbox.data.id} is now running. Status: ${sandbox.data.status}`,
-				);
-
-				return sandbox;
+				return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
 			},
 		);
 	}
@@ -385,6 +372,10 @@ export class Sandbox {
 	 * Accepts a partial update of any mutable sandbox field (`timeout`, `apps`,
 	 * `endpoints`, `variables`, `tags`, `resources`, …). Updates the internal
 	 * state with the API's response.
+	 *
+	 * @remarks Changing `first_boot_commands` leaves the sandbox in
+	 * `setup_status: STALE` — the new commands only apply on first boot, so
+	 * the sandbox must be recreated to take effect.
 	 */
 	async update(config: Partial<UpdateSandboxRequestWritable>): Promise<void> {
 		const sandboxId = this.initializedId;
@@ -476,34 +467,8 @@ export class Sandbox {
 		pollIntervalMs = 2000,
 		maxWaitMs = 180_000,
 	): Promise<void> {
-		const sandboxId = this.initializedId;
-		return withErrorHandler("Snapshot not ready", async () => {
-			const startTime = Date.now();
-
-			while (true) {
-				const snapshot = await this.#client.getSandboxSnapshot({
-					path: { sandbox_id: sandboxId, id: snapshotId },
-				});
-
-				if (snapshot.status === "CREATED") {
-					return;
-				}
-
-				if (snapshot.status === "FAILED") {
-					throw new Error(
-						`Snapshot ${snapshotId} failed. Status: ${snapshot.status}`,
-					);
-				}
-
-				if (Date.now() - startTime > maxWaitMs) {
-					throw new Error(
-						`Timeout waiting for snapshot ${snapshotId} to be CREATED. Current: ${snapshot.status}`,
-					);
-				}
-
-				await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-			}
-		});
+		const snapshot = await this.getSnapshot(snapshotId);
+		await snapshot.waitUntilReady(pollIntervalMs, maxWaitMs);
 	}
 
 	/**

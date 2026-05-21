@@ -93,11 +93,7 @@ export class Snapshot {
 		});
 	}
 
-	/**
-	 * @internal Construct a Snapshot. Used by Sandbox / static factories — do
-	 * not call directly.
-	 */
-	constructor(
+	private constructor(
 		data: SnapshotView,
 		client: BuddyApiClient,
 		sandboxId: string,
