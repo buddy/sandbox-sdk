@@ -10,6 +10,7 @@ export default defineConfig({
 		fileParallelism: true,
 		maxWorkers: 8,
 		globalSetup: ["./tests/global-teardown.ts"],
+		reporters: ["default", "@buddy-works/unit-tests/vitest"],
 	},
 	resolve: {
 		alias: {

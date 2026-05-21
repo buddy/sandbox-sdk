@@ -299,6 +299,15 @@ export class HttpClient {
 		return this.#request<T>("DELETE", url, undefined, config);
 	}
 
+	/** Perform a PATCH request with optional body data */
+	async patch<T = unknown>(
+		url: string,
+		data?: unknown,
+		config?: RequestConfig,
+	): Promise<HttpResponse<T>> {
+		return this.#request<T>("PATCH", url, data ?? {}, config);
+	}
+
 	/** Set the Bearer token for authenticated requests */
 	setAuthToken(token: string): void {
 		this.#authToken = token;

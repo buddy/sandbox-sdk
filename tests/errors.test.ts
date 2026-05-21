@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { FileSystem } from "@/entity/filesystem";
 import { Sandbox } from "@/entity/sandbox";
 import { BuddySDKError } from "@/errors";
@@ -49,5 +49,48 @@ describe("Error handling", () => {
 			// @ts-expect-error - Testing that direct construction throws
 			expect(() => new Sandbox({}, {}, Symbol())).toThrow();
 		});
+	});
+
+	describe("Sandbox.createFromSnapshot", () => {
+		it("should throw when snapshot ID does not exist", async () => {
+			await expect(
+				Sandbox.createFromSnapshot("non-existent-snapshot-id-12345", {
+					name: `test-restore-fail-${Date.now()}`,
+					identifier: `test_restore_fail_${Date.now()}`,
+				}),
+			).rejects.toThrow();
+		});
+	});
+
+	describe("sandbox.update and sandbox.getSnapshot on a destroyed sandbox", () => {
+		let sandbox: Sandbox;
+
+		beforeAll(async () => {
+			sandbox = await Sandbox.create({
+				name: `test-error-${Date.now()}`,
+				identifier: `test_error_${Date.now()}`,
+			});
+			await sandbox.destroy();
+		}, 120_000);
+
+		it("update() should throw on a deleted sandbox", async () => {
+			await expect(sandbox.update({ timeout: 600 })).rejects.toThrow();
+		});
+
+		it("getSnapshot() with non-existent snapshot ID should throw", async () => {
+			// Re-create a sandbox for this case; destroyed one would fail at path
+			// resolution before reaching the snapshot lookup.
+			const s = await Sandbox.create({
+				name: `test-snapshot-404-${Date.now()}`,
+				identifier: `test_snapshot_404_${Date.now()}`,
+			});
+			try {
+				await expect(
+					s.getSnapshot("non-existent-snapshot-id-12345"),
+				).rejects.toThrow();
+			} finally {
+				await s.destroy().catch(() => undefined);
+			}
+		}, 120_000);
 	});
 });

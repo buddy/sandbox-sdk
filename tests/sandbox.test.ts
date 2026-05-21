@@ -260,6 +260,21 @@ describe("Sandbox", () => {
 			expect(command.data.id).toBeDefined();
 			expect(command.data.status).toBeDefined();
 		});
+
+		it("should list commands history including previously executed ones", async () => {
+			const marker = `echo list-commands-marker-${Date.now()}`;
+			const command = await sandbox.runCommand({
+				command: marker,
+				stdout: null,
+				stderr: null,
+			});
+			await command.wait();
+
+			const history = await sandbox.listCommands();
+			expect(Array.isArray(history)).toBe(true);
+			expect(history.length).toBeGreaterThan(0);
+			expect(history.some((c) => c.data.command === marker)).toBe(true);
+		});
 	});
 
 	describe("filesystem", () => {
@@ -427,5 +442,199 @@ describe("Sandbox", () => {
 			await sandbox.refresh();
 			expect(sandbox.data.status).toBe("RUNNING");
 		});
+
+		it("start() on a running sandbox should be a no-op", async () => {
+			await sandbox.refresh();
+			expect(sandbox.data.status).toBe("RUNNING");
+
+			await expect(sandbox.start()).resolves.toBeUndefined();
+			expect(sandbox.data.status).toBe("RUNNING");
+		});
+
+		it("stop() on an already stopped sandbox should be a no-op", async () => {
+			await sandbox.stop();
+			await sandbox.waitUntilStopped();
+			expect(sandbox.data.status).toBe("STOPPED");
+
+			await expect(sandbox.stop()).resolves.toBeUndefined();
+			expect(sandbox.data.status).toBe("STOPPED");
+
+			// leave the sandbox running for any later tests / cleanup
+			await sandbox.start();
+			await sandbox.waitUntilRunning();
+		});
 	});
+
+	describe("update", () => {
+		beforeAll(async () => {
+			await sandbox.refresh();
+			if (sandbox.data.status !== "RUNNING") {
+				await sandbox.start();
+				await sandbox.waitUntilRunning();
+			}
+		});
+
+		it("should update timeout and tags in place", async () => {
+			await sandbox.update({ timeout: 1200, tags: ["updated"] });
+
+			expect(sandbox.data.timeout).toBe(1200);
+			expect(sandbox.data.tags).toEqual(expect.arrayContaining(["updated"]));
+		});
+	});
+
+	describe("snapshots", () => {
+		const createdSnapshotIds: string[] = [];
+
+		beforeAll(async () => {
+			await sandbox.refresh();
+			if (sandbox.data.status !== "RUNNING") {
+				await sandbox.start();
+				await sandbox.waitUntilRunning();
+			}
+		});
+
+		afterAll(async () => {
+			await Promise.all(
+				createdSnapshotIds.map((id) =>
+					sandbox.deleteSnapshot(id).catch(() => undefined),
+				),
+			);
+		}, 30_000);
+
+		it("should create, list, get and delete a snapshot", async () => {
+			const snapshot = await sandbox.createSnapshot({
+				name: `test-snap-${Date.now()}`,
+			});
+			const snapshotId = snapshot.id;
+			if (!snapshotId) throw new Error("snapshot.id was not returned");
+			createdSnapshotIds.push(snapshotId);
+
+			const list = await sandbox.listSnapshots();
+			expect(list.some((s) => s.id === snapshotId)).toBe(true);
+
+			const fetched = await sandbox.getSnapshot(snapshotId);
+			expect(fetched.id).toBe(snapshotId);
+
+			await sandbox.deleteSnapshot(snapshotId);
+			createdSnapshotIds.splice(createdSnapshotIds.indexOf(snapshotId), 1);
+
+			const afterDelete = await sandbox.listSnapshots();
+			expect(afterDelete.some((s) => s.id === snapshotId)).toBe(false);
+		}, 120_000);
+	});
+});
+
+describe("Sandbox.createFromSnapshot", () => {
+	let baseSandbox: Sandbox;
+	let restoredSandbox: Sandbox | undefined;
+	let snapshotId: string | undefined;
+	let extraSnapshotId: string | undefined;
+	const markerFilename = `snapshot_marker_${Date.now()}.txt`;
+	const markerContent = `restored at ${Date.now()}`;
+
+	beforeAll(async () => {
+		baseSandbox = await Sandbox.create({
+			name: `test-snapshot-base-${Date.now()}`,
+			identifier: `test_snapshot_base_${Date.now()}`,
+		});
+		await baseSandbox.fs.uploadFile(Buffer.from(markerContent), markerFilename);
+		const snapshot = await baseSandbox.createSnapshot({
+			name: `test-base-snap-${Date.now()}`,
+		});
+		snapshotId = snapshot.id;
+		if (snapshotId) {
+			await baseSandbox.waitForSnapshotReady(snapshotId);
+		}
+	}, 360_000);
+
+	afterAll(async () => {
+		await restoredSandbox?.destroy().catch(() => undefined);
+		if (extraSnapshotId) {
+			await Sandbox.deleteSnapshot(extraSnapshotId).catch(() => undefined);
+		}
+		if (snapshotId) {
+			await baseSandbox?.deleteSnapshot(snapshotId).catch(() => undefined);
+		}
+		await baseSandbox?.destroy().catch(() => undefined);
+	}, 60_000);
+
+	it("should create a sandbox from a snapshot with the given name and identifier", async () => {
+		if (!snapshotId) throw new Error("base snapshot was not created");
+		const restoredName = `test-snapshot-restored-${Date.now()}`;
+		const restoredIdentifier = `test_snapshot_restored_${Date.now()}`;
+		restoredSandbox = await Sandbox.createFromSnapshot(snapshotId, {
+			name: restoredName,
+			identifier: restoredIdentifier,
+		});
+
+		expect(restoredSandbox.data.id).toBeDefined();
+		expect(restoredSandbox.data.status).toBe("RUNNING");
+		expect(restoredSandbox.data.name).toBe(restoredName);
+		expect(restoredSandbox.data.identifier).toBe(restoredIdentifier);
+	}, 120_000);
+
+	it("restored sandbox should contain the file from the snapshot", async () => {
+		if (!restoredSandbox) {
+			throw new Error("restoredSandbox was not initialised by previous test");
+		}
+
+		const downloaded = await restoredSandbox.fs.downloadFile(markerFilename);
+		expect(downloaded.toString()).toBe(markerContent);
+	}, 60_000);
+
+	it("Sandbox.listSnapshots should include the snapshot we created", async () => {
+		if (!snapshotId) throw new Error("base snapshot was not created");
+
+		const all = await Sandbox.listSnapshots();
+		expect(Array.isArray(all)).toBe(true);
+		expect(all.some((s) => s.id === snapshotId)).toBe(true);
+	}, 60_000);
+
+	it("Sandbox.deleteSnapshot should remove a snapshot at the project level", async () => {
+		if (!baseSandbox) throw new Error("baseSandbox missing");
+		const extra = await baseSandbox.createSnapshot({
+			name: `test-delete-static-${Date.now()}`,
+		});
+		extraSnapshotId = extra.id;
+		await extra.waitUntilReady();
+
+		await Sandbox.deleteSnapshot(extra.id);
+		extraSnapshotId = undefined;
+
+		const all = await Sandbox.listSnapshots();
+		expect(all.some((s) => s.id === extra.id)).toBe(false);
+	}, 180_000);
+});
+
+describe("Sandbox.clone", () => {
+	let source: Sandbox;
+	let clone: Sandbox | undefined;
+
+	beforeAll(async () => {
+		source = await Sandbox.create({
+			name: `test-clone-source-${Date.now()}`,
+			identifier: `test_clone_source_${Date.now()}`,
+		});
+	}, 120_000);
+
+	afterAll(async () => {
+		await clone?.destroy().catch(() => undefined);
+		await source?.destroy().catch(() => undefined);
+	}, 60_000);
+
+	it("should clone an existing sandbox under a new name and identifier", async () => {
+		const cloneName = `test-clone-target-${Date.now()}`;
+		const cloneIdentifier = `test_clone_target_${Date.now()}`;
+
+		clone = await Sandbox.clone(source.initializedId, {
+			name: cloneName,
+			identifier: cloneIdentifier,
+		});
+
+		expect(clone.data.id).toBeDefined();
+		expect(clone.data.id).not.toBe(source.data.id);
+		expect(clone.data.status).toBe("RUNNING");
+		expect(clone.data.name).toBe(cloneName);
+		expect(clone.data.identifier).toBe(cloneIdentifier);
+	}, 120_000);
 });

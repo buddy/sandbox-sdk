@@ -204,6 +204,32 @@ describe("FileSystem", () => {
 				await fs.promises.unlink(localPath);
 			}
 		});
+
+		it("should download a directory as a non-empty buffer (tar.gz from API)", async () => {
+			const dirName = `download_dir_${Date.now()}`;
+			await sandbox.fs.createFolder(dirName);
+			await sandbox.fs.uploadFile(
+				Buffer.from("inside-dir-1"),
+				`${dirName}/file1.txt`,
+			);
+			await sandbox.fs.uploadFile(
+				Buffer.from("inside-dir-2"),
+				`${dirName}/file2.txt`,
+			);
+
+			try {
+				const content = await sandbox.fs.downloadFile(dirName);
+				expect(Buffer.isBuffer(content)).toBe(true);
+				expect(content.length).toBeGreaterThan(0);
+				// API serves directories as gzip - magic bytes 0x1f 0x8b. Soft check.
+				if (content.length >= 2) {
+					expect(content[0]).toBe(0x1f);
+					expect(content[1]).toBe(0x8b);
+				}
+			} finally {
+				await sandbox.fs.deleteFile(dirName).catch(() => undefined);
+			}
+		}, 60_000);
 	});
 
 	describe("deleteFile()", () => {
