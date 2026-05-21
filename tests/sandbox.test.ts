@@ -451,6 +451,14 @@ describe("Sandbox", () => {
 	});
 
 	describe("update", () => {
+		beforeAll(async () => {
+			await sandbox.refresh();
+			if (sandbox.data.status !== "RUNNING") {
+				await sandbox.start();
+				await sandbox.waitUntilRunning();
+			}
+		});
+
 		it("should update timeout and tags in place", async () => {
 			await sandbox.update({ timeout: 1200, tags: ["updated"] });
 
@@ -461,6 +469,14 @@ describe("Sandbox", () => {
 
 	describe("snapshots", () => {
 		const createdSnapshotIds: string[] = [];
+
+		beforeAll(async () => {
+			await sandbox.refresh();
+			if (sandbox.data.status !== "RUNNING") {
+				await sandbox.start();
+				await sandbox.waitUntilRunning();
+			}
+		});
 
 		afterAll(async () => {
 			await Promise.all(
