@@ -460,6 +460,25 @@ export class Sandbox {
 	}
 
 	/**
+	 * Delete a snapshot by ID without needing the parent sandbox. Useful for
+	 * cleaning up snapshots whose parent sandbox has already been deleted.
+	 *
+	 * @param snapshotId - ID of the snapshot to delete
+	 * @param config - Optional configuration including connection settings
+	 */
+	static async deleteSnapshot(
+		snapshotId: NonNullable<SnapshotView["id"]>,
+		config?: GetSandboxConfig,
+	): Promise<void> {
+		return withErrorHandler("Failed to delete snapshot", async () => {
+			const { connection } = config ?? {};
+			const client = createClient(connection);
+
+			await client.deleteSnapshot({ path: { id: snapshotId } });
+		});
+	}
+
+	/**
 	 * Delete a snapshot of this sandbox by ID
 	 */
 	async deleteSnapshot(

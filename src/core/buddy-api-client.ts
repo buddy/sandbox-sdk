@@ -32,6 +32,8 @@ import type {
 	DeleteSandboxResponse,
 	DeleteSandboxSnapshotData,
 	DeleteSandboxSnapshotResponse,
+	DeleteSnapshotData,
+	DeleteSnapshotResponse,
 	DownloadSandboxContentData,
 	ExecuteSandboxCommandData,
 	ExecuteSandboxCommandResponse,
@@ -88,6 +90,8 @@ import {
 	zDeleteSandboxResponse,
 	zDeleteSandboxSnapshotPath,
 	zDeleteSandboxSnapshotResponse,
+	zDeleteSnapshotPath,
+	zDeleteSnapshotResponse,
 	zDownloadSandboxContentPath,
 	zExecuteSandboxCommandBody,
 	zExecuteSandboxCommandPath,
@@ -402,6 +406,31 @@ export class BuddyApiClient extends HttpClient {
 				url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/snapshots/{id}",
 				pathSchema: zDeleteSandboxSnapshotPath,
 				responseSchema: zDeleteSandboxSnapshotResponse,
+				skipRetry: true,
+			});
+		} catch (error) {
+			// Ignore 404 errors - snapshot already deleted
+			if (error instanceof HttpError && error.status === 404) {
+				return;
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Delete a snapshot by ID at the project level (works for snapshots whose
+	 * parent sandbox has been deleted).
+	 */
+	async deleteSnapshot<const Data extends DeleteSnapshotData>(
+		data: ClientData<Data>,
+	) {
+		try {
+			return await this.#requestWithValidation<Data, DeleteSnapshotResponse>({
+				method: "DELETE",
+				data,
+				url: "/workspaces/{workspace_domain}/sandboxes/snapshots/{id}",
+				pathSchema: zDeleteSnapshotPath,
+				responseSchema: zDeleteSnapshotResponse,
 				skipRetry: true,
 			});
 		} catch (error) {
