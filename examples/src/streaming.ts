@@ -26,32 +26,33 @@ try {
 	await sandbox.waitUntilRunning();
 }
 
-log("\n=== Example 1: Auto-streaming ===");
-log("Output streams to console as the command runs:\n");
+try {
+	log("\n=== Example 1: Auto-streaming ===");
+	log("Output streams to console as the command runs:\n");
 
-await sandbox.runCommand({
-	command: 'for i in 1 2 3; do echo "Line $i"; sleep 1; done',
-});
+	await sandbox.runCommand({
+		command: 'for i in 1 2 3; do echo "Line $i"; sleep 1; done',
+	});
 
-log("\n=== Example 2: Custom log formatting ===");
-log("Manually iterate over logs to add custom prefixes:\n");
+	log("\n=== Example 2: Custom log formatting ===");
+	log("Manually iterate over logs to add custom prefixes:\n");
 
-const command = await sandbox.runCommand({
-	command:
-		'echo "stdout message" && echo "stderr message" >&2 && echo "another stdout"',
-	detached: true,
-	stdout: null,
-	stderr: null,
-});
+	const command = await sandbox.runCommand({
+		command:
+			'echo "stdout message" && echo "stderr message" >&2 && echo "another stdout"',
+		detached: true,
+		stdout: null,
+		stderr: null,
+	});
 
-for await (const entry of command.logs({ follow: true })) {
-	const prefix = entry.type === "STDOUT" ? "[OUT]" : "[ERR]";
-	process.stdout.write(`${prefix} ${entry.data}\n`);
+	for await (const entry of command.logs({ follow: true })) {
+		const prefix = entry.type === "STDOUT" ? "[OUT]" : "[ERR]";
+		process.stdout.write(`${prefix} ${entry.data}\n`);
+	}
+
+	await command.wait();
+} finally {
+	log("\nStopping sandbox...");
+	await sandbox.stop().catch(() => undefined);
+	log("Streaming example completed!");
 }
-
-await command.wait();
-
-log("\nStopping sandbox...");
-await sandbox.stop();
-
-log("Streaming example completed!");
