@@ -1,5 +1,6 @@
 export type {
 	AddSnapshotRequest,
+	CloneSandboxRequest,
 	SandboxAppView,
 	SandboxIdView,
 	ShortSnapshotView,
@@ -10,6 +11,7 @@ export { Command } from "@/entity/command";
 export type { FileInfo, GetFileSystemConfig } from "@/entity/filesystem";
 export { FileSystem } from "@/entity/filesystem";
 export type {
+	CloneSandboxConfig,
 	ConnectionConfig,
 	CreateFromSnapshotConfig,
 	CreateSandboxConfig,

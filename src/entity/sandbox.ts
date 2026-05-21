@@ -1,6 +1,7 @@
 import type { Writable } from "node:stream";
 import type {
 	AddSnapshotRequest,
+	CloneSandboxRequest,
 	CreateFromSnapshotRequestWritable,
 	CreateNewSandboxRequestWritable,
 	ExecuteSandboxCommandRequest,
@@ -57,6 +58,15 @@ export interface ListSandboxesConfig {
  */
 export interface CreateFromSnapshotConfig
 	extends Partial<Omit<CreateFromSnapshotRequestWritable, "snapshot_id">> {
+	/** Optional connection configuration to override defaults */
+	connection?: ConnectionConfig;
+}
+
+/**
+ * Configuration for cloning an existing sandbox
+ */
+export interface CloneSandboxConfig
+	extends Partial<Omit<CloneSandboxRequest, "source_sandbox_id">> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 }
@@ -190,6 +200,36 @@ export class Sandbox {
 				return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
 			},
 		);
+	}
+
+	/**
+	 * Clone an existing sandbox by ID into a new one.
+	 *
+	 * Differs from `createFromSnapshot` in that it copies the current state of
+	 * a live sandbox directly, without going through a snapshot.
+	 *
+	 * @param sourceSandboxId - ID of the sandbox to clone
+	 * @param config - Optional sandbox configuration overrides (name, identifier)
+	 * @returns A ready-to-use Sandbox instance cloned from the source
+	 */
+	static async clone(sourceSandboxId: string, config?: CloneSandboxConfig) {
+		return withErrorHandler("Failed to clone sandbox", async () => {
+			const { connection, ...cloneConfig } = config ?? {};
+			const client = createClient(connection);
+
+			const requestBody: CloneSandboxRequest = {
+				source_sandbox_id: sourceSandboxId,
+				name: `Sandbox ${new Date().toISOString()}`,
+				identifier: `sandbox_${String(Date.now())}`,
+				...cloneConfig,
+			};
+
+			const sandboxResponse = await client.addSandbox({
+				body: requestBody,
+			});
+
+			return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
+		});
 	}
 
 	/**
@@ -364,6 +404,30 @@ export class Sandbox {
 				streamingPromise,
 			]);
 			return finishedCommand;
+		});
+	}
+
+	/**
+	 * List all command executions in this sandbox (history).
+	 *
+	 * Returns one `Command` instance per past execution. Useful for inspecting
+	 * previous runs, fetching their logs, or killing still-running detached
+	 * commands.
+	 */
+	async listCommands(): Promise<Command[]> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to list commands", async () => {
+			const response = await this.#client.getSandboxCommands({
+				path: { sandbox_id: sandboxId },
+			});
+			return (response?.commands ?? []).map(
+				(commandResponse) =>
+					new Command({
+						commandResponse,
+						client: this.#client,
+						sandboxId,
+					}),
+			);
 		});
 	}
 
