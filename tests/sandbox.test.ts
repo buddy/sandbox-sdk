@@ -513,6 +513,7 @@ describe("Sandbox.createFromSnapshot", () => {
 	let baseSandbox: Sandbox;
 	let restoredSandbox: Sandbox | undefined;
 	let snapshotId: string | undefined;
+	let extraSnapshotId: string | undefined;
 	const markerFilename = `snapshot_marker_${Date.now()}.txt`;
 	const markerContent = `restored at ${Date.now()}`;
 
@@ -533,6 +534,9 @@ describe("Sandbox.createFromSnapshot", () => {
 
 	afterAll(async () => {
 		await restoredSandbox?.destroy().catch(() => undefined);
+		if (extraSnapshotId) {
+			await Sandbox.deleteSnapshot(extraSnapshotId).catch(() => undefined);
+		}
 		if (snapshotId) {
 			await baseSandbox?.deleteSnapshot(snapshotId).catch(() => undefined);
 		}
@@ -562,4 +566,27 @@ describe("Sandbox.createFromSnapshot", () => {
 		const downloaded = await restoredSandbox.fs.downloadFile(markerFilename);
 		expect(downloaded.toString()).toBe(markerContent);
 	}, 60_000);
+
+	it("Sandbox.listSnapshots should include the snapshot we created", async () => {
+		if (!snapshotId) throw new Error("base snapshot was not created");
+
+		const all = await Sandbox.listSnapshots();
+		expect(Array.isArray(all)).toBe(true);
+		expect(all.some((s) => s.id === snapshotId)).toBe(true);
+	}, 60_000);
+
+	it("Sandbox.deleteSnapshot should remove a snapshot at the project level", async () => {
+		if (!baseSandbox) throw new Error("baseSandbox missing");
+		const extra = await baseSandbox.createSnapshot({
+			name: `test-delete-static-${Date.now()}`,
+		});
+		extraSnapshotId = extra.id;
+		await extra.waitUntilReady();
+
+		await Sandbox.deleteSnapshot(extra.id);
+		extraSnapshotId = undefined;
+
+		const all = await Sandbox.listSnapshots();
+		expect(all.some((s) => s.id === extra.id)).toBe(false);
+	}, 180_000);
 });

@@ -630,6 +630,36 @@ describe("BuddyApiClient", () => {
 	});
 
 	describe("sandbox snapshots", () => {
+		it("should list all snapshots in the project (across sandboxes)", async () => {
+			let receivedProject: string | null = null;
+			server.use(
+				http.get(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/snapshots`,
+					({ request }) => {
+						receivedProject = new URL(request.url).searchParams.get(
+							"project_name",
+						);
+						return HttpResponse.json({
+							snapshots: [
+								{ id: "snap-a", name: "From sandbox A", status: "CREATED" },
+								{ id: "snap-b", name: "Orphan", status: "CREATED" },
+							],
+						});
+					},
+				),
+			);
+
+			const client = createClient();
+			const response = await client.getProjectSnapshots({});
+
+			expect(receivedProject).toBe(TEST_PROJECT);
+			expect(response?.snapshots).toHaveLength(2);
+			expect(response?.snapshots?.map((s) => s.id)).toEqual([
+				"snap-a",
+				"snap-b",
+			]);
+		});
+
 		it("should list snapshots for a sandbox", async () => {
 			server.use(
 				http.get(
@@ -727,6 +757,43 @@ describe("BuddyApiClient", () => {
 				client.deleteSandboxSnapshot({
 					path: { sandbox_id: "sandbox-id", id: "snap-missing" },
 				}),
+			).resolves.toBeUndefined();
+		});
+
+		it("should delete a snapshot at the project level (no sandbox_id)", async () => {
+			let requested = false;
+			server.use(
+				http.delete(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/snapshots/orphan-snap`,
+					() => {
+						requested = true;
+						return new HttpResponse(null, { status: 204 });
+					},
+				),
+			);
+
+			const client = createClient();
+			await expect(
+				client.deleteSnapshot({ path: { id: "orphan-snap" } }),
+			).resolves.not.toThrow();
+			expect(requested).toBe(true);
+		});
+
+		it("should not throw on 404 when deleting a project-level snapshot", async () => {
+			server.use(
+				http.delete(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/snapshots/missing-orphan`,
+					() =>
+						HttpResponse.json(
+							{ errors: [{ message: "not found" }] },
+							{ status: 404 },
+						),
+				),
+			);
+
+			const client = createClient();
+			await expect(
+				client.deleteSnapshot({ path: { id: "missing-orphan" } }),
 			).resolves.toBeUndefined();
 		});
 	});
