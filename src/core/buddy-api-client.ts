@@ -4,6 +4,7 @@ import {
 	addSandboxSnapshotResponseTransformer,
 	createSandboxDirectoryResponseTransformer,
 	executeSandboxCommandResponseTransformer,
+	getProjectSnapshotsResponseTransformer,
 	getSandboxCommandResponseTransformer,
 	getSandboxContentResponseTransformer,
 	getSandboxResponseTransformer,
@@ -36,6 +37,8 @@ import type {
 	ExecuteSandboxCommandResponse,
 	GetIdentifiersData,
 	GetIdentifiersResponse,
+	GetProjectSnapshotsData,
+	GetProjectSnapshotsResponse,
 	GetSandboxAppLogsByIdData,
 	GetSandboxAppLogsByIdResponse,
 	GetSandboxCommandData,
@@ -92,6 +95,9 @@ import {
 	zGetIdentifiersPath,
 	zGetIdentifiersQuery,
 	zGetIdentifiersResponse,
+	zGetProjectSnapshotsPath,
+	zGetProjectSnapshotsQuery,
+	zGetProjectSnapshotsResponse,
 	zGetSandboxAppLogsByIdPath,
 	zGetSandboxAppLogsByIdQuery,
 	zGetSandboxAppLogsByIdResponse,
@@ -331,6 +337,22 @@ export class BuddyApiClient extends HttpClient {
 			pathSchema: zGetSandboxSnapshotsPath,
 			responseSchema: zGetSandboxSnapshotsResponse.transform(
 				getSandboxSnapshotsResponseTransformer,
+			),
+		});
+	}
+
+	/** List all snapshots in the project (across all sandboxes, including orphans) */
+	async getProjectSnapshots<const Data extends GetProjectSnapshotsData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetProjectSnapshotsResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/snapshots",
+			pathSchema: zGetProjectSnapshotsPath,
+			querySchema: zGetProjectSnapshotsQuery,
+			responseSchema: zGetProjectSnapshotsResponse.transform(
+				getProjectSnapshotsResponseTransformer,
 			),
 		});
 	}

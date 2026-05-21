@@ -8,6 +8,7 @@ import type {
 	GetSandboxResponse,
 	SandboxAppView,
 	SandboxIdView,
+	ShortSnapshotView,
 	SnapshotView,
 	UpdateSandboxRequestWritable,
 } from "@/api/openapi/types.gen";
@@ -404,6 +405,27 @@ export class Sandbox {
 				path: { sandbox_id: sandboxId },
 			});
 			return Snapshot._build(data, this.#client, sandboxId);
+		});
+	}
+
+	/**
+	 * List all snapshots in the project across every sandbox, including
+	 * snapshots whose parent sandbox has been deleted.
+	 *
+	 * Use `Sandbox.createFromSnapshot(snapshot.id, …)` to provision a new
+	 * sandbox from any item in the list.
+	 *
+	 * @param config - Optional configuration including connection settings
+	 */
+	static async listSnapshots(
+		config?: ListSandboxesConfig,
+	): Promise<ShortSnapshotView[]> {
+		return withErrorHandler("Failed to list project snapshots", async () => {
+			const { connection } = config ?? {};
+			const client = createClient(connection);
+
+			const response = await client.getProjectSnapshots({});
+			return response?.snapshots ?? [];
 		});
 	}
 

@@ -2,6 +2,7 @@ export type {
 	AddSnapshotRequest,
 	SandboxAppView,
 	SandboxIdView,
+	ShortSnapshotView,
 	SnapshotView,
 } from "@/api/openapi/types.gen";
 export { BuddyApiClient } from "@/core/buddy-api-client";
