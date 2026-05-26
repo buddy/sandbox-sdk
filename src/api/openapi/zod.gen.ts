@@ -337,6 +337,93 @@ export const zPipelinePropertyView = z.object({
 });
 
 /**
+ * MSSQL authentication credentials
+ */
+export const zMssqlAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * MongoDB authentication credentials
+ */
+export const zMongoAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * PostgreSQL authentication credentials
+ */
+export const zPostgresqlAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * MySQL authentication credentials
+ */
+export const zMysqlAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * Define proxy servers' authentication method using the following parameters
+ */
+export const zSshAuthView = z.object({
+	method: z.enum([
+		"PASSWORD",
+		"SSH_KEY",
+		"ASSETS_KEY",
+		"PROXY_CREDENTIALS",
+		"PROXY_KEY",
+	]),
+	username: z.string().optional(),
+	password: z.string().optional(),
+	asset: z.string().optional(),
+	passphrase: z.string().optional(),
+	key: z.string().optional(),
+	key_path: z.string().optional(),
+});
+
+/**
+ * Kubernetes cluster authentication method
+ */
+export const zK8sAuthView = z.object({
+	method: z.enum(["PASS", "CERT", "TOKEN"]),
+	username: z.string().optional(),
+	password: z.string().optional(),
+	certificate_authority: z.string().optional(),
+	client_certificate: z.string().optional(),
+	client_key: z.string().optional(),
+	token: z.string().optional(),
+});
+
+/**
+ * Authentication details
+ */
+export const zGitAuthView = z.object({
+	method: z.enum(["HTTP", "SSH_KEY", "ASSETS_KEY", "CURRENT"]),
+	username: z.string().optional(),
+	password: z.string().optional(),
+	asset: z.string().optional(),
+	key: z.string().optional(),
+});
+
+/**
+ * Authentication details
+ */
+export const zFtpAuthView = z.object({
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
  * Defines how the target can be used (as deployment target, proxy, or both)
  */
 export const zUseAsView = z.object({
@@ -455,93 +542,6 @@ export const zShortProjectView = z.object({
 	status: z.string().optional(),
 	access: z.enum(["PRIVATE", "PUBLIC"]).optional(),
 	create_date: z.iso.datetime().optional(),
-});
-
-/**
- * MSSQL authentication credentials
- */
-export const zMssqlAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * MongoDB authentication credentials
- */
-export const zMongoAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * PostgreSQL authentication credentials
- */
-export const zPostgresqlAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * MySQL authentication credentials
- */
-export const zMysqlAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * Define proxy servers' authentication method using the following parameters
- */
-export const zSshAuthView = z.object({
-	method: z.enum([
-		"PASSWORD",
-		"SSH_KEY",
-		"ASSETS_KEY",
-		"PROXY_CREDENTIALS",
-		"PROXY_KEY",
-	]),
-	username: z.string().optional(),
-	password: z.string().optional(),
-	asset: z.string().optional(),
-	passphrase: z.string().optional(),
-	key: z.string().optional(),
-	key_path: z.string().optional(),
-});
-
-/**
- * Kubernetes cluster authentication method
- */
-export const zK8sAuthView = z.object({
-	method: z.enum(["PASS", "CERT", "TOKEN"]),
-	username: z.string().optional(),
-	password: z.string().optional(),
-	certificate_authority: z.string().optional(),
-	client_certificate: z.string().optional(),
-	client_key: z.string().optional(),
-	token: z.string().optional(),
-});
-
-/**
- * Authentication details
- */
-export const zGitAuthView = z.object({
-	method: z.enum(["HTTP", "SSH_KEY", "ASSETS_KEY", "CURRENT"]),
-	username: z.string().optional(),
-	password: z.string().optional(),
-	asset: z.string().optional(),
-	key: z.string().optional(),
-});
-
-/**
- * Authentication details
- */
-export const zFtpAuthView = z.object({
-	username: z.string(),
-	password: z.string(),
 });
 
 export const zIdsView = z.object({
@@ -952,6 +952,16 @@ export const zTunnelView = z.object({
 	http: zHttpSettingsView.optional(),
 	tls: zTlsSettingsView.optional(),
 	endpoint_url: z.string().optional(),
+	active: z.boolean().optional(),
+	target_latency: z
+		.int()
+		.min(-2147483648, {
+			error: "Invalid value: Expected int32 to be >= -2147483648",
+		})
+		.max(2147483647, {
+			error: "Invalid value: Expected int32 to be <= 2147483647",
+		})
+		.optional(),
 });
 
 export const zSandboxFetchView = z.object({
@@ -1180,6 +1190,9 @@ export const zCreateNewSandboxRequest = z.object({
 	permissions: zPermissionsView.optional(),
 });
 
+/**
+ * The list of variables you can use the action
+ */
 export const zEnvironmentVariableView = z.object({
 	id: z
 		.int()
@@ -1721,6 +1734,16 @@ export const zTunnelViewWritable = z.object({
 	http: zHttpSettingsViewWritable.optional(),
 	tls: zTlsSettingsViewWritable.optional(),
 	endpoint_url: z.string().optional(),
+	active: z.boolean().optional(),
+	target_latency: z
+		.int()
+		.min(-2147483648, {
+			error: "Invalid value: Expected int32 to be >= -2147483648",
+		})
+		.max(2147483647, {
+			error: "Invalid value: Expected int32 to be <= 2147483647",
+		})
+		.optional(),
 });
 
 export const zUpdateSandboxRequestWritable = z.object({
@@ -2822,6 +2845,10 @@ export const zUploadSandboxFilePath = z.object({
 	workspace_domain: z.string(),
 	sandbox_id: z.string(),
 	path: z.string().regex(/.*/),
+});
+
+export const zUploadSandboxFileQuery = z.object({
+	userName: z.string().optional().default("buddy"),
 });
 
 /**
