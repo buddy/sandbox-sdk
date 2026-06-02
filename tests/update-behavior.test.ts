@@ -14,16 +14,6 @@ import { Sandbox } from "@/entity/sandbox";
  * BUDDY_TOKEN / BUDDY_WORKSPACE / BUDDY_PROJECT.
  */
 
-const logFieldEffect = (
-	label: string,
-	before: { setup: string | undefined; status: string | undefined },
-	after: { setup: string | undefined; status: string | undefined },
-) => {
-	console.log(
-		`[update:${label}] setup_status ${before.setup} -> ${after.setup} | status ${before.status} -> ${after.status}`,
-	);
-};
-
 describe("Sandbox.update - soft fields (shared sandbox)", () => {
 	let sandbox: Sandbox;
 
@@ -42,51 +32,33 @@ describe("Sandbox.update - soft fields (shared sandbox)", () => {
 		await sandbox?.destroy().catch(() => undefined);
 	}, 60_000);
 
-	const assertSoftUpdate = (label: string) => {
-		const before = {
-			setup: sandbox.data.setup_status,
-			status: sandbox.data.status,
-		};
-		return {
-			before,
-			finish: () => {
-				const after = {
-					setup: sandbox.data.setup_status,
-					status: sandbox.data.status,
-				};
-				logFieldEffect(label, before, after);
-				expect(after.setup).toBe("SUCCESS");
-				expect(after.status).toBe("RUNNING");
-			},
-		};
+	const expectSoftUpdate = () => {
+		expect(sandbox.data.setup_status).toBe("SUCCESS");
+		expect(sandbox.data.status).toBe("RUNNING");
 	};
 
 	it("updates timeout in place without leaving setup STALE", async () => {
-		const probe = assertSoftUpdate("timeout");
 		await sandbox.update({ timeout: 1800 });
 		expect(sandbox.data.timeout).toBe(1800);
-		probe.finish();
+		expectSoftUpdate();
 	});
 
 	it("updates tags in place without leaving setup STALE", async () => {
-		const probe = assertSoftUpdate("tags");
 		await sandbox.update({ tags: ["probed", "updated"] });
 		expect(sandbox.data.tags).toEqual(
 			expect.arrayContaining(["probed", "updated"]),
 		);
-		probe.finish();
+		expectSoftUpdate();
 	});
 
 	it("updates name in place without leaving setup STALE", async () => {
 		const newName = `renamed-${Date.now()}`;
-		const probe = assertSoftUpdate("name");
 		await sandbox.update({ name: newName });
 		expect(sandbox.data.name).toBe(newName);
-		probe.finish();
+		expectSoftUpdate();
 	});
 
 	it("updates variables in place without leaving setup STALE", async () => {
-		const probe = assertSoftUpdate("variables");
 		await sandbox.update({
 			variables: [{ key: "PROBE_VAR", value: "hello", type: "VAR" }],
 		});
@@ -95,27 +67,24 @@ describe("Sandbox.update - soft fields (shared sandbox)", () => {
 				(v) => v.key === "PROBE_VAR" && v.value === "hello",
 			),
 		).toBe(true);
-		probe.finish();
+		expectSoftUpdate();
 	});
 
 	it("updates apps in place without leaving setup STALE", async () => {
-		const probe = assertSoftUpdate("apps");
 		await sandbox.update({ apps: [{ command: "echo updated-app" }] });
 		expect(
 			sandbox.data.apps?.some((a) => a.command === "echo updated-app"),
 		).toBe(true);
-		probe.finish();
+		expectSoftUpdate();
 	});
 
 	it("updates app_dir in place without leaving setup STALE", async () => {
-		const probe = assertSoftUpdate("app_dir");
 		await sandbox.update({ app_dir: "/workspace/probed" });
 		expect(sandbox.data.app_dir).toBe("/workspace/probed");
-		probe.finish();
+		expectSoftUpdate();
 	});
 
 	it("updates endpoints in place without leaving setup STALE", async () => {
-		const probe = assertSoftUpdate("endpoints");
 		await sandbox.update({
 			endpoints: [
 				{
@@ -129,7 +98,7 @@ describe("Sandbox.update - soft fields (shared sandbox)", () => {
 		expect(
 			sandbox.data.endpoints?.some((e) => e.name === "probed-endpoint"),
 		).toBe(true);
-		probe.finish();
+		expectSoftUpdate();
 	});
 });
 
@@ -149,19 +118,10 @@ describe("Sandbox.update - first_boot_commands (isolated sandbox)", () => {
 	}, 60_000);
 
 	it("changing first_boot_commands transitions setup_status to STALE", async () => {
-		const before = {
-			setup: sandbox.data.setup_status,
-			status: sandbox.data.status,
-		};
 		await sandbox.update({
 			first_boot_commands: "echo CHANGED-first-boot",
 		});
 		await sandbox.refresh();
-		const after = {
-			setup: sandbox.data.setup_status,
-			status: sandbox.data.status,
-		};
-		logFieldEffect("first_boot_commands", before, after);
 
 		expect(sandbox.data.first_boot_commands).toBe("echo CHANGED-first-boot");
 		expect(sandbox.data.setup_status).toBe("STALE");
@@ -185,17 +145,8 @@ describe("Sandbox.update - resources (isolated sandbox)", () => {
 	}, 60_000);
 
 	it("changing resources applies in place without leaving setup STALE", async () => {
-		const before = {
-			setup: sandbox.data.setup_status,
-			status: sandbox.data.status,
-		};
 		await sandbox.update({ resources: "2x4" });
 		await sandbox.refresh();
-		const after = {
-			setup: sandbox.data.setup_status,
-			status: sandbox.data.status,
-		};
-		logFieldEffect("resources", before, after);
 
 		expect(sandbox.data.resources).toBe("2x4");
 		expect(sandbox.data.setup_status).toBe("SUCCESS");
