@@ -6,24 +6,8 @@ if (!schemaUrl) {
 	throw new Error("SCHEMA_URL environment variable is required");
 }
 
-// Spec has dangling `$ref: '#/components/schemas/String'` on the Crawl/VisualTest
-// getToken endpoints; inject a placeholder so hey-api can resolve them.
-const fetchPatchedSpec = async () => {
-	const response = await fetch(schemaUrl);
-	if (!response.ok) {
-		throw new Error(`Failed to fetch ${schemaUrl}: ${response.status}`);
-	}
-	const spec = (await response.json()) as {
-		components?: { schemas?: Record<string, unknown> };
-	};
-	spec.components ??= {};
-	spec.components.schemas ??= {};
-	spec.components.schemas["String"] ??= { type: "string" };
-	return spec;
-};
-
-export default defineConfig(async () => ({
-	input: await fetchPatchedSpec(),
+export default defineConfig({
+	input: schemaUrl,
 	output: {
 		path: "src/api/openapi",
 		postProcess: [
@@ -58,4 +42,4 @@ export default defineConfig(async () => ({
 			exportFromIndex: false,
 		},
 	],
-}));
+});

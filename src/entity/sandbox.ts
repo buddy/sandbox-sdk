@@ -612,8 +612,15 @@ export class Sandbox {
 				}
 
 				if (this.data.setup_status === "FAILED") {
+					const logs = this.data.boot_logs ?? [];
+					const recent = logs.slice(-20);
+					const tail = recent.join("\n");
 					throw new Error(
-						`Sandbox ${sandboxId} setup failed. Status: ${this.data.setup_status}`,
+						`Sandbox ${sandboxId} setup failed.${
+							tail
+								? `\nBoot logs (last ${recent.length} of ${logs.length} lines):\n${tail}`
+								: " No boot logs were returned."
+						}`,
 					);
 				}
 
