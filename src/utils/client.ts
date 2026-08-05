@@ -15,7 +15,7 @@ export interface ConnectionConfig {
 	project?: string;
 	/** API authentication token (falls back to BUDDY_TOKEN env var) */
 	token?: string;
-	/** API region: US, EU, or AP (falls back to BUDDY_REGION env var) */
+	/** API region: US, EU, or AS (falls back to BUDDY_REGION env var) */
 	region?: Region;
 	/** Custom API URL for testing (falls back to BUDDY_API_URL env var) */
 	apiUrl?: string;
