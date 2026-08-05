@@ -1,7 +1,7 @@
 export const REGIONS = {
 	US: "US",
 	EU: "EU",
-	AP: "AP",
+	AS: "AS",
 } as const;
 
 export type Region = (typeof REGIONS)[keyof typeof REGIONS];
@@ -9,7 +9,7 @@ export type Region = (typeof REGIONS)[keyof typeof REGIONS];
 export const API_URLS: Record<Region, string> = {
 	US: "https://api.buddy.works",
 	EU: "https://api.eu.buddy.works",
-	AP: "https://api.asia.buddy.works",
+	AS: "https://api.asia.buddy.works",
 };
 
 export function getApiUrlFromRegion(region: Region): string {
@@ -20,10 +20,11 @@ export function parseRegion(input: string | undefined): Region {
 	if (!input) return REGIONS.US;
 
 	const normalized = input.toUpperCase().trim();
+	const region = REGIONS[normalized as Region];
 
-	if (normalized === "US" || normalized === "EU" || normalized === "AP") {
-		return normalized as Region;
-	}
+	if (region) return region;
 
-	throw new Error(`Invalid region: "${input}". Valid regions are: US, EU, AP`);
+	throw new Error(
+		`Invalid region: "${input}". Valid regions are: ${Object.keys(REGIONS).join(", ")}`,
+	);
 }
