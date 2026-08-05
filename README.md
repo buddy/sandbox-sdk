@@ -42,7 +42,7 @@ Set required environment variables:
 export BUDDY_TOKEN="your-api-token"
 export BUDDY_WORKSPACE="your-workspace"
 export BUDDY_PROJECT="your-project"
-export BUDDY_REGION="US"  # Optional: US (default), EU, or AP
+export BUDDY_REGION="US"  # Optional: US (default), EU, or AS
 ```
 
 ## Apps
@@ -162,7 +162,7 @@ const sandbox = await Sandbox.create({
     name: "My Sandbox",
     os: "ubuntu:24.04",
     connection: {
-        region: "EU"  // US, EU, or AP
+        region: "EU"  // US, EU, or AS
     }
 });
 ```
