@@ -45,6 +45,32 @@ export BUDDY_PROJECT="your-project"
 export BUDDY_REGION="US"  # Optional: US (default), EU, or AP
 ```
 
+## Waiting for readiness
+
+`Sandbox.create()` blocks until the sandbox has finished setup and reached
+`RUNNING`, so the instance it returns is ready to use. While waiting it polls
+the API on a backoff starting at 100ms and growing to 500ms.
+
+Pass `wait: false` to skip the wait and drive it yourself. The instance you get
+back carries everything the create call returned - `id`, `identifier`, `url`,
+`resources` - but connection details are not settled yet.
+
+```typescript
+const sandbox = await Sandbox.create({ identifier: "my-sandbox", wait: false });
+
+// ... do other work while the sandbox boots ...
+
+await sandbox.waitUntilReady();   // setup_status: SUCCESS
+await sandbox.waitUntilRunning(); // status: RUNNING
+```
+
+The waiters accept an explicit interval, which pins polling to that fixed value
+instead of backing off:
+
+```typescript
+await sandbox.waitUntilRunning(500); // check every 500ms
+```
+
 ## Apps
 
 Sandboxes can run multiple apps simultaneously. Each app is a long-running process defined by a command string.
