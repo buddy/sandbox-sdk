@@ -1,6 +1,6 @@
-export const DEFAULT_INITIAL_INTERVAL_MS = 100;
-export const DEFAULT_MAX_INTERVAL_MS = 1000;
-export const DEFAULT_BACKOFF_FACTOR = 1.5;
+const DEFAULT_INITIAL_INTERVAL_MS = 100;
+const DEFAULT_MAX_INTERVAL_MS = 1000;
+const DEFAULT_BACKOFF_FACTOR = 1.5;
 
 /** Configuration for a backing-off polling loop */
 export interface PollOptions {
@@ -35,7 +35,7 @@ export function resolvePollInterval(
 }
 
 /** Suspend execution for the given number of milliseconds */
-export function sleep(ms: number): Promise<void> {
+function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
