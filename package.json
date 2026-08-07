@@ -3,12 +3,19 @@
 	"version": "0.1.7",
 	"type": "module",
 	"description": "TypeScript SDK for managing sandboxes through the Buddy API",
-	"main": "./dist/index.mjs",
-	"types": "./dist/index.d.mts",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.cts",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.mts",
-			"default": "./dist/index.mjs"
+			"import": {
+				"types": "./dist/index.d.mts",
+				"default": "./dist/index.mjs"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			}
 		}
 	},
 	"files": [
@@ -34,7 +41,7 @@
 		"typescript"
 	],
 	"engines": {
-		"node": ">=20"
+		"node": "^20.19.0 || >=22.12.0"
 	},
 	"sideEffects": false,
 	"author": "Cyprian Zdebski <cyprian.zdebski@buddy.works>",
