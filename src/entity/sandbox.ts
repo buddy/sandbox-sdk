@@ -21,8 +21,11 @@ import { Snapshot } from "@/entity/snapshot";
 import { withErrorHandler } from "@/errors";
 import { type ConnectionConfig, createClient } from "@/utils/client";
 import logger from "@/utils/logger";
+import { pollUntil, resolvePollInterval } from "@/utils/poll";
 
 export type { ConnectionConfig };
+
+const CREATE_MAX_INTERVAL_MS = 500;
 
 // Symbol for private constructor protection
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
@@ -36,6 +39,8 @@ export interface CreateSandboxConfig
 	extends Partial<CreateNewSandboxRequestWritable> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
+	/** Block until the sandbox is running (default: true) */
+	wait?: boolean;
 }
 
 /**
@@ -61,6 +66,8 @@ export interface CreateFromSnapshotConfig
 	extends Partial<Omit<CreateFromSnapshotRequestWritable, "snapshot_id">> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
+	/** Block until the sandbox is running (default: true) */
+	wait?: boolean;
 }
 
 /**
@@ -70,6 +77,8 @@ export interface CloneSandboxConfig
 	extends Partial<Omit<CloneSandboxRequest, "source_sandbox_id">> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
+	/** Block until the sandbox is running (default: true) */
+	wait?: boolean;
 }
 
 /**
@@ -124,6 +133,7 @@ export class Sandbox {
 	static async #finalizeNewSandbox(
 		sandboxResponse: NonNullable<GetSandboxResponse>,
 		client: BuddyApiClient,
+		wait = true,
 	): Promise<Sandbox> {
 		const sandbox = new Sandbox(
 			sandboxResponse,
@@ -131,28 +141,74 @@ export class Sandbox {
 			PRIVATE_CONSTRUCTOR_KEY,
 		);
 
-		logger.debug(`Waiting for sandbox ${sandbox.data.id} to be ready...`);
-		await sandbox.waitUntilReady();
-		logger.debug(
-			`Sandbox ${sandbox.data.id} is ready (Setup status: ${sandbox.data.setup_status})`,
-		);
+		if (!wait) {
+			return sandbox;
+		}
 
-		await sandbox.waitUntilRunning();
+		logger.debug(`Waiting for sandbox ${sandbox.data.id} to be ready...`);
+		await sandbox.#waitUntilReadyAndRunning();
 		logger.debug(
-			`Sandbox ${sandbox.data.id} is now running. Status: ${sandbox.data.status}`,
+			`Sandbox ${sandbox.data.id} is now running (Setup status: ${sandbox.data.setup_status}, Status: ${sandbox.data.status})`,
 		);
 
 		return sandbox;
 	}
 
 	/**
+	 * Wait for setup to finish and the sandbox to reach RUNNING in one polling
+	 * loop, since a single refresh already carries both fields.
+	 *
+	 * Setup is unbounded because `first_boot_commands` may run long; the
+	 * RUNNING deadline only starts once setup has succeeded.
+	 */
+	async #waitUntilReadyAndRunning(maxRunningWaitMs = 60_000): Promise<void> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Sandbox not running", async () => {
+			let readyAt: number | undefined;
+
+			await pollUntil(
+				async () => {
+					await this.refresh();
+
+					this.#assertSetupNotFailed(sandboxId);
+
+					if (this.data.status === "FAILED") {
+						throw new Error(
+							`Sandbox ${sandboxId} failed. Status: ${this.data.status}`,
+						);
+					}
+
+					if (this.data.setup_status !== "SUCCESS") {
+						return false;
+					}
+
+					if (this.data.status === "RUNNING") {
+						return true;
+					}
+
+					readyAt ??= Date.now();
+
+					if (Date.now() - readyAt > maxRunningWaitMs) {
+						throw new Error(
+							`Timeout waiting for sandbox ${sandboxId} to be RUNNING. Current: ${this.data.status}`,
+						);
+					}
+
+					return false;
+				},
+				{ initialIntervalMs: 100, maxIntervalMs: CREATE_MAX_INTERVAL_MS },
+			);
+		});
+	}
+
+	/**
 	 * Create a new sandbox
 	 * @param config - Sandbox configuration including identifier, name, os, and optional connection settings
-	 * @returns A ready-to-use Sandbox instance
+	 * @returns A ready-to-use Sandbox instance, or an unready one when `wait` is false
 	 */
 	static async create(config?: CreateSandboxConfig) {
 		return withErrorHandler("Failed to create sandbox", async () => {
-			const { connection, ...sandboxConfig } = config ?? {};
+			const { connection, wait, ...sandboxConfig } = config ?? {};
 			const client = createClient(connection);
 
 			const requestBody: CreateNewSandboxRequestWritable = {
@@ -166,7 +222,7 @@ export class Sandbox {
 				body: requestBody,
 			});
 
-			return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
+			return Sandbox.#finalizeNewSandbox(sandboxResponse, client, wait);
 		});
 	}
 
@@ -184,7 +240,7 @@ export class Sandbox {
 		return withErrorHandler(
 			"Failed to create sandbox from snapshot",
 			async () => {
-				const { connection, ...snapshotConfig } = config ?? {};
+				const { connection, wait, ...snapshotConfig } = config ?? {};
 				const client = createClient(connection);
 
 				const requestBody: CreateFromSnapshotRequestWritable = {
@@ -198,7 +254,7 @@ export class Sandbox {
 					body: requestBody,
 				});
 
-				return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
+				return Sandbox.#finalizeNewSandbox(sandboxResponse, client, wait);
 			},
 		);
 	}
@@ -215,7 +271,7 @@ export class Sandbox {
 	 */
 	static async clone(sourceSandboxId: string, config?: CloneSandboxConfig) {
 		return withErrorHandler("Failed to clone sandbox", async () => {
-			const { connection, ...cloneConfig } = config ?? {};
+			const { connection, wait, ...cloneConfig } = config ?? {};
 			const client = createClient(connection);
 
 			const requestBody: CloneSandboxRequest = {
@@ -229,7 +285,7 @@ export class Sandbox {
 				body: requestBody,
 			});
 
-			return Sandbox.#finalizeNewSandbox(sandboxResponse, client);
+			return Sandbox.#finalizeNewSandbox(sandboxResponse, client, wait);
 		});
 	}
 
@@ -562,12 +618,12 @@ export class Sandbox {
 	 * it transitions to `"CREATED"`. Use this method to block until it does.
 	 *
 	 * @param snapshotId - ID of the snapshot to wait for
-	 * @param pollIntervalMs - How often to check the status (default: 2000ms (2s))
+	 * @param pollIntervalMs - Fixed interval between checks (default: back off from 100ms to 2000ms)
 	 * @param maxWaitMs - Maximum time to wait before timing out (default: 180000ms (180s))
 	 */
 	async waitForSnapshotReady(
 		snapshotId: NonNullable<SnapshotView["id"]>,
-		pollIntervalMs = 2000,
+		pollIntervalMs?: number,
 		maxWaitMs = 180_000,
 	): Promise<void> {
 		const snapshot = await this.getSnapshot(snapshotId);
@@ -597,115 +653,124 @@ export class Sandbox {
 		});
 	}
 
+	/** Throw if `setup_status` has reached a terminal failure state */
+	#assertSetupNotFailed(sandboxId: string): void {
+		if (this.data.setup_status === "FAILED") {
+			const logs = this.data.boot_logs ?? [];
+			const recent = logs.slice(-20);
+			const tail = recent.join("\n");
+			throw new Error(
+				`Sandbox ${sandboxId} setup failed.${
+					tail
+						? `\nBoot logs (last ${recent.length} of ${logs.length} lines):\n${tail}`
+						: " No boot logs were returned."
+				}`,
+			);
+		}
+
+		if (this.data.setup_status === "STALE") {
+			throw new Error(
+				`Sandbox ${sandboxId} setup is stale. The first_boot_commands were changed but not applied. Recreate the sandbox to apply them.`,
+			);
+		}
+	}
+
 	/**
 	 * Wait until the sandbox setup is complete
-	 * @param pollIntervalMs - How often to check the status (default: 1000ms)
+	 * @param pollIntervalMs - Fixed interval between checks (default: back off from 100ms to 1000ms)
 	 */
-	async waitUntilReady(pollIntervalMs = 1000): Promise<void> {
+	async waitUntilReady(pollIntervalMs?: number): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Sandbox not ready", async () => {
-			while (true) {
+			await pollUntil(async () => {
 				await this.refresh();
 
 				if (this.data.setup_status === "SUCCESS") {
-					return;
+					return true;
 				}
 
-				if (this.data.setup_status === "FAILED") {
-					const logs = this.data.boot_logs ?? [];
-					const recent = logs.slice(-20);
-					const tail = recent.join("\n");
-					throw new Error(
-						`Sandbox ${sandboxId} setup failed.${
-							tail
-								? `\nBoot logs (last ${recent.length} of ${logs.length} lines):\n${tail}`
-								: " No boot logs were returned."
-						}`,
-					);
-				}
+				this.#assertSetupNotFailed(sandboxId);
 
-				if (this.data.setup_status === "STALE") {
-					throw new Error(
-						`Sandbox ${sandboxId} setup is stale. The first_boot_commands were changed but not applied. Recreate the sandbox to apply them.`,
-					);
-				}
-
-				await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-			}
+				return false;
+			}, resolvePollInterval(pollIntervalMs));
 		});
 	}
 
 	/**
 	 * Wait until the sandbox is in RUNNING state
-	 * @param pollIntervalMs - How often to check the status (default: 1000ms)
+	 * @param pollIntervalMs - Fixed interval between checks (default: back off from 100ms to 1000ms)
 	 * @param maxWaitMs - Maximum time to wait before timing out (default: 60000ms)
 	 */
 	async waitUntilRunning(
-		pollIntervalMs = 1000,
+		pollIntervalMs?: number,
 		maxWaitMs = 60_000,
 	): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Sandbox not running", async () => {
-			const startTime = Date.now();
+			await pollUntil(
+				async () => {
+					await this.refresh();
 
-			while (true) {
-				await this.refresh();
+					if (this.data.status === "RUNNING") {
+						return true;
+					}
 
-				if (this.data.status === "RUNNING") {
-					return;
-				}
+					if (this.data.status === "FAILED") {
+						throw new Error(
+							`Sandbox ${sandboxId} failed. Status: ${this.data.status}`,
+						);
+					}
 
-				if (this.data.status === "FAILED") {
-					throw new Error(
-						`Sandbox ${sandboxId} failed. Status: ${this.data.status}`,
-					);
-				}
-
-				if (Date.now() - startTime > maxWaitMs) {
-					throw new Error(
-						`Timeout waiting for sandbox ${sandboxId} to be RUNNING. Current: ${this.data.status}`,
-					);
-				}
-
-				await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-			}
+					return false;
+				},
+				{
+					...resolvePollInterval(pollIntervalMs),
+					maxWaitMs,
+					onTimeout: () =>
+						new Error(
+							`Timeout waiting for sandbox ${sandboxId} to be RUNNING. Current: ${this.data.status}`,
+						),
+				},
+			);
 		});
 	}
 
 	/**
 	 * Wait until the sandbox is in STOPPED state
-	 * @param pollIntervalMs - How often to check the status (default: 1000ms)
+	 * @param pollIntervalMs - Fixed interval between checks (default: back off from 100ms to 1000ms)
 	 * @param maxWaitMs - Maximum time to wait before timing out (default: 60000ms)
 	 */
 	async waitUntilStopped(
-		pollIntervalMs = 1000,
+		pollIntervalMs?: number,
 		maxWaitMs = 60_000,
 	): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Sandbox not stopped", async () => {
-			const startTime = Date.now();
+			await pollUntil(
+				async () => {
+					await this.refresh();
 
-			while (true) {
-				await this.refresh();
+					if (this.data.status === "STOPPED") {
+						return true;
+					}
 
-				if (this.data.status === "STOPPED") {
-					return;
-				}
+					if (this.data.status === "FAILED") {
+						throw new Error(
+							`Sandbox ${sandboxId} failed. Status: ${this.data.status}`,
+						);
+					}
 
-				if (this.data.status === "FAILED") {
-					throw new Error(
-						`Sandbox ${sandboxId} failed. Status: ${this.data.status}`,
-					);
-				}
-
-				if (Date.now() - startTime > maxWaitMs) {
-					throw new Error(
-						`Timeout waiting for sandbox ${sandboxId} to be STOPPED. Current: ${this.data.status}`,
-					);
-				}
-
-				await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-			}
+					return false;
+				},
+				{
+					...resolvePollInterval(pollIntervalMs),
+					maxWaitMs,
+					onTimeout: () =>
+						new Error(
+							`Timeout waiting for sandbox ${sandboxId} to be STOPPED. Current: ${this.data.status}`,
+						),
+				},
+			);
 		});
 	}
 
