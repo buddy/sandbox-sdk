@@ -1,5 +1,6 @@
 import type { ExecuteSandboxCommandResponse } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
+import { pollUntil, resolvePollInterval } from "@/utils/poll";
 
 /** Represents a running or completed command execution in a sandbox */
 export class Command {
@@ -101,9 +102,11 @@ export class Command {
 	 * @returns Final command response
 	 */
 	protected async pollForCommandCompletion(
-		pollIntervalMs = 1000,
+		pollIntervalMs?: number,
 	): Promise<ExecuteSandboxCommandResponse> {
-		while (true) {
+		let finalResponse: ExecuteSandboxCommandResponse | undefined;
+
+		await pollUntil(async () => {
 			const commandResponse = await this.client.getCommandDetails({
 				path: {
 					sandbox_id: this.sandboxId,
@@ -115,10 +118,17 @@ export class Command {
 				commandResponse.status === "SUCCESSFUL" ||
 				commandResponse.status === "FAILED"
 			) {
-				return commandResponse;
+				finalResponse = commandResponse;
+				return true;
 			}
 
-			await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+			return false;
+		}, resolvePollInterval(pollIntervalMs));
+
+		if (!finalResponse) {
+			throw new Error(`Command ${this.commandId} finished without a response.`);
 		}
+
+		return finalResponse;
 	}
 }

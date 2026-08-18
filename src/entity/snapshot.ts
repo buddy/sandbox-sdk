@@ -1,7 +1,9 @@
 import type { SnapshotView } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 import { withErrorHandler } from "@/errors";
+import { pollUntil, resolvePollInterval } from "@/utils/poll";
 
+const SNAPSHOT_MAX_INTERVAL_MS = 2000;
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("SnapshotConstructor");
 const INITIALIZE_INSTRUCTIONS =
 	"Snapshots are obtained via sandbox.createSnapshot(), sandbox.listSnapshots(), sandbox.getSnapshot(id), or Sandbox.getSnapshotById(sandboxId, snapshotId).";
@@ -48,37 +50,39 @@ export class Snapshot {
 	 * `sandbox.createSnapshot()` returns immediately with `status: "CREATING"`.
 	 * The snapshot cannot be restored until it transitions to `"CREATED"`.
 	 *
-	 * @param pollIntervalMs - How often to check the status (default: 2000ms (2s))
+	 * @param pollIntervalMs - Fixed interval between checks (default: back off from 100ms to 2000ms)
 	 * @param maxWaitMs - Maximum time to wait before timing out (default: 180000ms (180s))
 	 */
 	async waitUntilReady(
-		pollIntervalMs = 2000,
+		pollIntervalMs?: number,
 		maxWaitMs = 180_000,
 	): Promise<void> {
 		return withErrorHandler("Snapshot not ready", async () => {
-			const startTime = Date.now();
+			await pollUntil(
+				async () => {
+					await this.refresh();
 
-			while (true) {
-				await this.refresh();
+					if (this.#data.status === "CREATED") {
+						return true;
+					}
 
-				if (this.#data.status === "CREATED") {
-					return;
-				}
+					if (this.#data.status === "FAILED") {
+						throw new Error(
+							`Snapshot ${this.id} failed. Status: ${this.#data.status}`,
+						);
+					}
 
-				if (this.#data.status === "FAILED") {
-					throw new Error(
-						`Snapshot ${this.id} failed. Status: ${this.#data.status}`,
-					);
-				}
-
-				if (Date.now() - startTime > maxWaitMs) {
-					throw new Error(
-						`Timeout waiting for snapshot ${this.id} to be CREATED. Current: ${this.#data.status}`,
-					);
-				}
-
-				await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-			}
+					return false;
+				},
+				{
+					...resolvePollInterval(pollIntervalMs, SNAPSHOT_MAX_INTERVAL_MS),
+					maxWaitMs,
+					onTimeout: () =>
+						new Error(
+							`Timeout waiting for snapshot ${this.id} to be CREATED. Current: ${this.#data.status}`,
+						),
+				},
+			);
 		});
 	}
 

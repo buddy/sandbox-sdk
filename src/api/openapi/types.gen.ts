@@ -13,6 +13,14 @@ export type UpdateWorkspaceMemberRequest = {
 	 * ID of permission set to automatically assign to new projects
 	 */
 	auto_assign_permission_set_id?: number;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type UpdateSsoRequest = {
@@ -134,6 +142,10 @@ export type UpdateIntegrationRequest = {
 	 */
 	tenant_id?: string;
 	/**
+	 * The Azure subscription ID (optional, required when the tenant has multiple subscriptions)
+	 */
+	subscription_id?: string;
+	/**
 	 * The client ID for OAuth-based integrations
 	 */
 	client_id?: string;
@@ -173,6 +185,10 @@ export type UpdateIntegrationRequest = {
 	 * The cloud region (e.g., us-east-1, eu-west-1)
 	 */
 	region?: string;
+	/**
+	 * The Sentry organization slug; when set, a webhook trigger is registered for this organization (type SENTRY)
+	 */
+	organization?: string;
 	/**
 	 * AWS IAM role assumptions for cross-account access
 	 */
@@ -228,6 +244,14 @@ export type UpdateIntegrationRequest = {
 	 * Set to `true` to disable the integration. Disabled integrations cannot be used in actions
 	 */
 	disabled?: boolean;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type GroupPermissionView = {
@@ -431,6 +455,14 @@ export type WorkspaceMemberView = {
 	 * ID of permission set to automatically assign to new projects
 	 */
 	auto_assign_permission_set_id?: number;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type WorkspaceView = {
@@ -945,13 +977,14 @@ export type PipelineEventView = {
 		| "ENVIRONMENT_DELETE"
 		| "SANDBOX_CREATED"
 		| "SANDBOX_DELETED"
-		| "SANDBOX_TIMED_OUT";
+		| "SANDBOX_TIMED_OUT"
+		| "SENTRY";
 	/**
 	 * The list of refs (branches/tags) that trigger the pipeline for push/ref events
 	 */
 	refs?: Array<string>;
 	/**
-	 * The list of pull request events that trigger the pipeline. Examples: `OPENED`, `EDITED`, `CLOSED`, `LABELED`, `UNLABELED`, `REVIEW_REQUESTED`, `REVIEW_REQUESTED_REMOVED`, `SYNCHRONIZED`
+	 * The list of pull request events that trigger the pipeline. Examples: `opened`, `reopened`, `synchronize`
 	 */
 	events?: Array<string>;
 	/**
@@ -998,6 +1031,38 @@ export type PipelineEventView = {
 	 * The list of sandbox targets that trigger the pipeline for sandbox events (type `SANDBOX_CREATED`, `SANDBOX_DELETED`, `SANDBOX_TIMED_OUT`)
 	 */
 	targets?: Array<unknown>;
+	/**
+	 * The identifier of the Sentry integration whose webhooks trigger the pipeline (type `SENTRY`)
+	 */
+	integration?: string;
+	/**
+	 * The list of Sentry project slugs that trigger the pipeline; empty means all projects (type `SENTRY`)
+	 */
+	projects?: Array<string>;
+	/**
+	 * The list of Sentry issue levels that trigger the pipeline e.g., `error`, `fatal`; empty means all levels (type `SENTRY`)
+	 */
+	levels?: Array<string>;
+	/**
+	 * The list of Sentry issue statuses that trigger the pipeline e.g., `unresolved`; empty means all statuses (type `SENTRY`)
+	 */
+	statuses?: Array<string>;
+	/**
+	 * The list of Sentry issue substatuses that trigger the pipeline e.g., `new`, `regressed`; empty means all substatuses (type `SENTRY`)
+	 */
+	substatuses?: Array<string>;
+	/**
+	 * The minimum number of events in the Sentry issue required to trigger the pipeline (type `SENTRY`)
+	 */
+	count?: number;
+	/**
+	 * The minimum number of users affected by the Sentry issue required to trigger the pipeline (type `SENTRY`)
+	 */
+	user_count?: number;
+	/**
+	 * The number of minutes to skip subsequent runs for the same Sentry issue after a triggered run (type `SENTRY`)
+	 */
+	snooze_minutes?: number;
 };
 
 /**
@@ -1205,6 +1270,14 @@ export type ShortPipelineView = {
 	 * The folder name where the pipeline is organized
 	 */
 	folder?: string;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 /**
@@ -1321,7 +1394,8 @@ export type IntegrationView = {
 		| "CONTENTFUL"
 		| "JIRA"
 		| "NPM_REGISTRY"
-		| "ANTHROPIC";
+		| "ANTHROPIC"
+		| "GOOGLE_GEMINI";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -1361,6 +1435,10 @@ export type IntegrationView = {
 	 */
 	webhook_address?: string;
 	/**
+	 * The Sentry organization slug; when set, a webhook trigger is registered for this organization (type SENTRY)
+	 */
+	organization?: string;
+	/**
 	 * The JWT audience for token validation
 	 */
 	audience?: string;
@@ -1381,6 +1459,14 @@ export type IntegrationView = {
 	 * Set to `true` to disable the integration. Disabled integrations cannot be used in actions
 	 */
 	disabled?: boolean;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type IdsView = {
@@ -1440,6 +1526,14 @@ export type IdsView = {
 	 * The ID of the route
 	 */
 	route_id?: string;
+	/**
+	 * The ID of the tunnel agent
+	 */
+	agent_id?: string;
+	/**
+	 * The ID of the tunnel
+	 */
+	tunnel_id?: string;
 };
 
 export type AddWorkspaceMemberRequest = {
@@ -1455,6 +1549,14 @@ export type AddWorkspaceMemberRequest = {
 	 * ID of permission set to automatically assign to new projects
 	 */
 	auto_assign_permission_set_id?: number;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 	/**
 	 * The email address of the user
 	 */
@@ -1531,6 +1633,10 @@ export type AddIntegrationRequest = {
 	 */
 	tenant_id?: string;
 	/**
+	 * The Azure subscription ID (optional, required when the tenant has multiple subscriptions)
+	 */
+	subscription_id?: string;
+	/**
 	 * The client ID for OAuth-based integrations
 	 */
 	client_id?: string;
@@ -1570,6 +1676,10 @@ export type AddIntegrationRequest = {
 	 * The cloud region (e.g., us-east-1, eu-west-1)
 	 */
 	region?: string;
+	/**
+	 * The Sentry organization slug; when set, a webhook trigger is registered for this organization (type SENTRY)
+	 */
+	organization?: string;
 	/**
 	 * AWS IAM role assumptions for cross-account access
 	 */
@@ -1626,6 +1736,14 @@ export type AddIntegrationRequest = {
 	 */
 	disabled?: boolean;
 	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
+	/**
 	 * The type of integration
 	 */
 	type:
@@ -1681,7 +1799,8 @@ export type AddIntegrationRequest = {
 		| "CONTENTFUL"
 		| "JIRA"
 		| "NPM_REGISTRY"
-		| "ANTHROPIC";
+		| "ANTHROPIC"
+		| "GOOGLE_GEMINI";
 	/**
 	 * The scope of the integration
 	 */
@@ -1812,7 +1931,8 @@ export type IntegrationIdView = {
 		| "CONTENTFUL"
 		| "JIRA"
 		| "NPM_REGISTRY"
-		| "ANTHROPIC";
+		| "ANTHROPIC"
+		| "GOOGLE_GEMINI";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -2039,6 +2159,14 @@ export type UpdateSandboxRequest = {
 	 */
 	variables?: Array<AddVariableInObjectRequest>;
 	permissions?: PermissionsView;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 /**
@@ -2073,10 +2201,6 @@ export type AddVariableInObjectRequest = {
 	 * If set to `true` the variable value will be encrypted and hidden
 	 */
 	encrypted?: boolean;
-	/**
-	 * The optional description of the variable
-	 */
-	description?: string;
 	/**
 	 * Initial path for the variable
 	 */
@@ -2113,6 +2237,14 @@ export type AddVariableInObjectRequest = {
 	 * Set to `true` to disable the variable. Disabled variables are not injected anywhere
 	 */
 	disabled?: boolean;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 	/**
 	 * The type of the added variable
 	 */
@@ -2620,6 +2752,14 @@ export type CreateNewSandboxRequest = {
 	 */
 	timeout?: number;
 	permissions?: PermissionsView;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type CreateFromSnapshotRequest = {
@@ -2722,10 +2862,6 @@ export type EnvironmentVariableView = {
 	 */
 	run_only_settable?: boolean;
 	/**
-	 * The optional description of the variable
-	 */
-	description?: string;
-	/**
 	 * Initial path for the variable
 	 */
 	init_path?: string;
@@ -2777,6 +2913,14 @@ export type EnvironmentVariableView = {
 	 * Set to `true` to disable the variable. Disabled variables are not injected anywhere
 	 */
 	disabled?: boolean;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type CloneSandboxRequest = {
@@ -2893,6 +3037,14 @@ export type SandboxResponse = {
 	project?: ProjectView;
 	permissions?: PermissionsView;
 	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
+	/**
 	 * The environment variables of the sandbox
 	 */
 	variables?: Array<EnvironmentVariableView>;
@@ -2966,6 +3118,14 @@ export type WorkspaceMemberViewWritable = {
 	 * ID of permission set to automatically assign to new projects
 	 */
 	auto_assign_permission_set_id?: number;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type WorkspaceViewWritable = {
@@ -3104,13 +3264,14 @@ export type PipelineEventViewWritable = {
 		| "ENVIRONMENT_DELETE"
 		| "SANDBOX_CREATED"
 		| "SANDBOX_DELETED"
-		| "SANDBOX_TIMED_OUT";
+		| "SANDBOX_TIMED_OUT"
+		| "SENTRY";
 	/**
 	 * The list of refs (branches/tags) that trigger the pipeline for push/ref events
 	 */
 	refs?: Array<string>;
 	/**
-	 * The list of pull request events that trigger the pipeline. Examples: `OPENED`, `EDITED`, `CLOSED`, `LABELED`, `UNLABELED`, `REVIEW_REQUESTED`, `REVIEW_REQUESTED_REMOVED`, `SYNCHRONIZED`
+	 * The list of pull request events that trigger the pipeline. Examples: `opened`, `reopened`, `synchronize`
 	 */
 	events?: Array<string>;
 	/**
@@ -3157,6 +3318,38 @@ export type PipelineEventViewWritable = {
 	 * The list of sandbox targets that trigger the pipeline for sandbox events (type `SANDBOX_CREATED`, `SANDBOX_DELETED`, `SANDBOX_TIMED_OUT`)
 	 */
 	targets?: Array<unknown>;
+	/**
+	 * The identifier of the Sentry integration whose webhooks trigger the pipeline (type `SENTRY`)
+	 */
+	integration?: string;
+	/**
+	 * The list of Sentry project slugs that trigger the pipeline; empty means all projects (type `SENTRY`)
+	 */
+	projects?: Array<string>;
+	/**
+	 * The list of Sentry issue levels that trigger the pipeline e.g., `error`, `fatal`; empty means all levels (type `SENTRY`)
+	 */
+	levels?: Array<string>;
+	/**
+	 * The list of Sentry issue statuses that trigger the pipeline e.g., `unresolved`; empty means all statuses (type `SENTRY`)
+	 */
+	statuses?: Array<string>;
+	/**
+	 * The list of Sentry issue substatuses that trigger the pipeline e.g., `new`, `regressed`; empty means all substatuses (type `SENTRY`)
+	 */
+	substatuses?: Array<string>;
+	/**
+	 * The minimum number of events in the Sentry issue required to trigger the pipeline (type `SENTRY`)
+	 */
+	count?: number;
+	/**
+	 * The minimum number of users affected by the Sentry issue required to trigger the pipeline (type `SENTRY`)
+	 */
+	user_count?: number;
+	/**
+	 * The number of minutes to skip subsequent runs for the same Sentry issue after a triggered run (type `SENTRY`)
+	 */
+	snooze_minutes?: number;
 };
 
 /**
@@ -3356,6 +3549,14 @@ export type ShortPipelineViewWritable = {
 	 * The folder name where the pipeline is organized
 	 */
 	folder?: string;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 /**
@@ -3456,7 +3657,8 @@ export type IntegrationViewWritable = {
 		| "CONTENTFUL"
 		| "JIRA"
 		| "NPM_REGISTRY"
-		| "ANTHROPIC";
+		| "ANTHROPIC"
+		| "GOOGLE_GEMINI";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -3496,6 +3698,10 @@ export type IntegrationViewWritable = {
 	 */
 	webhook_address?: string;
 	/**
+	 * The Sentry organization slug; when set, a webhook trigger is registered for this organization (type SENTRY)
+	 */
+	organization?: string;
+	/**
 	 * The JWT audience for token validation
 	 */
 	audience?: string;
@@ -3516,6 +3722,14 @@ export type IntegrationViewWritable = {
 	 * Set to `true` to disable the integration. Disabled integrations cannot be used in actions
 	 */
 	disabled?: boolean;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type IdsViewWritable = {
@@ -3567,6 +3781,14 @@ export type IdsViewWritable = {
 	 * The ID of the route
 	 */
 	route_id?: string;
+	/**
+	 * The ID of the tunnel agent
+	 */
+	agent_id?: string;
+	/**
+	 * The ID of the tunnel
+	 */
+	tunnel_id?: string;
 };
 
 /**
@@ -3673,7 +3895,8 @@ export type IntegrationIdViewWritable = {
 		| "CONTENTFUL"
 		| "JIRA"
 		| "NPM_REGISTRY"
-		| "ANTHROPIC";
+		| "ANTHROPIC"
+		| "GOOGLE_GEMINI";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -3884,6 +4107,14 @@ export type UpdateSandboxRequestWritable = {
 	 */
 	variables?: Array<AddVariableInObjectRequestWritable>;
 	permissions?: PermissionsView;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 /**
@@ -3910,10 +4141,6 @@ export type AddVariableInObjectRequestWritable = {
 	 * If set to `true` the variable value will be encrypted and hidden
 	 */
 	encrypted?: boolean;
-	/**
-	 * The optional description of the variable
-	 */
-	description?: string;
 	/**
 	 * Initial path for the variable
 	 */
@@ -3950,6 +4177,14 @@ export type AddVariableInObjectRequestWritable = {
 	 * Set to `true` to disable the variable. Disabled variables are not injected anywhere
 	 */
 	disabled?: boolean;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 	/**
 	 * The type of the added variable
 	 */
@@ -4302,6 +4537,14 @@ export type CreateNewSandboxRequestWritable = {
 	 */
 	timeout?: number;
 	permissions?: PermissionsView;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type CreateFromSnapshotRequestWritable = {
@@ -4455,6 +4698,14 @@ export type SandboxResponseWritable = {
 	project?: ProjectViewWritable;
 	permissions?: PermissionsView;
 	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
+	/**
 	 * The environment variables of the sandbox
 	 */
 	variables?: Array<EnvironmentVariableView>;
@@ -4596,6 +4847,14 @@ export type GetIdentifiersData = {
 		 * The path of the route. Resolved together with route_subdomain and route_domain against the parent distribution.
 		 */
 		route_path?: string;
+		/**
+		 * The human-readable ID of the tunnel agent
+		 */
+		agent?: string;
+		/**
+		 * The name of the tunnel. Requires agent to be resolved.
+		 */
+		tunnel?: string;
 	};
 	url: "/workspaces/{workspace_domain}/identifiers";
 };
