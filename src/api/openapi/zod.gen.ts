@@ -345,6 +345,119 @@ export const zPipelinePropertyView = z.object({
 });
 
 /**
+ * Defines how the target can be used (as deployment target, proxy, or both)
+ */
+export const zUseAsView = z.object({
+	target: z.boolean().optional(),
+	proxy: z.boolean().optional(),
+});
+
+/**
+ * List of specific sandboxes allowed to use this target
+ */
+export const zAllowedSandboxView = z.object({
+	project: z.string(),
+	sandbox: z.string(),
+	access_level: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+});
+
+/**
+ * List of specific pipelines allowed to use this target
+ */
+export const zAllowedPipelineView = z.object({
+	project: z.string(),
+	pipeline: z.string(),
+	access_level: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+});
+
+/**
+ * Access permissions configuration
+ */
+export const zPermissionsView = z.object({
+	others: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+	users: z.array(zUserPermissionView).optional(),
+	groups: z.array(zGroupPermissionView).optional(),
+});
+
+/**
+ * Short representation of an environment object
+ */
+export const zShortEnvironmentView = z.object({
+	url: z.string().readonly().optional(),
+	html_url: z.string().readonly().optional(),
+	name: z.string().optional(),
+	identifier: z.string().optional(),
+	id: z.string().optional(),
+	scope: z.enum(["PROJECT", "WORKSPACE", "ANY"]).optional(),
+});
+
+export const zPipelineEnvironmentContextView = z.object({
+	identifier: z.string().optional(),
+	tags: z.array(z.string()).optional(),
+	scope: z.enum(["PROJECT", "WORKSPACE", "ANY"]).optional(),
+});
+
+export const zPipelineArtifactContextView = z.object({
+	identifier: z.string().optional(),
+	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT", "ANY"]).optional(),
+});
+
+/**
+ * Short representation of a project
+ */
+export const zShortProjectView = z.object({
+	url: z.string().readonly().optional(),
+	html_url: z.string().readonly().optional(),
+	name: z.string().optional(),
+	display_name: z.string(),
+	status: z.string().optional(),
+	access: z.enum(["PRIVATE", "PUBLIC"]).optional(),
+	create_date: z.iso.datetime().optional(),
+});
+
+/**
  * MSSQL authentication credentials
  */
 export const zMssqlAuthView = z.object({
@@ -431,127 +544,6 @@ export const zFtpAuthView = z.object({
 	password: z.string(),
 });
 
-/**
- * Defines how the target can be used (as deployment target, proxy, or both)
- */
-export const zUseAsView = z.object({
-	target: z.boolean().optional(),
-	proxy: z.boolean().optional(),
-});
-
-/**
- * List of specific sandboxes allowed to use this target
- */
-export const zAllowedSandboxView = z.object({
-	project: z.string(),
-	sandbox: z.string(),
-	access_level: z
-		.enum([
-			"DENIED",
-			"READ_ONLY",
-			"USE_ONLY",
-			"BLIND",
-			"RUN_ONLY",
-			"READ_WRITE",
-			"MANAGE",
-			"DEFAULT",
-			"ALLOWED",
-			"STAGE",
-			"COMMIT",
-		])
-		.optional(),
-});
-
-/**
- * List of specific pipelines allowed to use this target
- */
-export const zAllowedPipelineView = z.object({
-	project: z.string(),
-	pipeline: z.string(),
-	access_level: z
-		.enum([
-			"DENIED",
-			"READ_ONLY",
-			"USE_ONLY",
-			"BLIND",
-			"RUN_ONLY",
-			"READ_WRITE",
-			"MANAGE",
-			"DEFAULT",
-			"ALLOWED",
-			"STAGE",
-			"COMMIT",
-		])
-		.optional(),
-});
-
-/**
- * Access permissions configuration
- */
-export const zPermissionsView = z.object({
-	others: z
-		.enum([
-			"DENIED",
-			"READ_ONLY",
-			"USE_ONLY",
-			"BLIND",
-			"RUN_ONLY",
-			"READ_WRITE",
-			"MANAGE",
-			"DEFAULT",
-			"ALLOWED",
-			"STAGE",
-			"COMMIT",
-		])
-		.optional(),
-	users: z.array(zUserPermissionView).optional(),
-	groups: z.array(zGroupPermissionView).optional(),
-});
-
-/**
- * Short representation of an environment object
- */
-export const zShortEnvironmentView = z.object({
-	url: z.string().readonly().optional(),
-	html_url: z.string().readonly().optional(),
-	name: z.string().optional(),
-	identifier: z.string().optional(),
-	id: z
-		.int()
-		.min(-2147483648, {
-			error: "Invalid value: Expected int32 to be >= -2147483648",
-		})
-		.max(2147483647, {
-			error: "Invalid value: Expected int32 to be <= 2147483647",
-		})
-		.optional(),
-	scope: z.enum(["PROJECT", "WORKSPACE", "ANY"]).optional(),
-});
-
-export const zPipelineEnvironmentContextView = z.object({
-	identifier: z.string().optional(),
-	tags: z.array(z.string()).optional(),
-	scope: z.enum(["PROJECT", "WORKSPACE", "ANY"]).optional(),
-});
-
-export const zPipelineArtifactContextView = z.object({
-	identifier: z.string().optional(),
-	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT", "ANY"]).optional(),
-});
-
-/**
- * Short representation of a project
- */
-export const zShortProjectView = z.object({
-	url: z.string().readonly().optional(),
-	html_url: z.string().readonly().optional(),
-	name: z.string().optional(),
-	display_name: z.string(),
-	status: z.string().optional(),
-	access: z.enum(["PRIVATE", "PUBLIC"]).optional(),
-	create_date: z.iso.datetime().optional(),
-});
-
 export const zIdsView = z.object({
 	url: z.string().readonly().optional(),
 	html_url: z.string().readonly().optional(),
@@ -570,6 +562,7 @@ export const zIdsView = z.object({
 	artifact_id: z.string().optional(),
 	artifact_version_id: z.string().optional(),
 	sandbox_id: z.string().optional(),
+	target_id: z.string().optional(),
 	unit_test_suite_id: z.string().optional(),
 	visual_test_suite_id: z.string().optional(),
 	crawl_suite_id: z.string().optional(),
@@ -708,6 +701,9 @@ export const zAddIntegrationRequest = z.object({
 		"NPM_REGISTRY",
 		"ANTHROPIC",
 		"GOOGLE_GEMINI",
+		"OPEN_AI",
+		"CURSOR",
+		"OPENCODE",
 	]),
 	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"]),
 	project_name: z.string().optional(),
@@ -793,6 +789,9 @@ export const zIntegrationIdView = z.object({
 			"NPM_REGISTRY",
 			"ANTHROPIC",
 			"GOOGLE_GEMINI",
+			"OPEN_AI",
+			"CURSOR",
+			"OPENCODE",
 		])
 		.optional(),
 	auth_type: z
@@ -957,7 +956,7 @@ export const zTunnelView = z.object({
 	name: z.string(),
 	endpoint: z.string(),
 	type: z.enum(["TCP", "TLS", "HTTP", "SSH"]),
-	region: z.enum(["US", "EU", "AS"]),
+	region: z.enum(["US", "EU", "AS"]).optional(),
 	whitelist: z.array(z.string()).optional(),
 	timeout: z
 		.int()
@@ -1035,6 +1034,9 @@ export const zUpdateSandboxRequest = z.object({
 	endpoints: z.array(zTunnelView).optional(),
 	variables: z.array(zAddVariableInObjectRequest).optional(),
 	permissions: zPermissionsView.optional(),
+	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
+	project: zShortProjectView.optional(),
+	environment: zShortEnvironmentView.optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
 });
@@ -1293,6 +1295,14 @@ export const zCloneSandboxRequest = z.object({
 	source_sandbox_id: z.string(),
 	name: z.string(),
 	identifier: z.string().optional(),
+	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
+	environment: z
+		.object({
+			id: z.string().optional(),
+			identifier: z.string().optional(),
+			name: z.string().optional(),
+		})
+		.optional(),
 });
 
 export const zSandboxResponse = z.object({
@@ -1349,7 +1359,9 @@ export const zSandboxResponse = z.object({
 			error: "Invalid value: Expected int32 to be <= 2147483647",
 		})
 		.optional(),
+	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
 	project: zProjectView.optional(),
+	environment: zShortEnvironmentView.optional(),
 	permissions: zPermissionsView.optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
@@ -1471,15 +1483,7 @@ export const zSsoViewWritable = z.object({
 export const zShortEnvironmentViewWritable = z.object({
 	name: z.string().optional(),
 	identifier: z.string().optional(),
-	id: z
-		.int()
-		.min(-2147483648, {
-			error: "Invalid value: Expected int32 to be >= -2147483648",
-		})
-		.max(2147483647, {
-			error: "Invalid value: Expected int32 to be <= 2147483647",
-		})
-		.optional(),
+	id: z.string().optional(),
 	scope: z.enum(["PROJECT", "WORKSPACE", "ANY"]).optional(),
 });
 
@@ -1510,6 +1514,7 @@ export const zIdsViewWritable = z.object({
 	artifact_id: z.string().optional(),
 	artifact_version_id: z.string().optional(),
 	sandbox_id: z.string().optional(),
+	target_id: z.string().optional(),
 	unit_test_suite_id: z.string().optional(),
 	visual_test_suite_id: z.string().optional(),
 	crawl_suite_id: z.string().optional(),
@@ -1595,6 +1600,9 @@ export const zIntegrationIdViewWritable = z.object({
 			"NPM_REGISTRY",
 			"ANTHROPIC",
 			"GOOGLE_GEMINI",
+			"OPEN_AI",
+			"CURSOR",
+			"OPENCODE",
 		])
 		.optional(),
 	auth_type: z
@@ -1752,7 +1760,7 @@ export const zTunnelViewWritable = z.object({
 	name: z.string(),
 	endpoint: z.string(),
 	type: z.enum(["TCP", "TLS", "HTTP", "SSH"]),
-	region: z.enum(["US", "EU", "AS"]),
+	region: z.enum(["US", "EU", "AS"]).optional(),
 	whitelist: z.array(z.string()).optional(),
 	timeout: z
 		.int()
@@ -1815,6 +1823,9 @@ export const zUpdateSandboxRequestWritable = z.object({
 	endpoints: z.array(zTunnelViewWritable).optional(),
 	variables: z.array(zAddVariableInObjectRequestWritable).optional(),
 	permissions: zPermissionsView.optional(),
+	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
+	project: zShortProjectViewWritable.optional(),
+	environment: zShortEnvironmentViewWritable.optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
 });
@@ -1957,6 +1968,14 @@ export const zCreateNewSandboxRequestWritable = z.object({
 	permissions: zPermissionsView.optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
+	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
+	environment: z
+		.object({
+			id: z.string().optional(),
+			identifier: z.string().optional(),
+			name: z.string().optional(),
+		})
+		.optional(),
 });
 
 export const zCreateFromSnapshotRequestWritable = z.object({
@@ -1987,6 +2006,14 @@ export const zCreateFromSnapshotRequestWritable = z.object({
 	tags: z.array(z.string()).optional(),
 	endpoints: z.array(zTunnelViewWritable).optional(),
 	variables: z.array(zEnvironmentVariableView).optional(),
+	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
+	environment: z
+		.object({
+			id: z.string().optional(),
+			identifier: z.string().optional(),
+			name: z.string().optional(),
+		})
+		.optional(),
 });
 
 export const zSandboxResponseWritable = z.object({
@@ -2041,7 +2068,9 @@ export const zSandboxResponseWritable = z.object({
 			error: "Invalid value: Expected int32 to be <= 2147483647",
 		})
 		.optional(),
+	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
 	project: zProjectViewWritable.optional(),
+	environment: zShortEnvironmentViewWritable.optional(),
 	permissions: zPermissionsView.optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
@@ -2308,6 +2337,9 @@ export const zIntegrationView = z.object({
 			"NPM_REGISTRY",
 			"ANTHROPIC",
 			"GOOGLE_GEMINI",
+			"OPEN_AI",
+			"CURSOR",
+			"OPENCODE",
 		])
 		.optional(),
 	auth_type: z
@@ -2591,6 +2623,9 @@ export const zIntegrationViewWritable = z.object({
 			"NPM_REGISTRY",
 			"ANTHROPIC",
 			"GOOGLE_GEMINI",
+			"OPEN_AI",
+			"CURSOR",
+			"OPENCODE",
 		])
 		.optional(),
 	auth_type: z
@@ -2655,6 +2690,7 @@ export const zGetIdentifiersQuery = z.object({
 	visual_test_suite: z.string().optional(),
 	crawl_suite: z.string().optional(),
 	distribution: z.string().optional(),
+	target: z.string().optional(),
 	route_subdomain: z.string().optional(),
 	route_domain: z.string().optional(),
 	route_path: z.string().optional(),
@@ -2802,7 +2838,8 @@ export const zGetSandboxesPath = z.object({
 });
 
 export const zGetSandboxesQuery = z.object({
-	project_name: z.string(),
+	project_name: z.string().optional(),
+	environment_id: z.string().optional(),
 });
 
 export const zGetSandboxesResponse = zSandboxesView;
@@ -2818,7 +2855,7 @@ export const zAddSandboxPath = z.object({
 });
 
 export const zAddSandboxQuery = z.object({
-	project_name: z.string(),
+	project_name: z.string().optional(),
 });
 
 export const zAddSandboxResponse = zSandboxResponse;
@@ -3062,7 +3099,8 @@ export const zGetProjectSnapshotsPath = z.object({
 });
 
 export const zGetProjectSnapshotsQuery = z.object({
-	project_name: z.string(),
+	project_name: z.string().optional(),
+	environment_id: z.string().optional(),
 });
 
 export const zGetProjectSnapshotsResponse = zSnapshotsView;
@@ -3084,7 +3122,8 @@ export const zAddSandboxByYamlPath = z.object({
 });
 
 export const zAddSandboxByYamlQuery = z.object({
-	project_name: z.string(),
+	project_name: z.string().optional(),
+	environment_id: z.string().optional(),
 });
 
 export const zAddSandboxByYamlResponse = zSandboxResponse;
@@ -3105,6 +3144,19 @@ export const zUpdateSsoResponse = zSsoView;
 
 export const zGetIntegrationsPath = z.object({
 	workspace_domain: z.string(),
+});
+
+export const zGetIntegrationsQuery = z.object({
+	project_name: z.string().optional(),
+	environment_id: z
+		.int()
+		.min(-2147483648, {
+			error: "Invalid value: Expected int32 to be >= -2147483648",
+		})
+		.max(2147483647, {
+			error: "Invalid value: Expected int32 to be <= 2147483647",
+		})
+		.optional(),
 });
 
 export const zGetIntegrationsResponse = zIntegrationsView;
