@@ -13,11 +13,12 @@ import { testIdentifier, testName } from "~/tests/shared/naming";
  */
 
 describe("Sandbox", () => {
+	const sandboxName = testName("sandbox");
 	let sandbox: Sandbox;
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
-			name: testName("sandbox"),
+			name: sandboxName,
 			identifier: testIdentifier("sandbox"),
 		});
 		await sandbox.waitUntilRunning();
@@ -39,8 +40,7 @@ describe("Sandbox", () => {
 		});
 
 		it("should have name", () => {
-			expect(sandbox.data.name).toBeDefined();
-			expect(sandbox.data.name).toContain("test-sandbox-");
+			expect(sandbox.data.name).toBe(sandboxName);
 		});
 
 		it("should have status", () => {
@@ -76,7 +76,7 @@ describe("Sandbox", () => {
 	describe("lifecycle", () => {
 		it("should create a sandbox", () => {
 			expect(sandbox.data.id).toBeDefined();
-			expect(sandbox.data.name).toContain("test-sandbox-");
+			expect(sandbox.data.name).toBe(sandboxName);
 		});
 
 		it("should get sandbox by ID", async () => {
