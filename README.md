@@ -36,14 +36,75 @@ await sandbox.runCommand({
 await sandbox.stop();
 ```
 
-Set required environment variables:
+Set the environment variables:
 
 ```bash
 export BUDDY_TOKEN="your-api-token"
 export BUDDY_WORKSPACE="your-workspace"
-export BUDDY_PROJECT="your-project"
+export BUDDY_PROJECT="your-project"  # Optional: see Scopes below
+export BUDDY_ENVIRONMENT="your-environment"  # Optional: see Scopes below
 export BUDDY_REGION="US"  # Optional: US (default), EU, or AS
 ```
+
+Only the token and the workspace are required - the project and the environment decide where new sandboxes land.
+
+## Scopes
+
+A sandbox lives in a project, in an environment, or directly in the workspace.
+You never set the scope explicitly - it follows from the project and environment
+you configure. Both come either from env vars (`BUDDY_PROJECT`,
+`BUDDY_ENVIRONMENT`) or from the `connection` object you can pass to any call to
+override them - see [Connection overrides](#connection-overrides).
+
+| Project | Environment | Where the sandbox is created | Scope |
+|---|---|---|---|
+| `my-project` | – | in that project | `PROJECT` |
+| – | `staging` | in the workspace-level environment `staging` | `ENVIRONMENT` |
+| `my-project` | `staging` | in the environment `staging` **belonging to `my-project`** | `ENVIRONMENT` |
+| – | – | in the workspace itself | `WORKSPACE` |
+
+Giving both is not a conflict. Environments belong either to a project or to the
+workspace, and the project decides which of the two `staging` means - nothing
+else. The sandbox is scoped to the environment either way; it never ends up in
+the project.
+
+```typescript
+// in a project
+await Sandbox.create({ connection: { project: "my-project" } });
+
+// in an environment of that project
+await Sandbox.create({
+    connection: { project: "my-project", environment: "staging" },
+});
+
+// in the workspace - nothing configured at all
+await Sandbox.create();
+
+// in the workspace despite a globally set BUDDY_PROJECT
+await Sandbox.create({ connection: { project: undefined } });
+```
+
+The environment identifier is resolved to an ID on first use and cached for the
+lifetime of the client. Pass `connection.environmentId` to skip that lookup.
+
+A `connection` object that mentions `project`, `environment` or `environmentId`
+decides the scope on its own - a globally set `BUDDY_PROJECT` will not turn a
+per-call `{ environment: "staging" }` override into a project sandbox, nor the
+other way round. Mentioning the key is what counts, not its value:
+`connection: { project: undefined }` asks for workspace scope even with
+`BUDDY_PROJECT` set, and `{ environment: undefined }` says "no environment" -
+the project then comes from wherever it normally would.
+
+`{ environment: "staging" }` does still borrow `BUDDY_PROJECT` to look the
+identifier up, because that is where most environments live and the scope is
+already settled by then. Add `project: undefined` next to it to force a
+workspace-level environment.
+
+`Sandbox.list()` and `Sandbox.listSnapshots()` return one scope at a time,
+mirroring the API - listing across scopes means one call per scope.
+
+> **Heads up when upgrading.** A missing `BUDDY_PROJECT` used to throw. It now
+> means workspace scope, so double-check your environment.
 
 ## Waiting for readiness
 
