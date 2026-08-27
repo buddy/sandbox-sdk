@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { FileSystem } from "@/entity/filesystem";
 import { Sandbox } from "@/entity/sandbox";
 import { BuddySDKError } from "@/errors";
+import { testIdentifier, testName } from "~/tests/shared/naming";
 
 /**
  * Error handling tests for Sandbox SDK
@@ -55,8 +56,8 @@ describe("Error handling", () => {
 		it("should throw when snapshot ID does not exist", async () => {
 			await expect(
 				Sandbox.createFromSnapshot("non-existent-snapshot-id-12345", {
-					name: `test-restore-fail-${Date.now()}`,
-					identifier: `test_restore_fail_${Date.now()}`,
+					name: testName("restore-fail"),
+					identifier: testIdentifier("restore_fail"),
 				}),
 			).rejects.toThrow();
 		});
@@ -67,8 +68,8 @@ describe("Error handling", () => {
 
 		beforeAll(async () => {
 			sandbox = await Sandbox.create({
-				name: `test-error-${Date.now()}`,
-				identifier: `test_error_${Date.now()}`,
+				name: testName("error"),
+				identifier: testIdentifier("error"),
 			});
 			await sandbox.destroy();
 		}, 120_000);
@@ -81,8 +82,8 @@ describe("Error handling", () => {
 			// Re-create a sandbox for this case; destroyed one would fail at path
 			// resolution before reaching the snapshot lookup.
 			const s = await Sandbox.create({
-				name: `test-snapshot-404-${Date.now()}`,
-				identifier: `test_snapshot_404_${Date.now()}`,
+				name: testName("snapshot-404"),
+				identifier: testIdentifier("snapshot_404"),
 			});
 			try {
 				await expect(

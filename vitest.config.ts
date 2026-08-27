@@ -9,6 +9,7 @@ export default defineConfig({
 		hookTimeout: 60_000,
 		fileParallelism: true,
 		maxWorkers: 8,
+		setupFiles: ["./tests/setup/scope.ts"],
 		globalSetup: ["./tests/global-teardown.ts"],
 		reporters: ["default", "@buddy-works/unit-tests/vitest"],
 	},

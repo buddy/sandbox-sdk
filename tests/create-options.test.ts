@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
+import { testIdentifier, testName } from "~/tests/shared/naming";
 
 /**
  * Tests for Sandbox.create with different configuration options
@@ -15,7 +16,7 @@ describe("Sandbox.create options", () => {
 
 	it("should create sandbox with default options", async () => {
 		const sandbox = await Sandbox.create({
-			identifier: `default_opts_${Date.now()}`,
+			identifier: testIdentifier("default_opts"),
 		});
 		sandboxes.push(sandbox);
 
@@ -24,7 +25,7 @@ describe("Sandbox.create options", () => {
 	});
 
 	it("should create sandbox with custom name", async () => {
-		const customName = `custom-name-${Date.now()}`;
+		const customName = testName("custom-name");
 		const sandbox = await Sandbox.create({ name: customName });
 		sandboxes.push(sandbox);
 
@@ -32,7 +33,7 @@ describe("Sandbox.create options", () => {
 	});
 
 	it("should create sandbox with custom identifier", async () => {
-		const customIdentifier = `custom_id_${Date.now()}`;
+		const customIdentifier = testIdentifier("custom_id");
 		const sandbox = await Sandbox.create({ identifier: customIdentifier });
 		sandboxes.push(sandbox);
 
@@ -48,7 +49,7 @@ describe("Sandbox.create options", () => {
 
 	it("should create sandbox with custom timeout", async () => {
 		const sandbox = await Sandbox.create({
-			identifier: `timeout_${Date.now()}`,
+			identifier: testIdentifier("timeout"),
 			timeout: 600,
 		});
 		sandboxes.push(sandbox);
@@ -58,7 +59,7 @@ describe("Sandbox.create options", () => {
 
 	it("should create sandbox with fetch (public repo)", async () => {
 		const sandbox = await Sandbox.create({
-			identifier: `fetch_${Date.now()}`,
+			identifier: testIdentifier("fetch"),
 			fetch: [
 				{
 					type: "PUBLIC_REPO",
@@ -81,7 +82,7 @@ describe("Sandbox.create options", () => {
 	});
 
 	it("should reject duplicate identifier", async () => {
-		const identifier = `duplicate_test_${Date.now()}`;
+		const identifier = testIdentifier("duplicate_test");
 
 		// Create first sandbox
 		const sandbox1 = await Sandbox.create({ identifier });

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
+import { testIdentifier, testName } from "~/tests/shared/naming";
 
 /**
  * Integration tests for Sandbox SDK
@@ -16,8 +17,8 @@ describe("Sandbox", () => {
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
-			name: `test-sandbox-${Date.now()}`,
-			identifier: `test_sandbox_${Date.now()}`,
+			name: testName("sandbox"),
+			identifier: testIdentifier("sandbox"),
 		});
 		await sandbox.waitUntilRunning();
 	}, 60_000);
@@ -349,8 +350,8 @@ describe("Sandbox", () => {
 
 		beforeAll(async () => {
 			appSandbox = await Sandbox.create({
-				name: `test-apps-${Date.now()}`,
-				identifier: `test_apps_${Date.now()}`,
+				name: testName("apps"),
+				identifier: testIdentifier("apps"),
 				apps: [
 					"echo 'app1 running' && sleep 3600",
 					"echo 'app2 running' && sleep 3600",
@@ -534,8 +535,8 @@ describe("Sandbox.createFromSnapshot", () => {
 
 	beforeAll(async () => {
 		baseSandbox = await Sandbox.create({
-			name: `test-snapshot-base-${Date.now()}`,
-			identifier: `test_snapshot_base_${Date.now()}`,
+			name: testName("snapshot-base"),
+			identifier: testIdentifier("snapshot_base"),
 		});
 		await baseSandbox.fs.uploadFile(Buffer.from(markerContent), markerFilename);
 		const snapshot = await baseSandbox.createSnapshot({
@@ -560,8 +561,8 @@ describe("Sandbox.createFromSnapshot", () => {
 
 	it("should create a sandbox from a snapshot with the given name and identifier", async () => {
 		if (!snapshotId) throw new Error("base snapshot was not created");
-		const restoredName = `test-snapshot-restored-${Date.now()}`;
-		const restoredIdentifier = `test_snapshot_restored_${Date.now()}`;
+		const restoredName = testName("snapshot-restored");
+		const restoredIdentifier = testIdentifier("snapshot_restored");
 		restoredSandbox = await Sandbox.createFromSnapshot(snapshotId, {
 			name: restoredName,
 			identifier: restoredIdentifier,
@@ -593,7 +594,7 @@ describe("Sandbox.createFromSnapshot", () => {
 	it("Sandbox.deleteSnapshot should remove a snapshot at the project level", async () => {
 		if (!baseSandbox) throw new Error("baseSandbox missing");
 		const extra = await baseSandbox.createSnapshot({
-			name: `test-delete-static-${Date.now()}`,
+			name: testName("delete-static"),
 		});
 		extraSnapshotId = extra.id;
 		await extra.waitUntilReady();
@@ -612,8 +613,8 @@ describe("Sandbox.clone", () => {
 
 	beforeAll(async () => {
 		source = await Sandbox.create({
-			name: `test-clone-source-${Date.now()}`,
-			identifier: `test_clone_source_${Date.now()}`,
+			name: testName("clone-source"),
+			identifier: testIdentifier("clone_source"),
 		});
 	}, 120_000);
 
@@ -623,8 +624,8 @@ describe("Sandbox.clone", () => {
 	}, 60_000);
 
 	it("should clone an existing sandbox under a new name and identifier", async () => {
-		const cloneName = `test-clone-target-${Date.now()}`;
-		const cloneIdentifier = `test_clone_target_${Date.now()}`;
+		const cloneName = testName("clone-target");
+		const cloneIdentifier = testIdentifier("clone_target");
 
 		clone = await Sandbox.clone(source.initializedId, {
 			name: cloneName,
@@ -636,5 +637,61 @@ describe("Sandbox.clone", () => {
 		expect(clone.data.status).toBe("RUNNING");
 		expect(clone.data.name).toBe(cloneName);
 		expect(clone.data.identifier).toBe(cloneIdentifier);
+	}, 120_000);
+});
+
+/**
+ * One sandbox per non-project scope: create it, check where it landed, destroy
+ * it. Everything else in this suite already covers the project scope.
+ *
+ * BUDDY_ENVIRONMENT is expected to point at a project-scoped environment, so
+ * resolving its identifier goes through the project - hence both are passed.
+ * The per-file setup moves the variable aside so it cannot flip the scope of
+ * the rest of the suite.
+ */
+const testEnvironment = process.env["BUDDY_TEST_ENVIRONMENT"];
+
+describe("Sandbox in the workspace", () => {
+	let sandbox: Sandbox | undefined;
+
+	afterAll(async () => {
+		await sandbox?.destroy().catch(() => undefined);
+	}, 60_000);
+
+	it("should be created outside of any project", async () => {
+		sandbox = await Sandbox.create({
+			name: testName("workspace-scope"),
+			identifier: testIdentifier("workspace_scope"),
+			connection: { project: undefined },
+		});
+
+		expect(sandbox.data.scope).toBe("WORKSPACE");
+		expect(sandbox.data.project).toBeUndefined();
+	}, 120_000);
+});
+
+describe.skipIf(!testEnvironment)("Sandbox in an environment", () => {
+	let sandbox: Sandbox | undefined;
+
+	afterAll(async () => {
+		await sandbox?.destroy().catch(() => undefined);
+	}, 60_000);
+
+	it("should be created in the environment rather than in the project", async () => {
+		sandbox = await Sandbox.create({
+			name: testName("environment-scope"),
+			identifier: testIdentifier("environment_scope"),
+			connection: {
+				project: process.env["BUDDY_PROJECT"],
+				environment: testEnvironment,
+			},
+		});
+
+		expect(sandbox.data.scope).toBe("ENVIRONMENT");
+		expect(sandbox.data.environment?.identifier).toBe(testEnvironment);
+		// Hash IDs arrive as strings even though the spec types them as int32 -
+		// the generated schema is patched for exactly this.
+		expect(typeof sandbox.data.environment?.id).toBe("string");
+		expect(sandbox.data.project).toBeUndefined();
 	}, 120_000);
 });
