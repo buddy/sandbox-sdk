@@ -1,5 +1,5 @@
 import { Sandbox } from "~/src";
-import { isTestSandbox, TEST_PREFIX } from "./shared/naming";
+import { isTestSandbox, TEST_NAME_PREFIX } from "./shared/naming";
 
 /**
  * Each scope is listed separately - the API has no "all scopes" mode. The env
@@ -19,7 +19,7 @@ function scopesToSweep() {
 }
 
 async function cleanupTestSandboxes() {
-	console.log(`\n🧹 Cleaning up '${TEST_PREFIX}' sandboxes...`);
+	console.log(`\n🧹 Cleaning up '${TEST_NAME_PREFIX}' sandboxes...`);
 
 	for (const { label, connection } of scopesToSweep()) {
 		const sandboxes = await Sandbox.list({ connection }).catch(

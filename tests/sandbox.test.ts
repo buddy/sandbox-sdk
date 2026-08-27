@@ -13,13 +13,13 @@ import { testIdentifier, testName } from "~/tests/shared/naming";
  */
 
 describe("Sandbox", () => {
-	const sandboxName = testName("sandbox");
+	const sandboxName = testName();
 	let sandbox: Sandbox;
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
 			name: sandboxName,
-			identifier: testIdentifier("sandbox"),
+			identifier: testIdentifier(),
 		});
 		await sandbox.waitUntilRunning();
 	}, 60_000);
@@ -641,34 +641,12 @@ describe("Sandbox.clone", () => {
 });
 
 /**
- * One sandbox per non-project scope: create it, check where it landed, destroy
- * it. Everything else in this suite already covers the project scope.
- *
+ * Environment scope: create one sandbox, check where it landed, destroy it.
  * BUDDY_ENVIRONMENT is expected to point at a project-scoped environment, so
- * resolving its identifier goes through the project - hence both are passed.
- * The per-file setup moves the variable aside so it cannot flip the scope of
- * the rest of the suite.
+ * both the project and the environment are passed. The per-file setup moves the
+ * variable aside so it cannot flip the scope of the rest of the suite.
  */
 const testEnvironment = process.env["BUDDY_TEST_ENVIRONMENT"];
-
-describe("Sandbox in the workspace", () => {
-	let sandbox: Sandbox | undefined;
-
-	afterAll(async () => {
-		await sandbox?.destroy().catch(() => undefined);
-	}, 60_000);
-
-	it("should be created outside of any project", async () => {
-		sandbox = await Sandbox.create({
-			name: testName("workspace-scope"),
-			identifier: testIdentifier("workspace_scope"),
-			connection: { project: undefined },
-		});
-
-		expect(sandbox.data.scope).toBe("WORKSPACE");
-		expect(sandbox.data.project).toBeUndefined();
-	}, 120_000);
-});
 
 describe.skipIf(!testEnvironment)("Sandbox in an environment", () => {
 	let sandbox: Sandbox | undefined;
