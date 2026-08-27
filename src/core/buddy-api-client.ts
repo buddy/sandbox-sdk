@@ -155,12 +155,26 @@ import type { ClientData, Data, DataUrl } from "@/types";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
 
+/** The level a sandbox belongs to */
+export type SandboxScope = "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
+
+/** Whether a generated query schema declares a given param */
+function declaresQueryParam(schema: z.ZodType, param: string): boolean {
+	const shape = (schema as unknown as { shape?: Record<string, unknown> })
+		.shape;
+	return shape !== undefined && param in shape;
+}
+
 /** Configuration options for creating a BuddyApiClient instance */
 export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 	/** Buddy workspace domain (e.g. "mycompany") */
 	workspace: string;
-	/** Project name within the workspace */
-	project_name: string;
+	/** Project name within the workspace - omit for workspace-level sandboxes */
+	project_name?: string;
+	/** Environment identifier - switches the scope to ENVIRONMENT */
+	environment?: string;
+	/** Environment ID - as above, but skips resolving the identifier */
+	environment_id?: string;
 	/** API authentication token (falls back to BUDDY_TOKEN env var) */
 	token?: string;
 	/** Base URL of the Buddy API */
@@ -171,8 +185,134 @@ export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 export class BuddyApiClient extends HttpClient {
 	readonly workspace: BuddyApiConfig["workspace"];
 	readonly project_name: BuddyApiConfig["project_name"];
+	readonly environment: BuddyApiConfig["environment"];
 	readonly #apiUrl: BuddyApiConfig["apiUrl"];
 	readonly #token: BuddyApiConfig["token"];
+	#environmentId: string | undefined;
+	#environmentIdLookup: Promise<string> | undefined;
+
+	/** The scope every request is pinned to - an environment wins over a project */
+	get scope(): SandboxScope {
+		if (this.environment !== undefined || this.#environmentId !== undefined) {
+			return "ENVIRONMENT";
+		}
+		return this.project_name !== undefined ? "PROJECT" : "WORKSPACE";
+	}
+
+	/**
+	 * Query params pinning a request to the client's scope. `environment_id`
+	 * goes out only where the endpoint declares it - resolving it costs a
+	 * request, which a call about logs should not have to pay or fail on.
+	 */
+	async #scopeQuery(querySchema: z.ZodType): Promise<Record<string, string>> {
+		if (this.scope === "ENVIRONMENT") {
+			return declaresQueryParam(querySchema, "environment_id")
+				? { environment_id: await this.#resolveEnvironmentId() }
+				: {};
+		}
+
+		const projectName = this.project_name;
+		return projectName !== undefined ? { project_name: projectName } : {};
+	}
+
+	/**
+	 * Resolve (once) and cache the ID of the configured environment. Only a
+	 * successful lookup is kept - a rejected promise left in the field would be
+	 * replayed for the lifetime of the client.
+	 */
+	async #resolveEnvironmentId(): Promise<string> {
+		const known = this.#environmentId;
+		if (known !== undefined) {
+			return known;
+		}
+
+		let lookup = this.#environmentIdLookup;
+
+		if (lookup === undefined) {
+			lookup = this.#lookupEnvironmentId();
+			this.#environmentIdLookup = lookup;
+		}
+
+		try {
+			const resolved = await lookup;
+			this.#environmentId = resolved;
+			return resolved;
+		} catch (error) {
+			// Only drop our own attempt, not a newer concurrent one.
+			if (this.#environmentIdLookup === lookup) {
+				this.#environmentIdLookup = undefined;
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Look up an environment identifier, project first and workspace after:
+	 * `/identifiers` searches only one of the two at a time. Identifiers are
+	 * unique across both, so the order cannot produce a wrong match.
+	 */
+	async #lookupEnvironmentId(): Promise<string> {
+		const identifier = this.environment;
+		if (identifier === undefined) {
+			throw new Error(
+				"Environment identifier is missing. Set environment in config.connection or BUDDY_ENVIRONMENT env var.",
+			);
+		}
+
+		const projectName = this.project_name;
+
+		if (projectName !== undefined) {
+			const inProject = await this.#findEnvironmentId({
+				project: projectName,
+				environment: identifier,
+			});
+			if (inProject) {
+				return inProject;
+			}
+		}
+
+		const inWorkspace = await this.#findEnvironmentId({
+			environment: identifier,
+		});
+		if (inWorkspace) {
+			return inWorkspace;
+		}
+
+		throw new Error(
+			projectName !== undefined
+				? `Environment '${identifier}' not found in project '${projectName}' nor at workspace level.`
+				: `Environment '${identifier}' not found at workspace level. Set project in the connection config if it belongs to a project.`,
+		);
+	}
+
+	async #findEnvironmentId(query: {
+		project?: string;
+		environment: string;
+	}): Promise<string | undefined> {
+		try {
+			const identifiers = await this.getIdentifiers({ query });
+			return identifiers.environment_id;
+		} catch (error) {
+			// 404 means "not here" - fall through to the next lookup.
+			if (error instanceof HttpError && error.status === 404) {
+				return undefined;
+			}
+			throw error;
+		}
+	}
+
+	/** Pin a created sandbox to the environment - POST /sandboxes takes no query param for it */
+	async #applyScopeToBody(body: unknown): Promise<unknown> {
+		if (this.scope !== "ENVIRONMENT" || body === undefined) {
+			return body;
+		}
+
+		return {
+			...(body as Record<string, unknown>),
+			scope: "ENVIRONMENT",
+			environment: { id: await this.#resolveEnvironmentId() },
+		};
+	}
 
 	/** Builds a parameterized URL by replacing path placeholders */
 	#buildUrl<const D extends Pick<Data, "url">>(params: {
@@ -218,6 +358,7 @@ export class BuddyApiClient extends HttpClient {
 		querySchema,
 		responseSchema,
 		skipRetry,
+		skipScope,
 	}: {
 		method: "GET" | "POST" | "DELETE" | "PATCH";
 		url: DataUrl<D>;
@@ -227,6 +368,8 @@ export class BuddyApiClient extends HttpClient {
 		querySchema?: z.ZodType;
 		responseSchema: z.ZodType<Response>;
 		skipRetry?: boolean;
+		/** Skip scope injection - required by the endpoint that resolves it */
+		skipScope?: boolean;
 	}): Promise<Response> {
 		const pathResult = await pathSchema.safeParseAsync({
 			workspace_domain: this.workspace,
@@ -240,7 +383,7 @@ export class BuddyApiClient extends HttpClient {
 		let validatedQuery: Record<string, string | number | boolean> | undefined;
 		if (querySchema) {
 			const queryResult = await querySchema.safeParseAsync({
-				project_name: this.project_name,
+				...(skipScope ? {} : await this.#scopeQuery(querySchema)),
 				...(data.query ?? {}),
 			});
 			if (!queryResult.success) {
@@ -306,9 +449,11 @@ export class BuddyApiClient extends HttpClient {
 
 	/** Create a new sandbox */
 	async addSandbox<const Data extends AddSandboxData>(data: ClientData<Data>) {
+		const body = await this.#applyScopeToBody(data.body);
+
 		return this.#requestWithValidation<Data, AddSandboxResponse>({
 			method: "POST",
-			data,
+			data: { ...data, body } as ClientData<Data>,
 			url: "/workspaces/{workspace_domain}/sandboxes",
 			bodySchema: zAddSandboxBody,
 			pathSchema: zAddSandboxPath,
@@ -473,6 +618,8 @@ export class BuddyApiClient extends HttpClient {
 			pathSchema: zGetIdentifiersPath,
 			querySchema: zGetIdentifiersQuery,
 			responseSchema: zGetIdentifiersResponse,
+			// This endpoint resolves the scope, so it cannot depend on it.
+			skipScope: true,
 		});
 	}
 
@@ -724,7 +871,6 @@ export class BuddyApiClient extends HttpClient {
 		});
 
 		const url = new URL(parameterizedUrl, this.#apiUrl);
-		url.searchParams.set("project_name", this.project_name);
 
 		const filename = data.path.path.split("/").pop() ?? "file";
 
@@ -985,6 +1131,8 @@ export class BuddyApiClient extends HttpClient {
 
 		this.workspace = config.workspace;
 		this.project_name = config.project_name;
+		this.environment = config.environment;
+		this.#environmentId = config.environment_id;
 		this.#apiUrl = config.apiUrl;
 		this.#token = token;
 		this.setAuthToken(token);
