@@ -275,6 +275,88 @@ describe("HttpClient", () => {
 			expect(attempts).toBe(1);
 		});
 
+		it("should not repeat a non-idempotent request after a 5xx", async () => {
+			let attempts = 0;
+			server.use(
+				http.post(`${TEST_BASE_URL}/create`, () => {
+					attempts++;
+					return HttpResponse.json({ error: "Bad gateway" }, { status: 502 });
+				}),
+			);
+
+			const client = new HttpClient({ baseURL: TEST_BASE_URL });
+
+			await expect(
+				client.post("/create", { name: "x" }, { idempotent: false }),
+			).rejects.toThrow(HttpError);
+			expect(attempts).toBe(1);
+		});
+
+		it("should not repeat a non-idempotent request after a network error", async () => {
+			let attempts = 0;
+			server.use(
+				http.post(`${TEST_BASE_URL}/create-drop`, () => {
+					attempts++;
+					return HttpResponse.error();
+				}),
+			);
+
+			const client = new HttpClient({ baseURL: TEST_BASE_URL });
+
+			await expect(
+				client.post("/create-drop", { name: "x" }, { idempotent: false }),
+			).rejects.toThrow(HttpError);
+			expect(attempts).toBe(1);
+		});
+
+		it("should still retry a non-idempotent request on 429", async () => {
+			let attempts = 0;
+			server.use(
+				http.post(`${TEST_BASE_URL}/create-limited`, () => {
+					attempts++;
+					if (attempts < 2) {
+						return HttpResponse.json(
+							{ error: "Too many requests" },
+							{ status: 429 },
+						);
+					}
+					return HttpResponse.json({ id: "sb-1" });
+				}),
+			);
+
+			const client = new HttpClient({ baseURL: TEST_BASE_URL });
+
+			const response = await client.post(
+				"/create-limited",
+				{ name: "x" },
+				{ idempotent: false },
+			);
+			expect(response.data).toEqual({ id: "sb-1" });
+			expect(attempts).toBe(2);
+		});
+
+		it("should keep retrying idempotent POSTs on 5xx by default", async () => {
+			let attempts = 0;
+			server.use(
+				http.post(`${TEST_BASE_URL}/stop`, () => {
+					attempts++;
+					if (attempts < 2) {
+						return HttpResponse.json(
+							{ error: "Service unavailable" },
+							{ status: 503 },
+						);
+					}
+					return HttpResponse.json({ ok: true });
+				}),
+			);
+
+			const client = new HttpClient({ baseURL: TEST_BASE_URL });
+
+			const response = await client.post("/stop");
+			expect(response.data).toEqual({ ok: true });
+			expect(attempts).toBe(2);
+		});
+
 		it("should fail after max retries on persistent 500", async () => {
 			let attempts = 0;
 			server.use(

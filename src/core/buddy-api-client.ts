@@ -218,6 +218,7 @@ export class BuddyApiClient extends HttpClient {
 		querySchema,
 		responseSchema,
 		skipRetry,
+		idempotent,
 	}: {
 		method: "GET" | "POST" | "DELETE" | "PATCH";
 		url: DataUrl<D>;
@@ -227,6 +228,8 @@ export class BuddyApiClient extends HttpClient {
 		querySchema?: z.ZodType;
 		responseSchema: z.ZodType<Response>;
 		skipRetry?: boolean;
+		/** See `RequestConfig.idempotent`; creates and command runs pass `false`. */
+		idempotent?: boolean;
 	}): Promise<Response> {
 		const pathResult = await pathSchema.safeParseAsync({
 			workspace_domain: this.workspace,
@@ -269,6 +272,7 @@ export class BuddyApiClient extends HttpClient {
 		const requestConfig: RequestConfig = {
 			queryParams: validatedQuery,
 			skipRetry,
+			idempotent,
 		};
 
 		let request: Promise<HttpResponse>;
@@ -310,6 +314,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes",
+			idempotent: false,
 			bodySchema: zAddSandboxBody,
 			pathSchema: zAddSandboxPath,
 			querySchema: zAddSandboxQuery,
@@ -374,6 +379,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/snapshots",
+			idempotent: false,
 			bodySchema: zAddSandboxSnapshotBody,
 			pathSchema: zAddSandboxSnapshotPath,
 			responseSchema: zAddSandboxSnapshotResponse.transform(
@@ -484,6 +490,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
+			idempotent: false,
 			bodySchema: zExecuteSandboxCommandBody,
 			pathSchema: zExecuteSandboxCommandPath,
 			responseSchema: zExecuteSandboxCommandResponse.transform(
@@ -611,6 +618,7 @@ export class BuddyApiClient extends HttpClient {
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/restart",
+			idempotent: false,
 			pathSchema: zRestartSandboxPath,
 			responseSchema: zRestartSandboxResponse.transform(
 				restartSandboxResponseTransformer,
