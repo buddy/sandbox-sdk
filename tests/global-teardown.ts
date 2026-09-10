@@ -8,12 +8,12 @@ import {
 } from "./shared/scope";
 
 function scopesToSweep() {
+	const project = process.env["BUDDY_PROJECT"];
+	const workspace = process.env["BUDDY_WORKSPACE"];
+
 	return [
-		{ label: "project", connection: { project: process.env["BUDDY_PROJECT"] } },
-		{
-			label: "workspace",
-			connection: { workspace: process.env["BUDDY_WORKSPACE"] },
-		},
+		{ label: "project", connection: project ? { project } : undefined },
+		{ label: "workspace", connection: workspace ? { workspace } : undefined },
 		{ label: "test workspace", connection: workspaceConnection },
 		{
 			label: "workspace environment",
