@@ -18,6 +18,13 @@ export interface HttpClientConfig {
 export interface RequestConfig {
 	/** Disable automatic retry on transient failures */
 	skipRetry?: boolean;
+	/**
+	 * Whether repeating the request is safe. Defaults to `true`. When `false`,
+	 * only a 429 (the server refused the request before acting on it) is
+	 * retried: a lost response after the server accepted a non-idempotent
+	 * request would otherwise create the resource, or run the command, twice.
+	 */
+	idempotent?: boolean;
 	/** URL query parameters to append */
 	queryParams?: Record<string, string | number | boolean | undefined>;
 	/** Additional headers for this request only */
@@ -154,6 +161,7 @@ export class HttpClient {
 	async #executeWithRetry<T>(
 		requestFunction: () => Promise<HttpResponse<T>>,
 		skipRetry = false,
+		idempotent = true,
 	): Promise<HttpResponse<T>> {
 		if (skipRetry) {
 			return requestFunction();
@@ -164,11 +172,17 @@ export class HttpClient {
 			minTimeout: 1000,
 			maxTimeout: 10_000,
 			onFailedAttempt: ({ error }) => {
-				if (error instanceof HttpError) {
-					const status = error.status;
-					if (status && status >= 400 && status < 500 && status !== 429) {
-						throw error;
-					}
+				const status = error instanceof HttpError ? error.status : undefined;
+				if (status === 429) {
+					return;
+				}
+				// Network errors and timeouts (status 0) and 5xx responses may have
+				// reached the server, so a non-idempotent request is not repeated.
+				if (!idempotent) {
+					throw error;
+				}
+				if (status && status >= 400 && status < 500) {
+					throw error;
 				}
 			},
 		};
@@ -185,6 +199,7 @@ export class HttpClient {
 	): Promise<HttpResponse<T>> {
 		const {
 			skipRetry,
+			idempotent,
 			queryParams,
 			headers: additionalHeaders,
 			responseType = "json",
@@ -271,7 +286,7 @@ export class HttpClient {
 			}
 		};
 
-		return this.#executeWithRetry(makeRequest, skipRetry);
+		return this.#executeWithRetry(makeRequest, skipRetry, idempotent);
 	}
 
 	/** Perform a GET request */
