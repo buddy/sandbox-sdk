@@ -9,6 +9,7 @@ import { log } from "@/shared/logger";
  * Creating outside a project needs workspace admin.
  */
 
+const workspaceName = process.env["BUDDY_WORKSPACE"];
 const projectName = process.env["BUDDY_PROJECT"];
 // Passed as arguments, not env vars: BUDDY_ENVIRONMENT is read by the SDK
 // itself and would move every other example into that environment.
@@ -28,11 +29,14 @@ if (projectName) {
 	log("Project scope skipped - set BUDDY_PROJECT to try it.\n");
 }
 
-log("Workspace scope (no project, no environment):");
-const workspaceSandboxes = await Sandbox.list({
-	connection: { workspace: process.env["BUDDY_WORKSPACE"] },
-});
-log(`  ${workspaceSandboxes.length} workspace-level sandbox(es)\n`);
+if (workspaceName) {
+	log("Workspace scope (no project, no environment):");
+
+	const workspaceSandboxes = await Sandbox.list({
+		connection: { workspace: workspaceName },
+	});
+	log(`  ${workspaceSandboxes.length} workspace-level sandbox(es)\n`);
+}
 
 if (environmentIdentifier) {
 	log(`Environment scope (${environmentIdentifier}):`);
