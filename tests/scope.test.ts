@@ -545,6 +545,26 @@ describe("connection config", () => {
 		);
 	});
 
+	it("treats an empty string as named, not as unset", async () => {
+		await withEnv(
+			{
+				BUDDY_WORKSPACE: TEST_WORKSPACE,
+				BUDDY_API_URL: TEST_API_URL,
+				BUDDY_TOKEN: TEST_TOKEN,
+				BUDDY_PROJECT: TEST_PROJECT,
+			},
+			() => {
+				const client = createClient({
+					project: "",
+					environment: ENVIRONMENT,
+				});
+
+				expect(client.scope).toBe("ENVIRONMENT");
+				expect(client.project_name).toBeUndefined();
+			},
+		);
+	});
+
 	it("falls back to workspace scope when nothing is configured", async () => {
 		await withEnv(
 			{

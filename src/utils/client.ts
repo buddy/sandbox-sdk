@@ -42,10 +42,10 @@ type ScopeSource = Pick<
  */
 function resolveScopeSource(connection?: ConnectionConfig): ScopeSource {
 	if (
-		connection?.workspace ??
-		connection?.project ??
-		connection?.environment ??
-		connection?.environmentId
+		connection?.workspace !== undefined ||
+		connection?.project !== undefined ||
+		connection?.environment !== undefined ||
+		connection?.environmentId !== undefined
 	) {
 		return {
 			project: connection.project,
