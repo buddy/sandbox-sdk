@@ -14,7 +14,6 @@ import type {
 	UpdateSandboxRequestWritable,
 } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
-import { HttpError } from "@/core/http-client";
 import { Command } from "@/entity/command";
 import { FileSystem } from "@/entity/filesystem";
 import { Snapshot } from "@/entity/snapshot";
@@ -350,19 +349,10 @@ export class Sandbox {
 			)?.id;
 		}
 
-		try {
-			const identifiers = await client.getIdentifiers({
-				query: { project: client.project_name, sandbox: identifier },
-			});
-			return identifiers.sandbox_id;
-		} catch (error) {
-			// 404 means the identifier doesn't exist - the caller turns that into
-			// a "not found" error. Anything else (auth, network, 5xx) surfaces.
-			if (!(error instanceof HttpError) || error.status !== 404) {
-				throw error;
-			}
-			return undefined;
-		}
+		const identifiers = await client.getIdentifiers({
+			query: { project: client.project_name, sandbox: identifier },
+		});
+		return identifiers.sandbox_id;
 	}
 
 	/**
