@@ -1,4 +1,5 @@
 import { Sandbox } from "~/src";
+import { createClient } from "~/src/utils/client";
 import { isTestSandbox, TEST_NAME_PREFIX } from "./shared/naming";
 import {
 	projectEnvironmentConnection,
@@ -40,10 +41,12 @@ async function cleanupTestSandboxes() {
 			continue;
 		}
 
+		const client = createClient(connection);
 		const results = await Promise.allSettled(
 			testSandboxes.map(async (s) => {
-				const sandbox = s.id ? await Sandbox.getById(s.id) : undefined;
-				await sandbox?.destroy();
+				if (s.id) {
+					await client.deleteSandboxById({ path: { id: s.id } });
+				}
 				return s.identifier ?? s.name;
 			}),
 		);
