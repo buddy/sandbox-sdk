@@ -247,9 +247,9 @@ export class BuddyApiClient extends HttpClient {
 	}
 
 	/**
-	 * Look up an environment identifier, project first and workspace after:
-	 * `/identifiers` searches only one of the two at a time. Identifiers are
-	 * unique across both, so the order cannot produce a wrong match.
+	 * Look up an environment identifier. `/identifiers` searches a project or
+	 * the workspace, never both, and the caller picks which by passing a
+	 * project or not - so a miss is a miss, not a reason to look elsewhere.
 	 */
 	async #lookupEnvironmentId(): Promise<string> {
 		const identifier = this.environment;
@@ -260,40 +260,39 @@ export class BuddyApiClient extends HttpClient {
 		}
 
 		const projectName = this.project_name;
+		const identifiers = await this.#resolveIdentifiers(
+			projectName !== undefined
+				? { project: projectName, environment: identifier }
+				: { environment: identifier },
+		);
 
-		if (projectName !== undefined) {
-			const inProject = await this.#findEnvironmentId({
-				project: projectName,
-				environment: identifier,
-			});
-			if (inProject) {
-				return inProject;
-			}
+		// An unknown project is dropped from the response rather than failing
+		// the call, which would leave the answer about something else entirely.
+		if (
+			projectName !== undefined &&
+			identifiers?.project_identifier === undefined
+		) {
+			throw new Error(`Project '${projectName}' not found.`);
 		}
 
-		const inWorkspace = await this.#findEnvironmentId({
-			environment: identifier,
-		});
-		if (inWorkspace) {
-			return inWorkspace;
+		if (identifiers?.environment_id) {
+			return identifiers.environment_id;
 		}
 
 		throw new Error(
 			projectName !== undefined
-				? `Environment '${identifier}' not found in project '${projectName}' nor at workspace level.`
-				: `Environment '${identifier}' not found at workspace level. Set project in the connection config if it belongs to a project.`,
+				? `Environment '${identifier}' not found in project '${projectName}'.`
+				: `Environment '${identifier}' not found at workspace level. Pass a project if it belongs to one.`,
 		);
 	}
 
-	async #findEnvironmentId(query: {
+	async #resolveIdentifiers(query: {
 		project?: string;
 		environment: string;
-	}): Promise<string | undefined> {
+	}): Promise<GetIdentifiersResponse | undefined> {
 		try {
-			const identifiers = await this.getIdentifiers({ query });
-			return identifiers.environment_id;
+			return await this.getIdentifiers({ query });
 		} catch (error) {
-			// 404 means "not here" - fall through to the next lookup.
 			if (error instanceof HttpError && error.status === 404) {
 				return undefined;
 			}

@@ -18,6 +18,11 @@ export interface ConnectionConfig {
 	project?: string;
 	/** Environment identifier (falls back to BUDDY_ENVIRONMENT env var) */
 	environment?: string;
+	/**
+	 * Sandboxes go to a project or an environment as soon as one is configured,
+	 * here or in the env vars. This asks for neither.
+	 */
+	scope?: "WORKSPACE";
 	/** Environment ID - same as `environment`, but skips the identifier lookup */
 	environmentId?: string;
 	/** API authentication token (falls back to BUDDY_TOKEN env var) */
@@ -34,31 +39,24 @@ type ScopeSource = Pick<
 >;
 
 /**
- * Resolve which project/environment the client works against.
- *
- * A `connection` mentioning any scope field decides the scope by itself; the
- * env vars only apply when it says nothing. Presence of the key counts, not its
- * value, so `{ project: undefined }` asks for workspace scope.
- *
- * An environment given without a project still borrows BUDDY_PROJECT: by then
- * the scope is settled, and project-scoped environments are invisible to a
- * workspace-level lookup.
+ * Resolve which project/environment the client works against. A `connection`
+ * naming one decides by itself, the env vars apply when it names none, and
+ * `scope: "WORKSPACE"` opts out of both.
  */
 function resolveScopeSource(connection?: ConnectionConfig): ScopeSource {
-	const declaresScope =
-		connection !== undefined &&
-		("project" in connection ||
-			"environment" in connection ||
-			"environmentId" in connection);
+	if (connection?.scope === "WORKSPACE") {
+		return {};
+	}
 
-	if (declaresScope) {
+	if (
+		connection?.project ??
+		connection?.environment ??
+		connection?.environmentId
+	) {
 		return {
-			project:
-				connection !== undefined && "project" in connection
-					? connection.project
-					: environment.BUDDY_PROJECT,
-			environment: connection?.environment,
-			environmentId: connection?.environmentId,
+			project: connection.project,
+			environment: connection.environment,
+			environmentId: connection.environmentId,
 		};
 	}
 

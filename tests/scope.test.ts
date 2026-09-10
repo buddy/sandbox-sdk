@@ -65,13 +65,16 @@ function resolveEnvironment(options: { inProject?: boolean } = {}) {
 			const query = new URL(request.url).searchParams;
 			lookups.push(query);
 
-			const askedInProject = query.get("project") !== null;
+			const project = query.get("project");
+			const askedInProject = project !== null;
 			const matches =
 				options.inProject === true ? askedInProject : !askedInProject;
 
-			return matches
-				? HttpResponse.json({ environment_id: ENVIRONMENT_ID })
-				: HttpResponse.json({});
+			return HttpResponse.json({
+				// The endpoint echoes back the project it resolved.
+				...(project ? { project_identifier: project } : {}),
+				...(matches ? { environment_id: ENVIRONMENT_ID } : {}),
+			});
 		}),
 	);
 
@@ -111,19 +114,19 @@ describe("scope resolution", () => {
 		expect(queries[0]?.get("project_name")).toBeNull();
 	});
 
-	it("falls back to a workspace-wide lookup when the project has no such environment", async () => {
+	it("stays in the project instead of looking one level up", async () => {
 		const lookups = resolveEnvironment({ inProject: false });
-		const queries = recordListRequests();
 
-		await buildClient({
-			project_name: TEST_PROJECT,
-			environment: ENVIRONMENT,
-		}).getSandboxes({});
+		await expect(
+			buildClient({
+				project_name: TEST_PROJECT,
+				environment: ENVIRONMENT,
+			}).getSandboxes({}),
+		).rejects.toThrow(
+			`Environment '${ENVIRONMENT}' not found in project '${TEST_PROJECT}'.`,
+		);
 
-		expect(lookups).toHaveLength(2);
-		expect(lookups[0]?.get("project")).toBe(TEST_PROJECT);
-		expect(lookups[1]?.get("project")).toBeNull();
-		expect(queries[0]?.get("environment_id")).toBe(ENVIRONMENT_ID);
+		expect(lookups).toHaveLength(1);
 	});
 
 	it("resolves the environment once and reuses it", async () => {
@@ -170,16 +173,30 @@ describe("scope resolution", () => {
 		expect(queries[0]?.get("environment_id")).toBe(ENVIRONMENT_ID);
 	});
 
-	it("names both places it searched when the environment is nowhere to be found", async () => {
-		server.use(http.get(IDENTIFIERS_URL, () => HttpResponse.json({})));
+	it("reports an unknown project instead of quietly using a workspace environment", async () => {
+		// No project_identifier in the response means the project did not
+		// resolve - the environment_id then answers a different question.
+		server.use(
+			http.get(IDENTIFIERS_URL, () =>
+				HttpResponse.json({ environment_id: ENVIRONMENT_ID }),
+			),
+		);
 
 		await expect(
 			buildClient({
 				project_name: TEST_PROJECT,
 				environment: ENVIRONMENT,
 			}).getSandboxes({}),
+		).rejects.toThrow(`Project '${TEST_PROJECT}' not found.`);
+	});
+
+	it("points at the project when no environment was given and none is found", async () => {
+		server.use(http.get(IDENTIFIERS_URL, () => HttpResponse.json({})));
+
+		await expect(
+			buildClient({ environment: ENVIRONMENT }).getSandboxes({}),
 		).rejects.toThrow(
-			`Environment '${ENVIRONMENT}' not found in project '${TEST_PROJECT}' nor at workspace level.`,
+			`Environment '${ENVIRONMENT}' not found at workspace level.`,
 		);
 	});
 });
@@ -298,9 +315,8 @@ describe("Sandbox.getByIdentifier", () => {
 		workspace: TEST_WORKSPACE,
 		token: TEST_TOKEN,
 		apiUrl: TEST_API_URL,
-		// Pins the workspace scope. Without it the scope would come from the
-		// env vars, and .env.example tells everyone to set BUDDY_PROJECT.
-		project: undefined,
+		// Pins the workspace scope; without it the env vars would decide.
+		scope: "WORKSPACE" as const,
 	};
 
 	it("resolves through /identifiers when scoped to a project", async () => {
@@ -428,29 +444,6 @@ describe("connection config", () => {
 				const client = createClient({ environment: ENVIRONMENT });
 
 				expect(client.scope).toBe("ENVIRONMENT");
-				// The project is kept, but only as lookup context - most
-				// environments belong to one, and they are invisible to a
-				// workspace-level search.
-				expect(client.project_name).toBe(TEST_PROJECT);
-			},
-		);
-	});
-
-	it("drops the ambient project when the caller explicitly clears it", async () => {
-		await withEnv(
-			{
-				BUDDY_WORKSPACE: TEST_WORKSPACE,
-				BUDDY_API_URL: TEST_API_URL,
-				BUDDY_TOKEN: TEST_TOKEN,
-				BUDDY_PROJECT: TEST_PROJECT,
-			},
-			() => {
-				const client = createClient({
-					project: undefined,
-					environment: ENVIRONMENT,
-				});
-
-				expect(client.scope).toBe("ENVIRONMENT");
 				expect(client.project_name).toBeUndefined();
 			},
 		);
@@ -498,7 +491,7 @@ describe("connection config", () => {
 		);
 	});
 
-	it("reads an explicitly undefined project as a request for workspace scope", async () => {
+	it("opts out of the env vars with an explicit workspace scope", async () => {
 		await withEnv(
 			{
 				BUDDY_WORKSPACE: TEST_WORKSPACE,
@@ -507,7 +500,7 @@ describe("connection config", () => {
 				BUDDY_PROJECT: TEST_PROJECT,
 			},
 			() => {
-				expect(createClient({ project: undefined }).scope).toBe("WORKSPACE");
+				expect(createClient({ scope: "WORKSPACE" }).scope).toBe("WORKSPACE");
 			},
 		);
 	});

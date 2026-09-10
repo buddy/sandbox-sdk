@@ -5,13 +5,12 @@ export const workspaceEnvironment = process.env["BUDDY_TEST_ENVIRONMENT"];
 export const projectEnvironment = process.env["BUDDY_TEST_PROJECT_ENVIRONMENT"];
 
 export const workspaceConnection = workspace
-	? { workspace, project: undefined }
+	? { workspace, scope: "WORKSPACE" as const }
 	: undefined;
 
-/** `project: undefined` keeps the client from borrowing BUDDY_PROJECT */
 export const workspaceEnvironmentConnection =
 	workspace && workspaceEnvironment
-		? { workspace, project: undefined, environment: workspaceEnvironment }
+		? { workspace, environment: workspaceEnvironment }
 		: undefined;
 
 export const projectEnvironmentConnection =

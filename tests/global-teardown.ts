@@ -9,7 +9,7 @@ import {
 function scopesToSweep() {
 	return [
 		{ label: "project", connection: { project: process.env["BUDDY_PROJECT"] } },
-		{ label: "workspace", connection: { project: undefined } },
+		{ label: "workspace", connection: { scope: "WORKSPACE" as const } },
 		{ label: "test workspace", connection: workspaceConnection },
 		{
 			label: "workspace environment",

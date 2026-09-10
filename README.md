@@ -81,24 +81,21 @@ await Sandbox.create({
 await Sandbox.create();
 
 // in the workspace despite a globally set BUDDY_PROJECT
-await Sandbox.create({ connection: { project: undefined } });
+await Sandbox.create({ connection: { scope: "WORKSPACE" } });
 ```
 
 The environment identifier is resolved to an ID on first use and cached for the
 lifetime of the client. Pass `connection.environmentId` to skip that lookup.
 
-A `connection` object that mentions `project`, `environment` or `environmentId`
-decides the scope on its own - a globally set `BUDDY_PROJECT` will not turn a
-per-call `{ environment: "staging" }` override into a project sandbox, nor the
-other way round. Mentioning the key is what counts, not its value:
-`connection: { project: undefined }` asks for workspace scope even with
-`BUDDY_PROJECT` set, and `{ environment: undefined }` says "no environment" -
-the project then comes from wherever it normally would.
+A `connection` naming a project or an environment decides the scope on its own,
+so a globally set `BUDDY_PROJECT` will not turn a per-call
+`{ environment: "staging" }` override into a project sandbox. When it names
+neither, the env vars decide - and `{ scope: "WORKSPACE" }` opts out of them.
 
-`{ environment: "staging" }` does still borrow `BUDDY_PROJECT` to look the
-identifier up, because that is where most environments live and the scope is
-already settled by then. Add `project: undefined` next to it to force a
-workspace-level environment.
+The lookup follows the same rule: with a project, only that project's
+environments are searched; without one, only workspace-level ones. There is no
+second attempt - a miss means the environment is not where you said it was, and
+you get an error rather than a sandbox somewhere else.
 
 `Sandbox.list()` and `Sandbox.listSnapshots()` return one scope at a time,
 mirroring the API - listing across scopes means one call per scope.
