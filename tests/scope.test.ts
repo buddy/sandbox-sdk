@@ -315,8 +315,6 @@ describe("Sandbox.getByIdentifier", () => {
 		workspace: TEST_WORKSPACE,
 		token: TEST_TOKEN,
 		apiUrl: TEST_API_URL,
-		// Pins the workspace scope; without it the env vars would decide.
-		scope: "WORKSPACE" as const,
 	};
 
 	it("resolves through /identifiers when scoped to a project", async () => {
@@ -491,7 +489,7 @@ describe("connection config", () => {
 		);
 	});
 
-	it("opts out of the env vars with an explicit workspace scope", async () => {
+	it("states workspace placement by naming only the workspace", async () => {
 		await withEnv(
 			{
 				BUDDY_WORKSPACE: TEST_WORKSPACE,
@@ -500,7 +498,9 @@ describe("connection config", () => {
 				BUDDY_PROJECT: TEST_PROJECT,
 			},
 			() => {
-				expect(createClient({ scope: "WORKSPACE" }).scope).toBe("WORKSPACE");
+				expect(createClient({ workspace: TEST_WORKSPACE }).scope).toBe(
+					"WORKSPACE",
+				);
 			},
 		);
 	});

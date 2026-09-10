@@ -18,11 +18,6 @@ export interface ConnectionConfig {
 	project?: string;
 	/** Environment identifier (falls back to BUDDY_ENVIRONMENT env var) */
 	environment?: string;
-	/**
-	 * Sandboxes go to a project or an environment as soon as one is configured,
-	 * here or in the env vars. This asks for neither.
-	 */
-	scope?: "WORKSPACE";
 	/** Environment ID - same as `environment`, but skips the identifier lookup */
 	environmentId?: string;
 	/** API authentication token (falls back to BUDDY_TOKEN env var) */
@@ -39,16 +34,15 @@ type ScopeSource = Pick<
 >;
 
 /**
- * Resolve which project/environment the client works against. A `connection`
- * naming one decides by itself, the env vars apply when it names none, and
- * `scope: "WORKSPACE"` opts out of both.
+ * Resolve where sandboxes are placed. Naming a workspace, a project or an
+ * environment states the placement outright, so `{ workspace }` alone means
+ * that workspace and nothing below it. The env vars apply only when the
+ * connection names none of the three - `token` and friends do not count,
+ * overriding auth should not move sandboxes.
  */
 function resolveScopeSource(connection?: ConnectionConfig): ScopeSource {
-	if (connection?.scope === "WORKSPACE") {
-		return {};
-	}
-
 	if (
+		connection?.workspace ??
 		connection?.project ??
 		connection?.environment ??
 		connection?.environmentId

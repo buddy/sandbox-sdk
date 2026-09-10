@@ -51,10 +51,10 @@ Only the token and the workspace are required - the project and the environment 
 ## Scopes
 
 A sandbox lives in a project, in an environment, or directly in the workspace.
-You never set the scope explicitly - it follows from the project and environment
-you configure. Both come either from env vars (`BUDDY_PROJECT`,
-`BUDDY_ENVIRONMENT`) or from the `connection` object you can pass to any call to
-override them - see [Connection overrides](#connection-overrides).
+You never set the scope explicitly - it follows from what you name. Names come
+either from env vars (`BUDDY_WORKSPACE`, `BUDDY_PROJECT`, `BUDDY_ENVIRONMENT`)
+or from the `connection` object you can pass to any call to override them - see
+[Connection overrides](#connection-overrides).
 
 | Project | Environment | Where the sandbox is created | Scope |
 |---|---|---|---|
@@ -81,16 +81,17 @@ await Sandbox.create({
 await Sandbox.create();
 
 // in the workspace despite a globally set BUDDY_PROJECT
-await Sandbox.create({ connection: { scope: "WORKSPACE" } });
+await Sandbox.create({ connection: { workspace: "my-company" } });
 ```
 
 The environment identifier is resolved to an ID on first use and cached for the
 lifetime of the client. Pass `connection.environmentId` to skip that lookup.
 
-A `connection` naming a project or an environment decides the scope on its own,
-so a globally set `BUDDY_PROJECT` will not turn a per-call
-`{ environment: "staging" }` override into a project sandbox. When it names
-neither, the env vars decide - and `{ scope: "WORKSPACE" }` opts out of them.
+A `connection` naming a workspace, a project or an environment states the
+placement outright: you get exactly what you named and nothing from the env
+vars, so `{ workspace: "my-company" }` alone means that workspace with no
+project. Naming none of the three - overriding only `token`, say - leaves the
+env vars in charge.
 
 The lookup follows the same rule: with a project, only that project's
 environments are searched; without one, only workspace-level ones. There is no
@@ -100,8 +101,13 @@ you get an error rather than a sandbox somewhere else.
 `Sandbox.list()` and `Sandbox.listSnapshots()` return one scope at a time,
 mirroring the API - listing across scopes means one call per scope.
 
+Creating a sandbox outside a project - in an environment or in the workspace
+itself - requires workspace admin rights. Without them the API answers
+`403 Denied: no access to perform the sandbox operation`.
+
 > **Heads up when upgrading.** A missing `BUDDY_PROJECT` used to throw. It now
-> means workspace scope, so double-check your environment.
+> means workspace scope, which needs the admin rights above, so double-check
+> your environment.
 
 ## Waiting for readiness
 
@@ -253,7 +259,8 @@ const sandbox = await Sandbox.create({
 
 ## Connection overrides
 
-Override workspace/auth per call:
+Override workspace/auth per call. Naming a workspace, project or environment
+here also states where the sandbox goes - see [Scopes](#scopes):
 
 ```typescript
 await Sandbox.create({
