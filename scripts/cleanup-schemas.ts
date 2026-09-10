@@ -43,7 +43,7 @@ function patchBlock(
 		);
 	}
 
-	return content.replace(block, patched);
+	return content.replace(block, () => patched);
 }
 
 /**
