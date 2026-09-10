@@ -41,7 +41,10 @@ describe("Sandbox.create options", () => {
 	});
 
 	it("should create sandbox with ubuntu 22.04", async () => {
-		const sandbox = await Sandbox.create({ os: "ubuntu:22.04" });
+		const sandbox = await Sandbox.create({
+			name: testName("ubuntu-22"),
+			os: "ubuntu:22.04",
+		});
 		sandboxes.push(sandbox);
 
 		expect(sandbox.data.os).toBe("ubuntu:22.04");
