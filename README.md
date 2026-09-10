@@ -107,9 +107,13 @@ Creating a sandbox outside a project - in an environment or in the workspace
 itself - requires workspace admin rights. Without them the API answers
 `403 Denied: no access to perform the sandbox operation`.
 
-> **Heads up when upgrading.** A missing `BUDDY_PROJECT` used to throw. It now
-> means workspace scope, which needs the admin rights above, so double-check
-> your environment.
+> **Heads up when upgrading to 0.2.0.**
+> - A missing `BUDDY_PROJECT` used to throw. It now means workspace scope,
+>   which needs the admin rights above, so double-check your environment.
+> - `connection: { workspace }` used to only switch the workspace, with the
+>   project still read from `BUDDY_PROJECT`. It now states workspace scope on
+>   its own. Add `project` to the same `connection` to keep the old placement.
+> - `BuddyApiClient.project_name` is now `string | undefined`.
 
 ## Waiting for readiness
 
