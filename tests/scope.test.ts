@@ -1,15 +1,5 @@
 import { HttpResponse, http } from "msw";
-import { setupServer } from "msw/node";
-import {
-	afterAll,
-	afterEach,
-	beforeAll,
-	describe,
-	expect,
-	expectTypeOf,
-	it,
-} from "vitest";
-import { BuddyApiClient, type BuddyApiConfig } from "@/core/buddy-api-client";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import {
 	type CloneSandboxConfig,
 	type CreateFromSnapshotConfig,
@@ -18,6 +8,20 @@ import {
 	type UpdateSandboxConfig,
 } from "@/entity/sandbox";
 import { createClient } from "@/utils/client";
+import {
+	buildClient,
+	captureBody,
+	IDENTIFIERS_URL,
+	recordQueries,
+	SANDBOXES_URL,
+	SNAPSHOTS_URL,
+	TEST_API_URL,
+	TEST_CONNECTION,
+	TEST_PROJECT,
+	TEST_TOKEN,
+	TEST_WORKSPACE,
+	useMockApi,
+} from "~/tests/shared/api";
 
 /**
  * Scope matrix for PROJECT / ENVIRONMENT / WORKSPACE sandboxes: which query
@@ -26,49 +30,13 @@ import { createClient } from "@/utils/client";
  * `scripts/cleanup-schemas.ts`, so run `pnpm fetch:schemas` first.
  */
 
-const TEST_API_URL = "https://api.test.buddy.works";
-const TEST_WORKSPACE = "test-workspace";
-const TEST_PROJECT = "test-project";
-const TEST_TOKEN = "test-token";
 const ENVIRONMENT = "staging";
 const ENVIRONMENT_ID = "3a4KbBQl";
 
-const SANDBOXES_URL = `${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`;
-const SNAPSHOTS_URL = `${SANDBOXES_URL}/snapshots`;
-const IDENTIFIERS_URL = `${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/identifiers`;
+const server = useMockApi();
 
-const server = setupServer();
-
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-
-const buildClient = (
-	scope: Pick<
-		BuddyApiConfig,
-		"project_name" | "environment" | "environment_id"
-	>,
-) =>
-	new BuddyApiClient({
-		workspace: TEST_WORKSPACE,
-		token: TEST_TOKEN,
-		apiUrl: TEST_API_URL,
-		...scope,
-	});
-
-/** Capture the query params of every sandbox listing that goes out */
-function recordListRequests() {
-	const queries: URLSearchParams[] = [];
-
-	server.use(
-		http.get(SANDBOXES_URL, ({ request }) => {
-			queries.push(new URL(request.url).searchParams);
-			return HttpResponse.json({ sandboxes: [] });
-		}),
-	);
-
-	return queries;
-}
+const recordListRequests = () =>
+	recordQueries(server, SANDBOXES_URL, { sandboxes: [] });
 
 /** Resolve `staging` only for the given lookup shape, 404 otherwise */
 function resolveEnvironment(options: { inProject?: boolean } = {}) {
@@ -234,19 +202,8 @@ describe("scope resolution", () => {
 });
 
 describe("snapshot listing", () => {
-	/** Capture the query params of every project-snapshot listing */
-	function recordSnapshotRequests() {
-		const queries: URLSearchParams[] = [];
-
-		server.use(
-			http.get(SNAPSHOTS_URL, ({ request }) => {
-				queries.push(new URL(request.url).searchParams);
-				return HttpResponse.json({ snapshots: [] });
-			}),
-		);
-
-		return queries;
-	}
+	const recordSnapshotRequests = () =>
+		recordQueries(server, SNAPSHOTS_URL, { snapshots: [] });
 
 	it("follows the project scope", async () => {
 		const queries = recordSnapshotRequests();
@@ -319,47 +276,29 @@ describe("scope in the create body", () => {
 
 	it("attaches the environment reference for environment-scoped sandboxes", async () => {
 		resolveEnvironment();
-		let body: Record<string, unknown> | undefined;
-
-		server.use(
-			http.post(SANDBOXES_URL, async ({ request }) => {
-				body = (await request.json()) as Record<string, unknown>;
-				return HttpResponse.json({ id: "sandbox-1" }, { status: 201 });
-			}),
-		);
+		const captured = captureBody(server, SANDBOXES_URL, { id: "sandbox-1" });
 
 		await buildClient({ environment: ENVIRONMENT }).addSandbox({
 			body: { name: "New sandbox", os: "ubuntu:24.04" },
 		});
 
-		expect(body?.["scope"]).toBe("ENVIRONMENT");
-		expect(body?.["environment"]).toEqual({ id: ENVIRONMENT_ID });
+		expect(captured.body?.["scope"]).toBe("ENVIRONMENT");
+		expect(captured.body?.["environment"]).toEqual({ id: ENVIRONMENT_ID });
 	});
 
 	it("leaves the body untouched for project-scoped sandboxes", async () => {
-		let body: Record<string, unknown> | undefined;
-
-		server.use(
-			http.post(SANDBOXES_URL, async ({ request }) => {
-				body = (await request.json()) as Record<string, unknown>;
-				return HttpResponse.json({ id: "sandbox-1" }, { status: 201 });
-			}),
-		);
+		const captured = captureBody(server, SANDBOXES_URL, { id: "sandbox-1" });
 
 		await buildClient({ project_name: TEST_PROJECT }).addSandbox({
 			body: { name: "New sandbox", os: "ubuntu:24.04" },
 		});
 
-		expect(body).toEqual({ name: "New sandbox", os: "ubuntu:24.04" });
+		expect(captured.body).toEqual({ name: "New sandbox", os: "ubuntu:24.04" });
 	});
 });
 
 describe("Sandbox.getByIdentifier", () => {
-	const connection = {
-		workspace: TEST_WORKSPACE,
-		token: TEST_TOKEN,
-		apiUrl: TEST_API_URL,
-	};
+	const connection = TEST_CONNECTION;
 
 	it("resolves through /identifiers when scoped to a project", async () => {
 		let usedIdentifiers = false;
