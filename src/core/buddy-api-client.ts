@@ -260,22 +260,23 @@ export class BuddyApiClient extends HttpClient {
 		}
 
 		const projectName = this.project_name;
-		const identifiers = await this.#resolveIdentifiers(
-			projectName !== undefined
-				? { project: projectName, environment: identifier }
-				: { environment: identifier },
-		);
+		const identifiers = await this.getIdentifiers({
+			query:
+				projectName !== undefined
+					? { project: projectName, environment: identifier }
+					: { environment: identifier },
+		});
 
 		// An unknown project is dropped from the response rather than failing
 		// the call, which would leave the answer about something else entirely.
 		if (
 			projectName !== undefined &&
-			identifiers?.project_identifier === undefined
+			identifiers.project_identifier === undefined
 		) {
 			throw new Error(`Project '${projectName}' not found.`);
 		}
 
-		if (identifiers?.environment_id) {
+		if (identifiers.environment_id) {
 			return identifiers.environment_id;
 		}
 
@@ -284,20 +285,6 @@ export class BuddyApiClient extends HttpClient {
 				? `Environment '${identifier}' not found in project '${projectName}'.`
 				: `Environment '${identifier}' not found at workspace level. Pass a project if it belongs to one.`,
 		);
-	}
-
-	async #resolveIdentifiers(query: {
-		project?: string;
-		environment: string;
-	}): Promise<GetIdentifiersResponse | undefined> {
-		try {
-			return await this.getIdentifiers({ query });
-		} catch (error) {
-			if (error instanceof HttpError && error.status === 404) {
-				return undefined;
-			}
-			throw error;
-		}
 	}
 
 	/** Pin a created sandbox to the environment - POST /sandboxes takes no query param for it */

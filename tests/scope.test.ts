@@ -203,6 +203,24 @@ describe("scope resolution", () => {
 		).rejects.toThrow(`Project '${TEST_PROJECT}' not found.`);
 	});
 
+	it("surfaces a failed lookup as-is instead of blaming the project", async () => {
+		server.use(
+			http.get(IDENTIFIERS_URL, () =>
+				HttpResponse.json(
+					{ errors: [{ message: "Not found" }] },
+					{ status: 404 },
+				),
+			),
+		);
+
+		await expect(
+			buildClient({
+				project_name: TEST_PROJECT,
+				environment: ENVIRONMENT,
+			}).getSandboxes({}),
+		).rejects.toThrow(/404/);
+	});
+
 	it("points at the project when no environment was given and none is found", async () => {
 		server.use(http.get(IDENTIFIERS_URL, () => HttpResponse.json({})));
 
