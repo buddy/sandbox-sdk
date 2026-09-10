@@ -18,6 +18,7 @@ export type {
 	CreateSandboxConfig,
 	GetSandboxConfig,
 	ListSandboxesConfig,
+	UpdateSandboxConfig,
 } from "@/entity/sandbox";
 export { Sandbox } from "@/entity/sandbox";
 export { Snapshot } from "@/entity/snapshot";

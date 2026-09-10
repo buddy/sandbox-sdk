@@ -35,6 +35,10 @@ const INITIALIZE_INSTRUCTIONS =
 /** Filled in by the client from the connection, never by the caller */
 type ScopeFields = "scope" | "environment";
 
+export type UpdateSandboxConfig = Partial<
+	Omit<UpdateSandboxRequestWritable, ScopeFields | "project">
+>;
+
 /**
  * Configuration for creating a new sandbox
  */
@@ -527,7 +531,7 @@ export class Sandbox {
 	 * `setup_status: STALE` — the new commands only apply on first boot, so
 	 * the sandbox must be recreated to take effect.
 	 */
-	async update(config: Partial<UpdateSandboxRequestWritable>): Promise<void> {
+	async update(config: UpdateSandboxConfig): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to update sandbox", async () => {
 			this.#sandboxData = await this.#client.updateSandbox({

@@ -15,6 +15,7 @@ import {
 	type CreateFromSnapshotConfig,
 	type CreateSandboxConfig,
 	Sandbox,
+	type UpdateSandboxConfig,
 } from "@/entity/sandbox";
 import { createClient } from "@/utils/client";
 
@@ -311,6 +312,9 @@ describe("scope in the create body", () => {
 		expectTypeOf<CloneSandboxConfig>().not.toHaveProperty("environment");
 		expectTypeOf<CreateFromSnapshotConfig>().not.toHaveProperty("scope");
 		expectTypeOf<CreateFromSnapshotConfig>().not.toHaveProperty("environment");
+		expectTypeOf<UpdateSandboxConfig>().not.toHaveProperty("scope");
+		expectTypeOf<UpdateSandboxConfig>().not.toHaveProperty("environment");
+		expectTypeOf<UpdateSandboxConfig>().not.toHaveProperty("project");
 	});
 
 	it("attaches the environment reference for environment-scoped sandboxes", async () => {
