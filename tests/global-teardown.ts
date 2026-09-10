@@ -1,21 +1,22 @@
 import { Sandbox } from "~/src";
 import { isTestSandbox, TEST_NAME_PREFIX } from "./shared/naming";
+import {
+	projectEnvironmentConnection,
+	workspaceConnection,
+	workspaceEnvironmentConnection,
+} from "./shared/scope";
 
-/**
- * Each scope is listed separately - the API has no "all scopes" mode. The env
- * var is read directly here, outside the setup file that moves it aside.
- */
 function scopesToSweep() {
-	const environment =
-		process.env["BUDDY_ENVIRONMENT"] ?? process.env["BUDDY_TEST_ENVIRONMENT"];
-
 	return [
 		{ label: "project", connection: { project: process.env["BUDDY_PROJECT"] } },
 		{ label: "workspace", connection: { project: undefined } },
-		...(environment
-			? [{ label: `environment '${environment}'`, connection: { environment } }]
-			: []),
-	];
+		{ label: "test workspace", connection: workspaceConnection },
+		{
+			label: "workspace environment",
+			connection: workspaceEnvironmentConnection,
+		},
+		{ label: "project environment", connection: projectEnvironmentConnection },
+	].filter((scope) => scope.connection !== undefined);
 }
 
 async function cleanupTestSandboxes() {

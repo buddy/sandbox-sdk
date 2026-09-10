@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
 import { testIdentifier, testName } from "~/tests/shared/naming";
+import {
+	projectEnvironment,
+	projectEnvironmentConnection,
+	workspaceConnection,
+	workspaceEnvironment,
+	workspaceEnvironmentConnection,
+} from "~/tests/shared/scope";
 
 /**
  * Integration tests for Sandbox SDK
@@ -10,6 +17,8 @@ import { testIdentifier, testName } from "~/tests/shared/naming";
  * - BUDDY_WORKSPACE
  * - BUDDY_PROJECT
  * - BUDDY_TOKEN
+ *
+ * The scope suites at the bottom additionally need BUDDY_TEST_*.
  */
 
 describe("Sandbox", () => {
@@ -640,36 +649,68 @@ describe("Sandbox.clone", () => {
 	}, 120_000);
 });
 
-/**
- * Environment scope: create one sandbox, check where it landed, destroy it.
- * BUDDY_ENVIRONMENT is expected to point at a project-scoped environment, so
- * both the project and the environment are passed. The per-file setup moves the
- * variable aside so it cannot flip the scope of the rest of the suite.
- */
-const testEnvironment = process.env["BUDDY_TEST_ENVIRONMENT"];
-
-describe.skipIf(!testEnvironment)("Sandbox in an environment", () => {
+describe.skipIf(!workspaceConnection)("Sandbox in the workspace", () => {
 	let sandbox: Sandbox | undefined;
 
 	afterAll(async () => {
 		await sandbox?.destroy().catch(() => undefined);
 	}, 60_000);
 
-	it("should be created in the environment rather than in the project", async () => {
+	it("should be created outside of any project", async () => {
 		sandbox = await Sandbox.create({
-			name: testName("environment-scope"),
-			identifier: testIdentifier("environment_scope"),
-			connection: {
-				project: process.env["BUDDY_PROJECT"],
-				environment: testEnvironment,
-			},
+			name: testName("workspace-scope"),
+			identifier: testIdentifier("workspace_scope"),
+			connection: workspaceConnection,
 		});
 
-		expect(sandbox.data.scope).toBe("ENVIRONMENT");
-		expect(sandbox.data.environment?.identifier).toBe(testEnvironment);
-		// Hash IDs arrive as strings even though the spec types them as int32 -
-		// the generated schema is patched for exactly this.
-		expect(typeof sandbox.data.environment?.id).toBe("string");
+		expect(sandbox.data.scope).toBe("WORKSPACE");
 		expect(sandbox.data.project).toBeUndefined();
 	}, 120_000);
 });
+
+describe.skipIf(!workspaceEnvironmentConnection)(
+	"Sandbox in a workspace-level environment",
+	() => {
+		let sandbox: Sandbox | undefined;
+
+		afterAll(async () => {
+			await sandbox?.destroy().catch(() => undefined);
+		}, 60_000);
+
+		it("should be created in the environment rather than in the workspace", async () => {
+			sandbox = await Sandbox.create({
+				name: testName("workspace-environment"),
+				identifier: testIdentifier("workspace_environment"),
+				connection: workspaceEnvironmentConnection,
+			});
+
+			expect(sandbox.data.scope).toBe("ENVIRONMENT");
+			expect(sandbox.data.environment?.identifier).toBe(workspaceEnvironment);
+			expect(typeof sandbox.data.environment?.id).toBe("string");
+			expect(sandbox.data.project).toBeUndefined();
+		}, 120_000);
+	},
+);
+
+describe.skipIf(!projectEnvironmentConnection)(
+	"Sandbox in a project-level environment",
+	() => {
+		let sandbox: Sandbox | undefined;
+
+		afterAll(async () => {
+			await sandbox?.destroy().catch(() => undefined);
+		}, 60_000);
+
+		it("should be created in the environment rather than in its project", async () => {
+			sandbox = await Sandbox.create({
+				name: testName("project-environment"),
+				identifier: testIdentifier("project_environment"),
+				connection: projectEnvironmentConnection,
+			});
+
+			expect(sandbox.data.scope).toBe("ENVIRONMENT");
+			expect(sandbox.data.environment?.identifier).toBe(projectEnvironment);
+			expect(sandbox.data.project).toBeUndefined();
+		}, 120_000);
+	},
+);
