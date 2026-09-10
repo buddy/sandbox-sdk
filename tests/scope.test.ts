@@ -1,8 +1,21 @@
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	describe,
+	expect,
+	expectTypeOf,
+	it,
+} from "vitest";
 import { BuddyApiClient, type BuddyApiConfig } from "@/core/buddy-api-client";
-import { Sandbox } from "@/entity/sandbox";
+import {
+	type CloneSandboxConfig,
+	type CreateFromSnapshotConfig,
+	type CreateSandboxConfig,
+	Sandbox,
+} from "@/entity/sandbox";
 import { createClient } from "@/utils/client";
 
 /**
@@ -273,6 +286,15 @@ describe("file upload", () => {
 });
 
 describe("scope in the create body", () => {
+	it("is not settable through the public config", () => {
+		expectTypeOf<CreateSandboxConfig>().not.toHaveProperty("scope");
+		expectTypeOf<CreateSandboxConfig>().not.toHaveProperty("environment");
+		expectTypeOf<CloneSandboxConfig>().not.toHaveProperty("scope");
+		expectTypeOf<CloneSandboxConfig>().not.toHaveProperty("environment");
+		expectTypeOf<CreateFromSnapshotConfig>().not.toHaveProperty("scope");
+		expectTypeOf<CreateFromSnapshotConfig>().not.toHaveProperty("environment");
+	});
+
 	it("attaches the environment reference for environment-scoped sandboxes", async () => {
 		resolveEnvironment();
 		let body: Record<string, unknown> | undefined;

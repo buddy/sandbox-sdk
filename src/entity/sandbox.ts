@@ -32,11 +32,14 @@ const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
 const INITIALIZE_INSTRUCTIONS =
 	"Use Sandbox.create(), Sandbox.getById(), or Sandbox.getByIdentifier() to obtain an instance.";
 
+/** Filled in by the client from the connection, never by the caller */
+type ScopeFields = "scope" | "environment";
+
 /**
  * Configuration for creating a new sandbox
  */
 export interface CreateSandboxConfig
-	extends Partial<CreateNewSandboxRequestWritable> {
+	extends Partial<Omit<CreateNewSandboxRequestWritable, ScopeFields>> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 	/** Block until the sandbox is running (default: true) */
@@ -63,7 +66,9 @@ export interface ListSandboxesConfig {
  * Configuration for creating a sandbox from an existing snapshot
  */
 export interface CreateFromSnapshotConfig
-	extends Partial<Omit<CreateFromSnapshotRequestWritable, "snapshot_id">> {
+	extends Partial<
+		Omit<CreateFromSnapshotRequestWritable, "snapshot_id" | ScopeFields>
+	> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 	/** Block until the sandbox is running (default: true) */
@@ -74,7 +79,9 @@ export interface CreateFromSnapshotConfig
  * Configuration for cloning an existing sandbox
  */
 export interface CloneSandboxConfig
-	extends Partial<Omit<CloneSandboxRequest, "source_sandbox_id">> {
+	extends Partial<
+		Omit<CloneSandboxRequest, "source_sandbox_id" | ScopeFields>
+	> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 	/** Block until the sandbox is running (default: true) */
