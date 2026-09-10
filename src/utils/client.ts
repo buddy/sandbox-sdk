@@ -62,6 +62,19 @@ function resolveScopeSource(connection?: ConnectionConfig): ScopeSource {
 
 /** Resolve connection config with environment variable fallbacks */
 function getConfig(connection?: ConnectionConfig) {
+	for (const field of [
+		"workspace",
+		"project",
+		"environment",
+		"environmentId",
+	] as const) {
+		if (connection?.[field] === "") {
+			throw new Error(
+				`connection.${field} is empty. Leave it out to fall back to the env vars.`,
+			);
+		}
+	}
+
 	const workspace = connection?.workspace ?? environment.BUDDY_WORKSPACE;
 
 	if (!workspace) {

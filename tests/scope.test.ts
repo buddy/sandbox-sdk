@@ -549,7 +549,7 @@ describe("connection config", () => {
 		);
 	});
 
-	it("treats an empty string as named, not as unset", async () => {
+	it("rejects an empty string instead of guessing what it means", async () => {
 		await withEnv(
 			{
 				BUDDY_WORKSPACE: TEST_WORKSPACE,
@@ -558,13 +558,12 @@ describe("connection config", () => {
 				BUDDY_PROJECT: TEST_PROJECT,
 			},
 			() => {
-				const client = createClient({
-					project: "",
-					environment: ENVIRONMENT,
-				});
-
-				expect(client.scope).toBe("ENVIRONMENT");
-				expect(client.project_name).toBeUndefined();
+				expect(() => createClient({ project: "" })).toThrow(
+					"connection.project is empty",
+				);
+				expect(() =>
+					createClient({ workspace: "", environment: ENVIRONMENT }),
+				).toThrow("connection.workspace is empty");
 			},
 		);
 	});
