@@ -1,5 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
+import { testIdentifier, testName } from "~/tests/shared/naming";
+import {
+	projectEnvironment,
+	projectEnvironmentConnection,
+	workspaceConnection,
+	workspaceEnvironment,
+	workspaceEnvironmentConnection,
+} from "~/tests/shared/scope";
 
 /**
  * Integration tests for Sandbox SDK
@@ -9,15 +17,18 @@ import { Sandbox } from "@/entity/sandbox";
  * - BUDDY_WORKSPACE
  * - BUDDY_PROJECT
  * - BUDDY_TOKEN
+ *
+ * The scope suites at the bottom additionally need BUDDY_TEST_*.
  */
 
 describe("Sandbox", () => {
+	const sandboxName = testName();
 	let sandbox: Sandbox;
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
-			name: `test-sandbox-${Date.now()}`,
-			identifier: `test_sandbox_${Date.now()}`,
+			name: sandboxName,
+			identifier: testIdentifier(),
 		});
 		await sandbox.waitUntilRunning();
 	}, 60_000);
@@ -38,8 +49,7 @@ describe("Sandbox", () => {
 		});
 
 		it("should have name", () => {
-			expect(sandbox.data.name).toBeDefined();
-			expect(sandbox.data.name).toContain("test-sandbox-");
+			expect(sandbox.data.name).toBe(sandboxName);
 		});
 
 		it("should have status", () => {
@@ -75,7 +85,7 @@ describe("Sandbox", () => {
 	describe("lifecycle", () => {
 		it("should create a sandbox", () => {
 			expect(sandbox.data.id).toBeDefined();
-			expect(sandbox.data.name).toContain("test-sandbox-");
+			expect(sandbox.data.name).toBe(sandboxName);
 		});
 
 		it("should get sandbox by ID", async () => {
@@ -349,8 +359,8 @@ describe("Sandbox", () => {
 
 		beforeAll(async () => {
 			appSandbox = await Sandbox.create({
-				name: `test-apps-${Date.now()}`,
-				identifier: `test_apps_${Date.now()}`,
+				name: testName("apps"),
+				identifier: testIdentifier("apps"),
 				apps: [
 					"echo 'app1 running' && sleep 3600",
 					"echo 'app2 running' && sleep 3600",
@@ -534,8 +544,8 @@ describe("Sandbox.createFromSnapshot", () => {
 
 	beforeAll(async () => {
 		baseSandbox = await Sandbox.create({
-			name: `test-snapshot-base-${Date.now()}`,
-			identifier: `test_snapshot_base_${Date.now()}`,
+			name: testName("snapshot-base"),
+			identifier: testIdentifier("snapshot_base"),
 		});
 		await baseSandbox.fs.uploadFile(Buffer.from(markerContent), markerFilename);
 		const snapshot = await baseSandbox.createSnapshot({
@@ -560,8 +570,8 @@ describe("Sandbox.createFromSnapshot", () => {
 
 	it("should create a sandbox from a snapshot with the given name and identifier", async () => {
 		if (!snapshotId) throw new Error("base snapshot was not created");
-		const restoredName = `test-snapshot-restored-${Date.now()}`;
-		const restoredIdentifier = `test_snapshot_restored_${Date.now()}`;
+		const restoredName = testName("snapshot-restored");
+		const restoredIdentifier = testIdentifier("snapshot_restored");
 		restoredSandbox = await Sandbox.createFromSnapshot(snapshotId, {
 			name: restoredName,
 			identifier: restoredIdentifier,
@@ -593,7 +603,7 @@ describe("Sandbox.createFromSnapshot", () => {
 	it("Sandbox.deleteSnapshot should remove a snapshot at the project level", async () => {
 		if (!baseSandbox) throw new Error("baseSandbox missing");
 		const extra = await baseSandbox.createSnapshot({
-			name: `test-delete-static-${Date.now()}`,
+			name: testName("delete-static"),
 		});
 		extraSnapshotId = extra.id;
 		await extra.waitUntilReady();
@@ -612,8 +622,8 @@ describe("Sandbox.clone", () => {
 
 	beforeAll(async () => {
 		source = await Sandbox.create({
-			name: `test-clone-source-${Date.now()}`,
-			identifier: `test_clone_source_${Date.now()}`,
+			name: testName("clone-source"),
+			identifier: testIdentifier("clone_source"),
 		});
 	}, 120_000);
 
@@ -623,8 +633,8 @@ describe("Sandbox.clone", () => {
 	}, 60_000);
 
 	it("should clone an existing sandbox under a new name and identifier", async () => {
-		const cloneName = `test-clone-target-${Date.now()}`;
-		const cloneIdentifier = `test_clone_target_${Date.now()}`;
+		const cloneName = testName("clone-target");
+		const cloneIdentifier = testIdentifier("clone_target");
 
 		clone = await Sandbox.clone(source.initializedId, {
 			name: cloneName,
@@ -638,3 +648,69 @@ describe("Sandbox.clone", () => {
 		expect(clone.data.identifier).toBe(cloneIdentifier);
 	}, 120_000);
 });
+
+describe.skipIf(!workspaceConnection)("Sandbox in the workspace", () => {
+	let sandbox: Sandbox | undefined;
+
+	afterAll(async () => {
+		await sandbox?.destroy().catch(() => undefined);
+	}, 60_000);
+
+	it("should be created outside of any project", async () => {
+		sandbox = await Sandbox.create({
+			name: testName("workspace-scope"),
+			identifier: testIdentifier("workspace_scope"),
+			connection: workspaceConnection,
+		});
+
+		expect(sandbox.data.scope).toBe("WORKSPACE");
+		expect(sandbox.data.project).toBeUndefined();
+	}, 120_000);
+});
+
+describe.skipIf(!workspaceEnvironmentConnection)(
+	"Sandbox in a workspace-level environment",
+	() => {
+		let sandbox: Sandbox | undefined;
+
+		afterAll(async () => {
+			await sandbox?.destroy().catch(() => undefined);
+		}, 60_000);
+
+		it("should be created in the environment rather than in the workspace", async () => {
+			sandbox = await Sandbox.create({
+				name: testName("workspace-environment"),
+				identifier: testIdentifier("workspace_environment"),
+				connection: workspaceEnvironmentConnection,
+			});
+
+			expect(sandbox.data.scope).toBe("ENVIRONMENT");
+			expect(sandbox.data.environment?.identifier).toBe(workspaceEnvironment);
+			expect(typeof sandbox.data.environment?.id).toBe("string");
+			expect(sandbox.data.project).toBeUndefined();
+		}, 120_000);
+	},
+);
+
+describe.skipIf(!projectEnvironmentConnection)(
+	"Sandbox in a project-level environment",
+	() => {
+		let sandbox: Sandbox | undefined;
+
+		afterAll(async () => {
+			await sandbox?.destroy().catch(() => undefined);
+		}, 60_000);
+
+		it("should be created in the environment rather than in its project", async () => {
+			sandbox = await Sandbox.create({
+				name: testName("project-environment"),
+				identifier: testIdentifier("project_environment"),
+				connection: projectEnvironmentConnection,
+			});
+
+			expect(sandbox.data.scope).toBe("ENVIRONMENT");
+			expect(sandbox.data.environment?.identifier).toBe(projectEnvironment);
+			expect(sandbox.data.project).toBeUndefined();
+		}, 120_000);
+	},
+);

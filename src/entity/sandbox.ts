@@ -14,7 +14,6 @@ import type {
 	UpdateSandboxRequestWritable,
 } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
-import { HttpError } from "@/core/http-client";
 import { Command } from "@/entity/command";
 import { FileSystem } from "@/entity/filesystem";
 import { Snapshot } from "@/entity/snapshot";
@@ -32,11 +31,18 @@ const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
 const INITIALIZE_INSTRUCTIONS =
 	"Use Sandbox.create(), Sandbox.getById(), or Sandbox.getByIdentifier() to obtain an instance.";
 
+/** Filled in by the client from the connection, never by the caller */
+type ScopeFields = "scope" | "environment";
+
+export type UpdateSandboxConfig = Partial<
+	Omit<UpdateSandboxRequestWritable, ScopeFields | "project">
+>;
+
 /**
  * Configuration for creating a new sandbox
  */
 export interface CreateSandboxConfig
-	extends Partial<CreateNewSandboxRequestWritable> {
+	extends Partial<Omit<CreateNewSandboxRequestWritable, ScopeFields>> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 	/** Block until the sandbox is running (default: true) */
@@ -63,7 +69,9 @@ export interface ListSandboxesConfig {
  * Configuration for creating a sandbox from an existing snapshot
  */
 export interface CreateFromSnapshotConfig
-	extends Partial<Omit<CreateFromSnapshotRequestWritable, "snapshot_id">> {
+	extends Partial<
+		Omit<CreateFromSnapshotRequestWritable, "snapshot_id" | ScopeFields>
+	> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 	/** Block until the sandbox is running (default: true) */
@@ -74,7 +82,9 @@ export interface CreateFromSnapshotConfig
  * Configuration for cloning an existing sandbox
  */
 export interface CloneSandboxConfig
-	extends Partial<Omit<CloneSandboxRequest, "source_sandbox_id">> {
+	extends Partial<
+		Omit<CloneSandboxRequest, "source_sandbox_id" | ScopeFields>
+	> {
 	/** Optional connection configuration to override defaults */
 	connection?: ConnectionConfig;
 	/** Block until the sandbox is running (default: true) */
@@ -303,21 +313,7 @@ export class Sandbox {
 			const { connection } = config ?? {};
 			const client = createClient(connection);
 
-			let sandboxId: NonNullable<GetSandboxResponse["id"]> | undefined;
-
-			try {
-				const identifiers = await client.getIdentifiers({
-					query: { project: client.project_name, sandbox: identifier },
-				});
-				sandboxId = identifiers.sandbox_id;
-			} catch (error) {
-				// 404 means the identifier doesn't exist - fall through to the
-				// "not found" error below. Anything else (auth, network, 5xx)
-				// surfaces to the caller.
-				if (!(error instanceof HttpError) || error.status !== 404) {
-					throw error;
-				}
-			}
+			const sandboxId = await Sandbox.#resolveSandboxId(client, identifier);
 
 			if (!sandboxId) {
 				throw new Error(`Sandbox with identifier '${identifier}' not found`);
@@ -333,6 +329,30 @@ export class Sandbox {
 
 			return new Sandbox(sandboxResponse, client, PRIVATE_CONSTRUCTOR_KEY);
 		});
+	}
+
+	/**
+	 * Resolve a sandbox identifier to its ID.
+	 *
+	 * `/identifiers` only resolves sandboxes that belong to a project, so for
+	 * environment- and workspace-scoped sandboxes we list the current scope and
+	 * match the identifier locally. Either way it costs a single request.
+	 */
+	static async #resolveSandboxId(
+		client: BuddyApiClient,
+		identifier: NonNullable<GetSandboxResponse["identifier"]>,
+	): Promise<NonNullable<GetSandboxResponse["id"]> | undefined> {
+		if (client.scope !== "PROJECT") {
+			const sandboxList = await client.getSandboxes({});
+			return sandboxList?.sandboxes?.find(
+				(sandbox) => sandbox.identifier === identifier,
+			)?.id;
+		}
+
+		const identifiers = await client.getIdentifiers({
+			query: { project: client.project_name, sandbox: identifier },
+		});
+		return identifiers.sandbox_id;
 	}
 
 	/**
@@ -362,11 +382,16 @@ export class Sandbox {
 	}
 
 	/**
-	 * List all sandboxes in the workspace
+	 * List sandboxes in the current scope
 	 *
 	 * Returns a simplified view of each sandbox (id, identifier, name, status, urls)
 	 * rather than full Sandbox instances. Use `getById()` or `getByIdentifier()`
 	 * to get a full Sandbox instance for a specific sandbox.
+	 *
+	 * Scopes are disjoint: with a project configured you get that project's
+	 * sandboxes, with an environment - that environment's, and with neither only
+	 * workspace-level ones. The API has no "everything at once" mode, so listing
+	 * across scopes means one call per scope.
 	 *
 	 * @param config - Optional configuration including connection settings
 	 * @returns Array of simplified sandbox objects
@@ -496,7 +521,7 @@ export class Sandbox {
 	 * `setup_status: STALE` — the new commands only apply on first boot, so
 	 * the sandbox must be recreated to take effect.
 	 */
-	async update(config: Partial<UpdateSandboxRequestWritable>): Promise<void> {
+	async update(config: UpdateSandboxConfig): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to update sandbox", async () => {
 			this.#sandboxData = await this.#client.updateSandbox({
@@ -527,8 +552,11 @@ export class Sandbox {
 	}
 
 	/**
-	 * List all snapshots in the project across every sandbox, including
+	 * List all snapshots in the current scope across every sandbox, including
 	 * snapshots whose parent sandbox has been deleted.
+	 *
+	 * Scoped exactly like `Sandbox.list()` - project, environment or workspace,
+	 * never a union of them.
 	 *
 	 * Use `Sandbox.createFromSnapshot(snapshot.id, …)` to provision a new
 	 * sandbox from any item in the list.

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
+import { testIdentifier, testName } from "~/tests/shared/naming";
 
 /**
  * Tests for Command class methods
@@ -10,8 +11,8 @@ describe("Command", () => {
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
-			name: `command-test-${Date.now()}`,
-			identifier: `command_test_${Date.now()}`,
+			name: testName("command-test"),
+			identifier: testIdentifier("command_test"),
 		});
 		await sandbox.waitUntilRunning();
 	}, 60_000);

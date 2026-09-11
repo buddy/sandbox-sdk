@@ -1,40 +1,62 @@
 import { Sandbox } from "~/src";
+import { createClient } from "~/src/utils/client";
+import { isTestSandbox, TEST_NAME_PREFIX } from "./shared/naming";
+import {
+	projectEnvironmentConnection,
+	workspaceConnection,
+	workspaceEnvironmentConnection,
+} from "./shared/scope";
+
+function scopesToSweep() {
+	const project = process.env["BUDDY_PROJECT"];
+	const workspace = process.env["BUDDY_WORKSPACE"];
+
+	return [
+		{ label: "project", connection: project ? { project } : undefined },
+		{ label: "workspace", connection: workspace ? { workspace } : undefined },
+		{ label: "test workspace", connection: workspaceConnection },
+		{
+			label: "workspace environment",
+			connection: workspaceEnvironmentConnection,
+		},
+		{ label: "project environment", connection: projectEnvironmentConnection },
+	].filter((scope) => scope.connection !== undefined);
+}
 
 async function cleanupTestSandboxes() {
-	console.log("\n🧹 Cleaning up test sandboxes...");
+	console.log(`\n🧹 Cleaning up '${TEST_NAME_PREFIX}' sandboxes...`);
 
-	const sandboxes = await Sandbox.list();
-	const testSandboxes = sandboxes.filter(
-		(s) =>
-			s.name?.startsWith("Sandbox 202") ||
-			s.name?.startsWith("test-") ||
-			s.name?.startsWith("command-test-") ||
-			s.name?.startsWith("filesystem-test-") ||
-			s.name?.startsWith("fbc-probe-") ||
-			s.name?.startsWith("resources-probe-") ||
-			s.name?.startsWith("update-probe-"),
-	);
+	for (const { label, connection } of scopesToSweep()) {
+		const sandboxes = await Sandbox.list({ connection }).catch(
+			(error: unknown) => {
+				console.log(`  ! Could not list the ${label} scope: ${String(error)}`);
+				return [];
+			},
+		);
 
-	if (testSandboxes.length === 0) {
-		console.log("No test sandboxes to clean up.");
-		return;
-	}
+		const testSandboxes = sandboxes.filter(isTestSandbox);
 
-	console.log(`Found ${testSandboxes.length} test sandbox(es) to clean up.`);
+		if (testSandboxes.length === 0) {
+			console.log(`  ${label}: nothing to clean up.`);
+			continue;
+		}
 
-	const results = await Promise.allSettled(
-		testSandboxes.map(async (s) => {
-			const sandbox = s.id ? await Sandbox.getById(s.id) : undefined;
-			await sandbox?.destroy();
-			return s.name;
-		}),
-	);
+		const client = createClient(connection);
+		const results = await Promise.allSettled(
+			testSandboxes.map(async (s) => {
+				if (s.id) {
+					await client.deleteSandboxById({ path: { id: s.id } });
+				}
+				return s.identifier ?? s.name;
+			}),
+		);
 
-	for (const result of results) {
-		if (result.status === "fulfilled") {
-			console.log(`  ✓ Destroyed: ${result.value}`);
-		} else {
-			console.log(`  ✗ Failed to destroy: ${result.reason}`);
+		for (const result of results) {
+			if (result.status === "fulfilled") {
+				console.log(`  ✓ ${label}: destroyed ${result.value}`);
+			} else {
+				console.log(`  ✗ ${label}: ${String(result.reason)}`);
+			}
 		}
 	}
 }

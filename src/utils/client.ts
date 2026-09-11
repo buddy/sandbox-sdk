@@ -11,8 +11,15 @@ import {
 export interface ConnectionConfig {
 	/** Workspace name/slug (falls back to BUDDY_WORKSPACE env var) */
 	workspace?: string;
-	/** Project name/slug (falls back to BUDDY_PROJECT env var) */
+	/**
+	 * Project name/slug (falls back to BUDDY_PROJECT env var). Combined with
+	 * `environment` it only says where to look that identifier up.
+	 */
 	project?: string;
+	/** Environment identifier (falls back to BUDDY_ENVIRONMENT env var) */
+	environment?: string;
+	/** Environment ID - same as `environment`, but skips the identifier lookup */
+	environmentId?: string;
 	/** API authentication token (falls back to BUDDY_TOKEN env var) */
 	token?: string;
 	/** API region: US, EU, or AS (falls back to BUDDY_REGION env var) */
@@ -21,8 +28,53 @@ export interface ConnectionConfig {
 	apiUrl?: string;
 }
 
+type ScopeSource = Pick<
+	ConnectionConfig,
+	"project" | "environment" | "environmentId"
+>;
+
+/**
+ * Resolve where sandboxes are placed. Naming a workspace, a project or an
+ * environment states the placement outright, so `{ workspace }` alone means
+ * that workspace and nothing below it. The env vars apply only when the
+ * connection names none of the three - `token` and friends do not count,
+ * overriding auth should not move sandboxes.
+ */
+function resolveScopeSource(connection?: ConnectionConfig): ScopeSource {
+	if (
+		connection?.workspace !== undefined ||
+		connection?.project !== undefined ||
+		connection?.environment !== undefined ||
+		connection?.environmentId !== undefined
+	) {
+		return {
+			project: connection.project,
+			environment: connection.environment,
+			environmentId: connection.environmentId,
+		};
+	}
+
+	return {
+		project: environment.BUDDY_PROJECT,
+		environment: environment.BUDDY_ENVIRONMENT,
+	};
+}
+
 /** Resolve connection config with environment variable fallbacks */
 function getConfig(connection?: ConnectionConfig) {
+	for (const field of [
+		"workspace",
+		"project",
+		"environment",
+		"environmentId",
+	] as const) {
+		if (connection?.[field] === "") {
+			throw new Error(
+				`connection.${field} is empty. Leave it out to fall back to the env vars.`,
+			);
+		}
+	}
+
 	const workspace = connection?.workspace ?? environment.BUDDY_WORKSPACE;
 
 	if (!workspace) {
@@ -31,13 +83,7 @@ function getConfig(connection?: ConnectionConfig) {
 		);
 	}
 
-	const project = connection?.project ?? environment.BUDDY_PROJECT;
-
-	if (!project) {
-		throw new Error(
-			"Project not found. Set project in config.connection or BUDDY_PROJECT env var.",
-		);
-	}
+	const scope = resolveScopeSource(connection);
 
 	let apiUrl: string;
 
@@ -57,7 +103,9 @@ function getConfig(connection?: ConnectionConfig) {
 
 	return {
 		workspace,
-		projectName: project,
+		projectName: scope.project,
+		environmentIdentifier: scope.environment,
+		environmentId: scope.environmentId,
 		token: connection?.token,
 		apiUrl,
 	};
@@ -65,12 +113,21 @@ function getConfig(connection?: ConnectionConfig) {
 
 /** Create a BuddyApiClient from connection config */
 export function createClient(connection?: ConnectionConfig): BuddyApiClient {
-	const { workspace, projectName, token, apiUrl } = getConfig(connection);
+	const {
+		workspace,
+		projectName,
+		environmentIdentifier,
+		environmentId,
+		token,
+		apiUrl,
+	} = getConfig(connection);
 
 	return new BuddyApiClient({
 		workspace,
-		project_name: projectName,
 		apiUrl,
+		...(projectName ? { project_name: projectName } : {}),
+		...(environmentIdentifier ? { environment: environmentIdentifier } : {}),
+		...(environmentId ? { environment_id: environmentId } : {}),
 		...(token ? { token } : {}),
 	});
 }

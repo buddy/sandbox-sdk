@@ -1,37 +1,20 @@
 import { HttpResponse, http } from "msw";
-import { setupServer } from "msw/node";
-import {
-	afterAll,
-	afterEach,
-	beforeAll,
-	describe,
-	expect,
-	it,
-	vi,
-} from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
+import {
+	SANDBOXES_URL,
+	TEST_CONNECTION,
+	TEST_PROJECT,
+	useMockApi,
+} from "~/tests/shared/api";
 
-const TEST_API_URL = "https://api.test.buddy.works";
-const TEST_WORKSPACE = "test-workspace";
 const SANDBOX_ID = "sandbox-123";
 
-const connection = {
-	workspace: TEST_WORKSPACE,
-	project: "test-project",
-	token: "test-token",
-	apiUrl: TEST_API_URL,
-};
+const connection = { ...TEST_CONNECTION, project: TEST_PROJECT };
 
-const SANDBOX_URL = `${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`;
+const server = useMockApi();
 
-const server = setupServer();
-
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => {
-	server.resetHandlers();
-	vi.restoreAllMocks();
-});
-afterAll(() => server.close());
+afterEach(() => vi.restoreAllMocks());
 
 /** HttpClient's per-request abort timer, which also goes through setTimeout */
 const HTTP_REQUEST_TIMEOUT_MS = 30_000;
@@ -80,7 +63,7 @@ function mockSandboxLifecycle(
 	let getCount = 0;
 
 	server.use(
-		http.post(SANDBOX_URL, async ({ request }) => {
+		http.post(SANDBOXES_URL, async ({ request }) => {
 			requestedBodies.push((await request.json()) as Record<string, unknown>);
 			return HttpResponse.json({
 				id: SANDBOX_ID,
@@ -90,7 +73,7 @@ function mockSandboxLifecycle(
 				status: "STARTING",
 			});
 		}),
-		http.get(`${SANDBOX_URL}/${SANDBOX_ID}`, () => {
+		http.get(`${SANDBOXES_URL}/${SANDBOX_ID}`, () => {
 			const state = states[Math.min(getCount, states.length - 1)];
 			getCount += 1;
 			return HttpResponse.json({

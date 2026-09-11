@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FileSystem } from "@/entity/filesystem";
 import { Sandbox } from "@/entity/sandbox";
+import { testIdentifier, testName } from "~/tests/shared/naming";
 
 /**
  * Tests for FileSystem class methods
@@ -14,8 +15,8 @@ describe("FileSystem", () => {
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
-			name: `filesystem-test-${Date.now()}`,
-			identifier: `filesystem_test_${Date.now()}`,
+			name: testName("filesystem-test"),
+			identifier: testIdentifier("filesystem_test"),
 		});
 		await sandbox.waitUntilRunning();
 	}, 60_000);

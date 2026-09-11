@@ -11,6 +11,7 @@ const environmentConfig = {
 	BUDDY_REGION: { type: "string" },
 	BUDDY_WORKSPACE: { type: "string" },
 	BUDDY_PROJECT: { type: "string" },
+	BUDDY_ENVIRONMENT: { type: "string" },
 	BUDDY_LOGGER_LEVEL: { type: "string" },
 } as const satisfies EnvironmentConfigSchema;
 
