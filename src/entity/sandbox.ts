@@ -332,25 +332,16 @@ export class Sandbox {
 	}
 
 	/**
-	 * Resolve a sandbox identifier to its ID.
-	 *
-	 * `/identifiers` only resolves sandboxes that belong to a project, so for
-	 * environment- and workspace-scoped sandboxes we list the current scope and
-	 * match the identifier locally. Either way it costs a single request.
+	 * Resolve a sandbox identifier to its ID. `/identifiers` searches the
+	 * environment, the project or the workspace - whichever the client names -
+	 * and never more than one of them, so a miss stays a miss.
 	 */
 	static async #resolveSandboxId(
 		client: BuddyApiClient,
 		identifier: NonNullable<GetSandboxResponse["identifier"]>,
 	): Promise<NonNullable<GetSandboxResponse["id"]> | undefined> {
-		if (client.scope !== "PROJECT") {
-			const sandboxList = await client.getSandboxes({});
-			return sandboxList?.sandboxes?.find(
-				(sandbox) => sandbox.identifier === identifier,
-			)?.id;
-		}
-
 		const identifiers = await client.getIdentifiers({
-			query: { project: client.project_name, sandbox: identifier },
+			query: { ...client.identifiersScopeQuery(), sandbox: identifier },
 		});
 		return identifiers.sandbox_id;
 	}

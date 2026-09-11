@@ -200,6 +200,27 @@ export class BuddyApiClient extends HttpClient {
 	}
 
 	/**
+	 * Scope params for `/identifiers`, which takes an environment as either an
+	 * identifier or an ID - so pinning a lookup to one costs no separate
+	 * request, unlike every endpoint that only accepts `environment_id`.
+	 */
+	identifiersScopeQuery(): Record<string, string> {
+		const query: Record<string, string> = {};
+		const projectName = this.project_name;
+		const environment = this.environment ?? this.#environmentId;
+
+		if (projectName !== undefined) {
+			query["project"] = projectName;
+		}
+
+		if (environment !== undefined) {
+			query["environment"] = environment;
+		}
+
+		return query;
+	}
+
+	/**
 	 * Query params pinning a request to the client's scope. `environment_id`
 	 * goes out only where the endpoint declares it - resolving it costs a
 	 * request, which a call about logs should not have to pay or fail on.

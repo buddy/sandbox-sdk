@@ -300,12 +300,13 @@ describe("scope in the create body", () => {
 describe("Sandbox.getByIdentifier", () => {
 	const connection = TEST_CONNECTION;
 
-	it("resolves through /identifiers when scoped to a project", async () => {
-		let usedIdentifiers = false;
+	/** Capture the /identifiers lookups, answering with `sandbox-1` */
+	function recordLookups() {
+		const lookups: URLSearchParams[] = [];
 
 		server.use(
-			http.get(IDENTIFIERS_URL, () => {
-				usedIdentifiers = true;
+			http.get(IDENTIFIERS_URL, ({ request }) => {
+				lookups.push(new URL(request.url).searchParams);
 				return HttpResponse.json({ sandbox_id: "sandbox-1" });
 			}),
 			http.get(`${SANDBOXES_URL}/sandbox-1`, () =>
@@ -313,53 +314,48 @@ describe("Sandbox.getByIdentifier", () => {
 			),
 		);
 
+		return lookups;
+	}
+
+	it.each([
+		["the project", { project: TEST_PROJECT }, { project: TEST_PROJECT }],
+		["the workspace", {}, {}],
+		[
+			"an environment",
+			{ environment: ENVIRONMENT },
+			{ environment: ENVIRONMENT },
+		],
+		[
+			"an environment ID",
+			{ environmentId: ENVIRONMENT_ID },
+			{ environment: ENVIRONMENT_ID },
+		],
+		[
+			"an environment in a project",
+			{ project: TEST_PROJECT, environment: ENVIRONMENT },
+			{ project: TEST_PROJECT, environment: ENVIRONMENT },
+		],
+	])("resolves in %s with one lookup", async (_label, scope, expected) => {
+		const lookups = recordLookups();
+
 		const sandbox = await Sandbox.getByIdentifier("my_sandbox", {
-			connection: { ...connection, project: TEST_PROJECT },
+			connection: { ...connection, ...scope },
 		});
 
-		expect(usedIdentifiers).toBe(true);
 		expect(sandbox.data.id).toBe("sandbox-1");
-	});
-
-	it("matches against the listing when the sandbox lives outside a project", async () => {
-		server.use(
-			http.get(SANDBOXES_URL, () =>
-				HttpResponse.json({
-					sandboxes: [
-						{ id: "sandbox-1", identifier: "other" },
-						{ id: "sandbox-2", identifier: "my_sandbox" },
-					],
-				}),
-			),
-			http.get(`${SANDBOXES_URL}/sandbox-2`, () =>
-				HttpResponse.json({ id: "sandbox-2", identifier: "my_sandbox" }),
-			),
-		);
-
-		const sandbox = await Sandbox.getByIdentifier("my_sandbox", {
-			connection,
+		// An environment goes out as-is, so nothing resolves it separately.
+		expect(lookups).toHaveLength(1);
+		expect(Object.fromEntries(lookups[0] ?? [])).toEqual({
+			...expected,
+			sandbox: "my_sandbox",
 		});
-
-		expect(sandbox.data.id).toBe("sandbox-2");
 	});
 
 	it("reports a missing identifier instead of guessing", async () => {
-		server.use(
-			http.get(SANDBOXES_URL, () => HttpResponse.json({ sandboxes: [] })),
-		);
-
-		await expect(
-			Sandbox.getByIdentifier("ghost", { connection }),
-		).rejects.toThrow("Sandbox with identifier 'ghost' not found");
-	});
-
-	it("reports a missing identifier in a project the same way", async () => {
 		server.use(http.get(IDENTIFIERS_URL, () => HttpResponse.json({})));
 
 		await expect(
-			Sandbox.getByIdentifier("ghost", {
-				connection: { ...connection, project: TEST_PROJECT },
-			}),
+			Sandbox.getByIdentifier("ghost", { connection }),
 		).rejects.toThrow("Sandbox with identifier 'ghost' not found");
 	});
 });

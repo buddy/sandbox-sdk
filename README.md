@@ -87,7 +87,8 @@ await Sandbox.create({ connection: { workspace: "my-company" } });
 The environment identifier is resolved to an ID once per `Sandbox.*` call, and
 the returned instance reuses it. Pass `connection.environmentId` to skip that
 lookup, which pays off when you call `Sandbox.list()` or `Sandbox.create()`
-repeatedly.
+repeatedly. `Sandbox.getByIdentifier()` is the exception: it names the
+environment directly and never pays for the lookup.
 
 A `connection` naming a workspace, a project or an environment states the
 placement outright: you get exactly what you named and nothing from the env
