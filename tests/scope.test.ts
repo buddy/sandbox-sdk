@@ -38,7 +38,7 @@ const server = useMockApi();
 const recordListRequests = () =>
 	recordQueries(server, SANDBOXES_URL, { sandboxes: [] });
 
-/** Resolve `staging` only for the given lookup shape, 404 otherwise */
+/** Resolve `staging` only for the given lookup shape, omitting it otherwise */
 function resolveEnvironment(options: { inProject?: boolean } = {}) {
 	const lookups: URLSearchParams[] = [];
 
@@ -350,6 +350,16 @@ describe("Sandbox.getByIdentifier", () => {
 
 		await expect(
 			Sandbox.getByIdentifier("ghost", { connection }),
+		).rejects.toThrow("Sandbox with identifier 'ghost' not found");
+	});
+
+	it("reports a missing identifier in a project the same way", async () => {
+		server.use(http.get(IDENTIFIERS_URL, () => HttpResponse.json({})));
+
+		await expect(
+			Sandbox.getByIdentifier("ghost", {
+				connection: { ...connection, project: TEST_PROJECT },
+			}),
 		).rejects.toThrow("Sandbox with identifier 'ghost' not found");
 	});
 });
