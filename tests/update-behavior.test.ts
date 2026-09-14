@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
+import { testIdentifier, testName } from "~/tests/shared/naming";
 
 /**
  * Contract tests for `sandbox.update()` - assert how the backend reacts to
@@ -19,8 +20,8 @@ describe("Sandbox.update - soft fields (shared sandbox)", () => {
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
-			name: `update-probe-${Date.now()}`,
-			identifier: `update_probe_${Date.now()}`,
+			name: testName("update-probe"),
+			identifier: testIdentifier("update_probe"),
 			timeout: 600,
 			tags: ["initial"],
 			apps: ["echo initial-app"],
@@ -52,7 +53,7 @@ describe("Sandbox.update - soft fields (shared sandbox)", () => {
 	});
 
 	it("updates name in place without leaving setup STALE", async () => {
-		const newName = `renamed-${Date.now()}`;
+		const newName = testName("renamed");
 		await sandbox.update({ name: newName });
 		expect(sandbox.data.name).toBe(newName);
 		expectSoftUpdate();
@@ -107,8 +108,8 @@ describe("Sandbox.update - first_boot_commands (isolated sandbox)", () => {
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
-			name: `fbc-probe-${Date.now()}`,
-			identifier: `fbc_probe_${Date.now()}`,
+			name: testName("fbc-probe"),
+			identifier: testIdentifier("fbc_probe"),
 			first_boot_commands: "echo initial-first-boot",
 		});
 	}, 120_000);
@@ -134,8 +135,8 @@ describe("Sandbox.update - resources (isolated sandbox)", () => {
 
 	beforeAll(async () => {
 		sandbox = await Sandbox.create({
-			name: `resources-probe-${Date.now()}`,
-			identifier: `resources_probe_${Date.now()}`,
+			name: testName("resources-probe"),
+			identifier: testIdentifier("resources_probe"),
 			resources: "1x2",
 		});
 	}, 120_000);

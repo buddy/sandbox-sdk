@@ -1,27 +1,19 @@
 import { HttpResponse, http } from "msw";
-import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { BuddyApiClient } from "@/core/buddy-api-client";
 import { HttpError } from "@/core/http-client";
+import {
+	buildClient,
+	SANDBOXES_URL,
+	TEST_API_URL,
+	TEST_PROJECT,
+	TEST_WORKSPACE,
+	useMockApi,
+} from "~/tests/shared/api";
 
-const TEST_API_URL = "https://api.test.buddy.works";
-const TEST_WORKSPACE = "test-workspace";
-const TEST_PROJECT = "test-project";
-const TEST_TOKEN = "test-token";
+const createClient = () => buildClient({ project_name: TEST_PROJECT });
 
-const createClient = () =>
-	new BuddyApiClient({
-		workspace: TEST_WORKSPACE,
-		project_name: TEST_PROJECT,
-		token: TEST_TOKEN,
-		apiUrl: TEST_API_URL,
-	});
-
-const server = setupServer();
-
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+const server = useMockApi();
 
 describe("BuddyApiClient", () => {
 	describe("constructor", () => {
@@ -56,20 +48,17 @@ describe("BuddyApiClient", () => {
 	describe("getSandboxes", () => {
 		it("should fetch sandboxes list", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
-					({ request }) => {
-						const url = new URL(request.url);
-						expect(url.searchParams.get("project_name")).toBe(TEST_PROJECT);
+				http.get(SANDBOXES_URL, ({ request }) => {
+					const url = new URL(request.url);
+					expect(url.searchParams.get("project_name")).toBe(TEST_PROJECT);
 
-						return HttpResponse.json({
-							sandboxes: [
-								{ id: "sandbox-1", name: "Test 1" },
-								{ id: "sandbox-2", name: "Test 2" },
-							],
-						});
-					},
-				),
+					return HttpResponse.json({
+						sandboxes: [
+							{ id: "sandbox-1", name: "Test 1" },
+							{ id: "sandbox-2", name: "Test 2" },
+						],
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -83,17 +72,14 @@ describe("BuddyApiClient", () => {
 	describe("getSandboxById", () => {
 		it("should fetch sandbox by ID", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-123`,
-					() => {
-						return HttpResponse.json({
-							id: "sandbox-123",
-							name: "My Sandbox",
-							status: "RUNNING",
-							os: "ubuntu:24.04",
-						});
-					},
-				),
+				http.get(`${SANDBOXES_URL}/sandbox-123`, () => {
+					return HttpResponse.json({
+						id: "sandbox-123",
+						name: "My Sandbox",
+						status: "RUNNING",
+						os: "ubuntu:24.04",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -107,15 +93,12 @@ describe("BuddyApiClient", () => {
 
 		it("should throw HttpError on 404", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/non-existent`,
-					() => {
-						return HttpResponse.json(
-							{ errors: [{ message: "Sandbox not found" }] },
-							{ status: 404 },
-						);
-					},
-				),
+				http.get(`${SANDBOXES_URL}/non-existent`, () => {
+					return HttpResponse.json(
+						{ errors: [{ message: "Sandbox not found" }] },
+						{ status: 404 },
+					);
+				}),
 			);
 
 			const client = createClient();
@@ -129,19 +112,16 @@ describe("BuddyApiClient", () => {
 	describe("addSandbox", () => {
 		it("should create a new sandbox", async () => {
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
-					async ({ request }) => {
-						const body = (await request.json()) as Record<string, unknown>;
-						return HttpResponse.json({
-							id: "new-sandbox-id",
-							name: body["name"],
-							identifier: body["identifier"],
-							os: body["os"],
-							status: "STARTING",
-						});
-					},
-				),
+				http.post(SANDBOXES_URL, async ({ request }) => {
+					const body = (await request.json()) as Record<string, unknown>;
+					return HttpResponse.json({
+						id: "new-sandbox-id",
+						name: body["name"],
+						identifier: body["identifier"],
+						os: body["os"],
+						status: "STARTING",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -160,20 +140,17 @@ describe("BuddyApiClient", () => {
 		it("should forward timeout in the request body", async () => {
 			let receivedBody: Record<string, unknown> | undefined;
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
-					async ({ request }) => {
-						receivedBody = (await request.json()) as Record<string, unknown>;
-						return HttpResponse.json({
-							id: "with-timeout",
-							name: receivedBody["name"],
-							identifier: receivedBody["identifier"],
-							os: receivedBody["os"],
-							timeout: receivedBody["timeout"],
-							status: "STARTING",
-						});
-					},
-				),
+				http.post(SANDBOXES_URL, async ({ request }) => {
+					receivedBody = (await request.json()) as Record<string, unknown>;
+					return HttpResponse.json({
+						id: "with-timeout",
+						name: receivedBody["name"],
+						identifier: receivedBody["identifier"],
+						os: receivedBody["os"],
+						timeout: receivedBody["timeout"],
+						status: "STARTING",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -193,18 +170,15 @@ describe("BuddyApiClient", () => {
 		it("should forward source_sandbox_id when cloning a sandbox", async () => {
 			let receivedBody: Record<string, unknown> | undefined;
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
-					async ({ request }) => {
-						receivedBody = (await request.json()) as Record<string, unknown>;
-						return HttpResponse.json({
-							id: "clone-id",
-							name: receivedBody["name"],
-							identifier: receivedBody["identifier"],
-							status: "STARTING",
-						});
-					},
-				),
+				http.post(SANDBOXES_URL, async ({ request }) => {
+					receivedBody = (await request.json()) as Record<string, unknown>;
+					return HttpResponse.json({
+						id: "clone-id",
+						name: receivedBody["name"],
+						identifier: receivedBody["identifier"],
+						status: "STARTING",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -230,20 +204,17 @@ describe("BuddyApiClient", () => {
 				},
 			];
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
-					async ({ request }) => {
-						receivedBody = (await request.json()) as Record<string, unknown>;
-						return HttpResponse.json({
-							id: "with-fetch",
-							name: receivedBody["name"],
-							identifier: receivedBody["identifier"],
-							os: receivedBody["os"],
-							fetch: receivedBody["fetch"],
-							status: "STARTING",
-						});
-					},
-				),
+				http.post(SANDBOXES_URL, async ({ request }) => {
+					receivedBody = (await request.json()) as Record<string, unknown>;
+					return HttpResponse.json({
+						id: "with-fetch",
+						name: receivedBody["name"],
+						identifier: receivedBody["identifier"],
+						os: receivedBody["os"],
+						fetch: receivedBody["fetch"],
+						status: "STARTING",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -264,12 +235,9 @@ describe("BuddyApiClient", () => {
 	describe("deleteSandboxById", () => {
 		it("should delete sandbox", async () => {
 			server.use(
-				http.delete(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-to-delete`,
-					() => {
-						return new HttpResponse(null, { status: 204 });
-					},
-				),
+				http.delete(`${SANDBOXES_URL}/sandbox-to-delete`, () => {
+					return new HttpResponse(null, { status: 204 });
+				}),
 			);
 
 			const client = createClient();
@@ -280,15 +248,12 @@ describe("BuddyApiClient", () => {
 
 		it("should not throw on 404 (already deleted)", async () => {
 			server.use(
-				http.delete(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/already-deleted`,
-					() => {
-						return HttpResponse.json(
-							{ errors: [{ message: "Not found" }] },
-							{ status: 404 },
-						);
-					},
-				),
+				http.delete(`${SANDBOXES_URL}/already-deleted`, () => {
+					return HttpResponse.json(
+						{ errors: [{ message: "Not found" }] },
+						{ status: 404 },
+					);
+				}),
 			);
 
 			const client = createClient();
@@ -303,7 +268,7 @@ describe("BuddyApiClient", () => {
 		it("should execute command in sandbox", async () => {
 			server.use(
 				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands`,
+					`${SANDBOXES_URL}/sandbox-id/commands`,
 					async ({ request }) => {
 						const body = (await request.json()) as Record<string, unknown>;
 						return HttpResponse.json({
@@ -329,16 +294,13 @@ describe("BuddyApiClient", () => {
 	describe("response validation", () => {
 		it("should throw on invalid response shape", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id`,
-					() => {
-						// Return invalid response (missing required fields or wrong types)
-						return HttpResponse.json({
-							invalid: "response",
-							// Missing id, status, etc.
-						});
-					},
-				),
+				http.get(`${SANDBOXES_URL}/sandbox-id`, () => {
+					// Return invalid response (missing required fields or wrong types)
+					return HttpResponse.json({
+						invalid: "response",
+						// Missing id, status, etc.
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -354,15 +316,12 @@ describe("BuddyApiClient", () => {
 	describe("sandbox lifecycle", () => {
 		it("should start sandbox", async () => {
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/start`,
-					() => {
-						return HttpResponse.json({
-							id: "sandbox-id",
-							status: "STARTING",
-						});
-					},
-				),
+				http.post(`${SANDBOXES_URL}/sandbox-id/start`, () => {
+					return HttpResponse.json({
+						id: "sandbox-id",
+						status: "STARTING",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -375,15 +334,12 @@ describe("BuddyApiClient", () => {
 
 		it("should stop sandbox", async () => {
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/stop`,
-					() => {
-						return HttpResponse.json({
-							id: "sandbox-id",
-							status: "STOPPING",
-						});
-					},
-				),
+				http.post(`${SANDBOXES_URL}/sandbox-id/stop`, () => {
+					return HttpResponse.json({
+						id: "sandbox-id",
+						status: "STOPPING",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -396,15 +352,12 @@ describe("BuddyApiClient", () => {
 
 		it("should restart sandbox", async () => {
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/restart`,
-					() => {
-						return HttpResponse.json({
-							id: "sandbox-id",
-							status: "STARTING",
-						});
-					},
-				),
+				http.post(`${SANDBOXES_URL}/sandbox-id/restart`, () => {
+					return HttpResponse.json({
+						id: "sandbox-id",
+						status: "STARTING",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -419,25 +372,23 @@ describe("BuddyApiClient", () => {
 	describe("sandbox apps", () => {
 		it("should start a sandbox app and return the updated sandbox", async () => {
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/apps/app-1/start`,
-					() =>
-						HttpResponse.json({
-							id: "sandbox-id",
-							status: "RUNNING",
-							apps: [
-								{
-									id: "app-1",
-									command: "node server.js",
-									app_status: "RUNNING",
-								},
-								{
-									id: "app-2",
-									command: "python worker.py",
-									app_status: "RUNNING",
-								},
-							],
-						}),
+				http.post(`${SANDBOXES_URL}/sandbox-id/apps/app-1/start`, () =>
+					HttpResponse.json({
+						id: "sandbox-id",
+						status: "RUNNING",
+						apps: [
+							{
+								id: "app-1",
+								command: "node server.js",
+								app_status: "RUNNING",
+							},
+							{
+								id: "app-2",
+								command: "python worker.py",
+								app_status: "RUNNING",
+							},
+						],
+					}),
 				),
 			);
 
@@ -453,21 +404,19 @@ describe("BuddyApiClient", () => {
 
 		it("should stop a sandbox app without affecting others", async () => {
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/apps/app-1/stop`,
-					() =>
-						HttpResponse.json({
-							id: "sandbox-id",
-							status: "RUNNING",
-							apps: [
-								{ id: "app-1", command: "node server.js", app_status: "ENDED" },
-								{
-									id: "app-2",
-									command: "python worker.py",
-									app_status: "RUNNING",
-								},
-							],
-						}),
+				http.post(`${SANDBOXES_URL}/sandbox-id/apps/app-1/stop`, () =>
+					HttpResponse.json({
+						id: "sandbox-id",
+						status: "RUNNING",
+						apps: [
+							{ id: "app-1", command: "node server.js", app_status: "ENDED" },
+							{
+								id: "app-2",
+								command: "python worker.py",
+								app_status: "RUNNING",
+							},
+						],
+					}),
 				),
 			);
 
@@ -488,7 +437,7 @@ describe("BuddyApiClient", () => {
 			let receivedCursor: string | null = null;
 			server.use(
 				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/apps/app-1/logs`,
+					`${SANDBOXES_URL}/sandbox-id/apps/app-1/logs`,
 					({ request }) => {
 						receivedCursor = new URL(request.url).searchParams.get("cursor");
 						return HttpResponse.json({
@@ -514,21 +463,18 @@ describe("BuddyApiClient", () => {
 	describe("file operations", () => {
 		it("should get sandbox content", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/content/path/to/dir`,
-					() => {
-						return HttpResponse.json({
-							contents: [
-								{
-									name: "file.txt",
-									type: "FILE",
-									path: "/path/to/dir/file.txt",
-								},
-								{ name: "subdir", type: "DIR", path: "/path/to/dir/subdir" },
-							],
-						});
-					},
-				),
+				http.get(`${SANDBOXES_URL}/sandbox-id/content/path/to/dir`, () => {
+					return HttpResponse.json({
+						contents: [
+							{
+								name: "file.txt",
+								type: "FILE",
+								path: "/path/to/dir/file.txt",
+							},
+							{ name: "subdir", type: "DIR", path: "/path/to/dir/subdir" },
+						],
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -542,12 +488,9 @@ describe("BuddyApiClient", () => {
 
 		it("should delete sandbox file", async () => {
 			server.use(
-				http.delete(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/content/file.txt`,
-					() => {
-						return new HttpResponse(null, { status: 204 });
-					},
-				),
+				http.delete(`${SANDBOXES_URL}/sandbox-id/content/file.txt`, () => {
+					return new HttpResponse(null, { status: 204 });
+				}),
 			);
 
 			const client = createClient();
@@ -560,16 +503,13 @@ describe("BuddyApiClient", () => {
 
 		it("should create sandbox directory", async () => {
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/content/new-dir`,
-					() => {
-						return HttpResponse.json({
-							name: "new-dir",
-							type: "DIR",
-							path: "/new-dir",
-						});
-					},
-				),
+				http.post(`${SANDBOXES_URL}/sandbox-id/content/new-dir`, () => {
+					return HttpResponse.json({
+						name: "new-dir",
+						type: "DIR",
+						path: "/new-dir",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -585,17 +525,14 @@ describe("BuddyApiClient", () => {
 	describe("command operations", () => {
 		it("should get command details", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands/cmd-123`,
-					() => {
-						return HttpResponse.json({
-							id: "cmd-123",
-							command: "echo hello",
-							status: "SUCCESSFUL",
-							exit_code: 0,
-						});
-					},
-				),
+				http.get(`${SANDBOXES_URL}/sandbox-id/commands/cmd-123`, () => {
+					return HttpResponse.json({
+						id: "cmd-123",
+						command: "echo hello",
+						status: "SUCCESSFUL",
+						exit_code: 0,
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -610,7 +547,7 @@ describe("BuddyApiClient", () => {
 		it("should terminate command", async () => {
 			server.use(
 				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands/cmd-123/terminate`,
+					`${SANDBOXES_URL}/sandbox-id/commands/cmd-123/terminate`,
 					() => {
 						return HttpResponse.json({});
 					},
@@ -627,24 +564,22 @@ describe("BuddyApiClient", () => {
 
 		it("should list commands in a sandbox", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands`,
-					() =>
-						HttpResponse.json({
-							commands: [
-								{
-									id: "cmd-a",
-									command: "echo first",
-									status: "SUCCESSFUL",
-									exit_code: 0,
-								},
-								{
-									id: "cmd-b",
-									command: "sleep 60",
-									status: "INPROGRESS",
-								},
-							],
-						}),
+				http.get(`${SANDBOXES_URL}/sandbox-id/commands`, () =>
+					HttpResponse.json({
+						commands: [
+							{
+								id: "cmd-a",
+								command: "echo first",
+								status: "SUCCESSFUL",
+								exit_code: 0,
+							},
+							{
+								id: "cmd-b",
+								command: "sleep 60",
+								status: "INPROGRESS",
+							},
+						],
+					}),
 				),
 			);
 
@@ -664,19 +599,16 @@ describe("BuddyApiClient", () => {
 			let receivedBody: Record<string, unknown> | undefined;
 			let receivedMethod: string | undefined;
 			server.use(
-				http.patch(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id`,
-					async ({ request }) => {
-						receivedMethod = request.method;
-						receivedBody = (await request.json()) as Record<string, unknown>;
-						return HttpResponse.json({
-							id: "sandbox-id",
-							timeout: receivedBody["timeout"],
-							tags: receivedBody["tags"],
-							status: "RUNNING",
-						});
-					},
-				),
+				http.patch(`${SANDBOXES_URL}/sandbox-id`, async ({ request }) => {
+					receivedMethod = request.method;
+					receivedBody = (await request.json()) as Record<string, unknown>;
+					return HttpResponse.json({
+						id: "sandbox-id",
+						timeout: receivedBody["timeout"],
+						tags: receivedBody["tags"],
+						status: "RUNNING",
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -696,20 +628,17 @@ describe("BuddyApiClient", () => {
 		it("should list all snapshots in the project (across sandboxes)", async () => {
 			let receivedProject: string | null = null;
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/snapshots`,
-					({ request }) => {
-						receivedProject = new URL(request.url).searchParams.get(
-							"project_name",
-						);
-						return HttpResponse.json({
-							snapshots: [
-								{ id: "snap-a", name: "From sandbox A", status: "CREATED" },
-								{ id: "snap-b", name: "Orphan", status: "CREATED" },
-							],
-						});
-					},
-				),
+				http.get(`${SANDBOXES_URL}/snapshots`, ({ request }) => {
+					receivedProject = new URL(request.url).searchParams.get(
+						"project_name",
+					);
+					return HttpResponse.json({
+						snapshots: [
+							{ id: "snap-a", name: "From sandbox A", status: "CREATED" },
+							{ id: "snap-b", name: "Orphan", status: "CREATED" },
+						],
+					});
+				}),
 			);
 
 			const client = createClient();
@@ -725,15 +654,13 @@ describe("BuddyApiClient", () => {
 
 		it("should list snapshots for a sandbox", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots`,
-					() =>
-						HttpResponse.json({
-							snapshots: [
-								{ id: "snap-1", name: "First" },
-								{ id: "snap-2", name: "Second" },
-							],
-						}),
+				http.get(`${SANDBOXES_URL}/sandbox-id/snapshots`, () =>
+					HttpResponse.json({
+						snapshots: [
+							{ id: "snap-1", name: "First" },
+							{ id: "snap-2", name: "Second" },
+						],
+					}),
 				),
 			);
 
@@ -750,7 +677,7 @@ describe("BuddyApiClient", () => {
 			let receivedBody: Record<string, unknown> | undefined;
 			server.use(
 				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots`,
+					`${SANDBOXES_URL}/sandbox-id/snapshots`,
 					async ({ request }) => {
 						receivedBody = (await request.json()) as Record<string, unknown>;
 						return HttpResponse.json(
@@ -773,9 +700,8 @@ describe("BuddyApiClient", () => {
 
 		it("should fetch a specific snapshot by ID", async () => {
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots/snap-1`,
-					() => HttpResponse.json({ id: "snap-1", name: "First" }),
+				http.get(`${SANDBOXES_URL}/sandbox-id/snapshots/snap-1`, () =>
+					HttpResponse.json({ id: "snap-1", name: "First" }),
 				),
 			);
 
@@ -790,7 +716,7 @@ describe("BuddyApiClient", () => {
 		it("should delete a snapshot", async () => {
 			server.use(
 				http.delete(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots/snap-1`,
+					`${SANDBOXES_URL}/sandbox-id/snapshots/snap-1`,
 					() => new HttpResponse(null, { status: 204 }),
 				),
 			);
@@ -805,13 +731,11 @@ describe("BuddyApiClient", () => {
 
 		it("should not throw on 404 when deleting a snapshot (already gone)", async () => {
 			server.use(
-				http.delete(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/snapshots/snap-missing`,
-					() =>
-						HttpResponse.json(
-							{ errors: [{ message: "not found" }] },
-							{ status: 404 },
-						),
+				http.delete(`${SANDBOXES_URL}/sandbox-id/snapshots/snap-missing`, () =>
+					HttpResponse.json(
+						{ errors: [{ message: "not found" }] },
+						{ status: 404 },
+					),
 				),
 			);
 
@@ -826,13 +750,10 @@ describe("BuddyApiClient", () => {
 		it("should delete a snapshot at the project level (no sandbox_id)", async () => {
 			let requested = false;
 			server.use(
-				http.delete(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/snapshots/orphan-snap`,
-					() => {
-						requested = true;
-						return new HttpResponse(null, { status: 204 });
-					},
-				),
+				http.delete(`${SANDBOXES_URL}/snapshots/orphan-snap`, () => {
+					requested = true;
+					return new HttpResponse(null, { status: 204 });
+				}),
 			);
 
 			const client = createClient();
@@ -844,13 +765,11 @@ describe("BuddyApiClient", () => {
 
 		it("should not throw on 404 when deleting a project-level snapshot", async () => {
 			server.use(
-				http.delete(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/snapshots/missing-orphan`,
-					() =>
-						HttpResponse.json(
-							{ errors: [{ message: "not found" }] },
-							{ status: 404 },
-						),
+				http.delete(`${SANDBOXES_URL}/snapshots/missing-orphan`, () =>
+					HttpResponse.json(
+						{ errors: [{ message: "not found" }] },
+						{ status: 404 },
+					),
 				),
 			);
 

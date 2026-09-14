@@ -15,6 +15,7 @@
 		"example:update": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/update.ts",
 		"example:snapshots": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/snapshots.ts",
 		"example:fetch": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/fetch.ts",
+		"example:scopes": "NODE_OPTIONS='--enable-source-maps' dotenvx run -q -- tsx src/scopes.ts",
 		"example:all": "concurrently 'pnpm:example:*(!all)'"
 	},
 	"keywords": [],

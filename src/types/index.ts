@@ -18,7 +18,7 @@ type ClientPath<D extends Data> =
 
 type ClientQuery<D extends Data> =
 	NonNullable<D["query"]> extends infer Q extends object
-		? OmitIfEmpty<Omit<Q, "project_name">>
+		? OmitIfEmpty<Omit<Q, "project_name" | "environment_id">>
 		: never;
 
 type PathProp<D extends Data> = [ClientPath<D>] extends [never]

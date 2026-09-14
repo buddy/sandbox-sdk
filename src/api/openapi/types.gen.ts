@@ -182,7 +182,7 @@ export type UpdateIntegrationRequest = {
 	 */
 	slack_user_id?: string;
 	/**
-	 * The cloud region (e.g., us-east-1, eu-west-1)
+	 * The New Relic region. Can be one of `US` or `EU` (type NEW_RELIC)
 	 */
 	region?: string;
 	/**
@@ -614,191 +614,6 @@ export type PipelinePropertyView = {
 };
 
 /**
- * MSSQL authentication credentials
- */
-export type MssqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MSSQL username
-	 */
-	username: string;
-	/**
-	 * The MSSQL password
-	 */
-	password: string;
-};
-
-/**
- * MongoDB authentication credentials
- */
-export type MongoAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MongoDB username
-	 */
-	username: string;
-	/**
-	 * The MongoDB password
-	 */
-	password: string;
-};
-
-/**
- * PostgreSQL authentication credentials
- */
-export type PostgresqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The PostgreSQL username
-	 */
-	username: string;
-	/**
-	 * The PostgreSQL password
-	 */
-	password: string;
-};
-
-/**
- * MySQL authentication credentials
- */
-export type MysqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MySQL username
-	 */
-	username: string;
-	/**
-	 * The MySQL password
-	 */
-	password: string;
-};
-
-/**
- * Define proxy servers' authentication method using the following parameters
- */
-export type SshAuthView = {
-	/**
-	 * Authentication method
-	 */
-	method:
-		| "PASSWORD"
-		| "SSH_KEY"
-		| "ASSETS_KEY"
-		| "PROXY_CREDENTIALS"
-		| "PROXY_KEY";
-	/**
-	 * The username required to connect to the server
-	 */
-	username?: string;
-	/**
-	 * The password required to connect to the server. Required for `PASSWORD` method
-	 */
-	password?: string;
-	/**
-	 * Name of the variable containing the private key. Required for `ASSETS_KEY` method
-	 */
-	asset?: string;
-	/**
-	 * Passphrase for the SSH key
-	 */
-	passphrase?: string;
-	/**
-	 * The private SSH key. Required when method is `SSH_KEY`
-	 */
-	key?: string;
-	/**
-	 * Path to the key on proxy server. Required for method `PROXY_KEY`
-	 */
-	key_path?: string;
-};
-
-/**
- * Kubernetes cluster authentication method
- */
-export type K8sAuthView = {
-	/**
-	 * Authentication method
-	 */
-	method: "PASS" | "CERT" | "TOKEN";
-	/**
-	 * Username to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
-	 */
-	username?: string;
-	/**
-	 * Password to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
-	 */
-	password?: string;
-	/**
-	 * Kuberenetes certificate authority. Required if the `auth.method` is `CERT`
-	 */
-	certificate_authority?: string;
-	/**
-	 * Kuberenetes client certificate. Required if the `auth.method` is `CERT`
-	 */
-	client_certificate?: string;
-	/**
-	 * Kuberenetes client key. Required if the `auth.method` is `CERT`
-	 */
-	client_key?: string;
-	/**
-	 * Token for the Kubernetes cluster. Required if the `auth.method` is `TOKEN`
-	 */
-	token?: string;
-};
-
-/**
- * Authentication details
- */
-export type GitAuthView = {
-	/**
-	 * The authentication for Git
-	 */
-	method: "HTTP" | "SSH_KEY" | "ASSETS_KEY" | "CURRENT";
-	/**
-	 * Username required to connect to the Git repository. Required when method is `HTTP`
-	 */
-	username?: string;
-	/**
-	 * Password required to connect to the Git repository. Required when method is `HTTP`
-	 */
-	password?: string;
-	/**
-	 * Name of the variable containing the private key. Required when method is `ASSETS_KEY`
-	 */
-	asset?: string;
-	/**
-	 * The private SSH key. Required when method is `SSH_KEY`
-	 */
-	key?: string;
-};
-
-/**
- * Authentication details
- */
-export type FtpAuthView = {
-	/**
-	 * The username required to connect to the server
-	 */
-	username: string;
-	/**
-	 * The password required to connect to the server
-	 */
-	password: string;
-};
-
-/**
  * Defines how the target can be used (as deployment target, proxy, or both)
  */
 export type UseAsView = {
@@ -922,7 +737,7 @@ export type ShortEnvironmentView = {
 	/**
 	 * The ID of the environment
 	 */
-	id?: number;
+	id?: string;
 	/**
 	 * The scope level of the environment
 	 */
@@ -1315,6 +1130,191 @@ export type ShortProjectView = {
 };
 
 /**
+ * MSSQL authentication credentials
+ */
+export type MssqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MSSQL username
+	 */
+	username: string;
+	/**
+	 * The MSSQL password
+	 */
+	password: string;
+};
+
+/**
+ * MongoDB authentication credentials
+ */
+export type MongoAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MongoDB username
+	 */
+	username: string;
+	/**
+	 * The MongoDB password
+	 */
+	password: string;
+};
+
+/**
+ * PostgreSQL authentication credentials
+ */
+export type PostgresqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The PostgreSQL username
+	 */
+	username: string;
+	/**
+	 * The PostgreSQL password
+	 */
+	password: string;
+};
+
+/**
+ * MySQL authentication credentials
+ */
+export type MysqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MySQL username
+	 */
+	username: string;
+	/**
+	 * The MySQL password
+	 */
+	password: string;
+};
+
+/**
+ * Define proxy servers' authentication method using the following parameters
+ */
+export type SshAuthView = {
+	/**
+	 * Authentication method
+	 */
+	method:
+		| "PASSWORD"
+		| "SSH_KEY"
+		| "ASSETS_KEY"
+		| "PROXY_CREDENTIALS"
+		| "PROXY_KEY";
+	/**
+	 * The username required to connect to the server
+	 */
+	username?: string;
+	/**
+	 * The password required to connect to the server. Required for `PASSWORD` method
+	 */
+	password?: string;
+	/**
+	 * Name of the variable containing the private key. Required for `ASSETS_KEY` method
+	 */
+	asset?: string;
+	/**
+	 * Passphrase for the SSH key
+	 */
+	passphrase?: string;
+	/**
+	 * The private SSH key. Required when method is `SSH_KEY`
+	 */
+	key?: string;
+	/**
+	 * Path to the key on proxy server. Required for method `PROXY_KEY`
+	 */
+	key_path?: string;
+};
+
+/**
+ * Kubernetes cluster authentication method
+ */
+export type K8sAuthView = {
+	/**
+	 * Authentication method
+	 */
+	method: "PASS" | "CERT" | "TOKEN";
+	/**
+	 * Username to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
+	 */
+	username?: string;
+	/**
+	 * Password to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
+	 */
+	password?: string;
+	/**
+	 * Kuberenetes certificate authority. Required if the `auth.method` is `CERT`
+	 */
+	certificate_authority?: string;
+	/**
+	 * Kuberenetes client certificate. Required if the `auth.method` is `CERT`
+	 */
+	client_certificate?: string;
+	/**
+	 * Kuberenetes client key. Required if the `auth.method` is `CERT`
+	 */
+	client_key?: string;
+	/**
+	 * Token for the Kubernetes cluster. Required if the `auth.method` is `TOKEN`
+	 */
+	token?: string;
+};
+
+/**
+ * Authentication details
+ */
+export type GitAuthView = {
+	/**
+	 * The authentication for Git
+	 */
+	method: "HTTP" | "SSH_KEY" | "ASSETS_KEY" | "CURRENT";
+	/**
+	 * Username required to connect to the Git repository. Required when method is `HTTP`
+	 */
+	username?: string;
+	/**
+	 * Password required to connect to the Git repository. Required when method is `HTTP`
+	 */
+	password?: string;
+	/**
+	 * Name of the variable containing the private key. Required when method is `ASSETS_KEY`
+	 */
+	asset?: string;
+	/**
+	 * The private SSH key. Required when method is `SSH_KEY`
+	 */
+	key?: string;
+};
+
+/**
+ * Authentication details
+ */
+export type FtpAuthView = {
+	/**
+	 * The username required to connect to the server
+	 */
+	username: string;
+	/**
+	 * The password required to connect to the server
+	 */
+	password: string;
+};
+
+/**
  * The integration to use for authentication
  */
 export type IntegrationView = {
@@ -1395,7 +1395,10 @@ export type IntegrationView = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -1506,6 +1509,10 @@ export type IdsView = {
 	 * The ID of the sandbox
 	 */
 	sandbox_id?: string;
+	/**
+	 * The ID of the target
+	 */
+	target_id?: string;
 	/**
 	 * The ID of the unit test suite
 	 */
@@ -1673,7 +1680,7 @@ export type AddIntegrationRequest = {
 	 */
 	slack_user_id?: string;
 	/**
-	 * The cloud region (e.g., us-east-1, eu-west-1)
+	 * The New Relic region. Can be one of `US` or `EU` (type NEW_RELIC)
 	 */
 	region?: string;
 	/**
@@ -1800,7 +1807,10 @@ export type AddIntegrationRequest = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE";
 	/**
 	 * The scope of the integration
 	 */
@@ -1932,7 +1942,10 @@ export type IntegrationIdView = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -2160,6 +2173,12 @@ export type UpdateSandboxRequest = {
 	variables?: Array<AddVariableInObjectRequest>;
 	permissions?: PermissionsView;
 	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
+	project?: ShortProjectView;
+	environment?: ShortEnvironmentView;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -2271,7 +2290,7 @@ export type TlsSettingsView = {
 	 */
 	readonly html_url?: string;
 	/**
-	 * Where to terminate TLS connection
+	 * Where to terminate TLS connection. Default: `REGION`
 	 */
 	terminate_at?: "REGION" | "AGENT" | "TARGET";
 };
@@ -2364,9 +2383,9 @@ export type TunnelView = {
 	 */
 	type: "TCP" | "TLS" | "HTTP" | "SSH";
 	/**
-	 * The region where the tunnel is deployed
+	 * The region the tunnel is exposed from. When not set, the region of the agent is used
 	 */
-	region: "US" | "EU" | "AS";
+	region?: "US" | "EU" | "AS";
 	/**
 	 * The IP addresses or domains allowed to access the tunnel
 	 */
@@ -2936,6 +2955,18 @@ export type CloneSandboxRequest = {
 	 * A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).
 	 */
 	identifier?: string;
+	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
+	/**
+	 * The environment the sandbox belongs to (required when scope is `ENVIRONMENT`)
+	 */
+	environment?: {
+		id?: string;
+		identifier?: string;
+		name?: string;
+	};
 };
 
 export type SandboxResponse = {
@@ -3034,7 +3065,12 @@ export type SandboxResponse = {
 	 * The SSH port
 	 */
 	ssh_port?: number;
+	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
 	project?: ProjectView;
+	environment?: ShortEnvironmentView;
 	permissions?: PermissionsView;
 	/**
 	 * Note for this resource
@@ -3235,7 +3271,7 @@ export type ShortEnvironmentViewWritable = {
 	/**
 	 * The ID of the environment
 	 */
-	id?: number;
+	id?: string;
 	/**
 	 * The scope level of the environment
 	 */
@@ -3658,7 +3694,10 @@ export type IntegrationViewWritable = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -3761,6 +3800,10 @@ export type IdsViewWritable = {
 	 * The ID of the sandbox
 	 */
 	sandbox_id?: string;
+	/**
+	 * The ID of the target
+	 */
+	target_id?: string;
 	/**
 	 * The ID of the unit test suite
 	 */
@@ -3896,7 +3939,10 @@ export type IntegrationIdViewWritable = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -4108,6 +4154,12 @@ export type UpdateSandboxRequestWritable = {
 	variables?: Array<AddVariableInObjectRequestWritable>;
 	permissions?: PermissionsView;
 	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
+	project?: ShortProjectViewWritable;
+	environment?: ShortEnvironmentViewWritable;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -4215,7 +4267,7 @@ export type TlsSettingsViewWritable = {
 	 */
 	ca_certificate?: string;
 	/**
-	 * Where to terminate TLS connection
+	 * Where to terminate TLS connection. Default: `REGION`
 	 */
 	terminate_at?: "REGION" | "AGENT" | "TARGET";
 };
@@ -4300,9 +4352,9 @@ export type TunnelViewWritable = {
 	 */
 	type: "TCP" | "TLS" | "HTTP" | "SSH";
 	/**
-	 * The region where the tunnel is deployed
+	 * The region the tunnel is exposed from. When not set, the region of the agent is used
 	 */
-	region: "US" | "EU" | "AS";
+	region?: "US" | "EU" | "AS";
 	/**
 	 * The IP addresses or domains allowed to access the tunnel
 	 */
@@ -4545,6 +4597,18 @@ export type CreateNewSandboxRequestWritable = {
 	 * YAML note for AI agents operating on this resource
 	 */
 	agent_note?: string;
+	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
+	/**
+	 * The environment the sandbox belongs to (required when scope is `ENVIRONMENT`)
+	 */
+	environment?: {
+		id?: string;
+		identifier?: string;
+		name?: string;
+	};
 };
 
 export type CreateFromSnapshotRequestWritable = {
@@ -4605,6 +4669,18 @@ export type CreateFromSnapshotRequestWritable = {
 	 * The environment variables of the sandbox
 	 */
 	variables?: Array<EnvironmentVariableView>;
+	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
+	/**
+	 * The environment the sandbox belongs to (required when scope is `ENVIRONMENT`)
+	 */
+	environment?: {
+		id?: string;
+		identifier?: string;
+		name?: string;
+	};
 };
 
 export type SandboxResponseWritable = {
@@ -4695,7 +4771,12 @@ export type SandboxResponseWritable = {
 	 * The SSH port
 	 */
 	ssh_port?: number;
+	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
 	project?: ProjectViewWritable;
+	environment?: ShortEnvironmentViewWritable;
 	permissions?: PermissionsView;
 	/**
 	 * Note for this resource
@@ -4836,6 +4917,10 @@ export type GetIdentifiersData = {
 		 */
 		distribution?: string;
 		/**
+		 * The human-readable ID of the target. Resolved against the given pipeline, environment or project, then the workspace.
+		 */
+		target?: string;
+		/**
 		 * The subdomain of the route. Resolved together with route_domain and route_path against the parent distribution.
 		 */
 		route_subdomain?: string;
@@ -4874,7 +4959,16 @@ export type GetIntegrationsData = {
 		 */
 		workspace_domain: string;
 	};
-	query?: never;
+	query?: {
+		/**
+		 * The name of the project
+		 */
+		project_name?: string;
+		/**
+		 * The ID of the environment
+		 */
+		environment_id?: number;
+	};
 	url: "/workspaces/{workspace_domain}/integrations";
 };
 
@@ -5159,11 +5253,15 @@ export type GetSandboxesData = {
 		 */
 		workspace_domain: string;
 	};
-	query: {
+	query?: {
 		/**
 		 * The human-readable ID of the project to filter sandboxes
 		 */
-		project_name: string;
+		project_name?: string;
+		/**
+		 * The ID of the environment to filter sandboxes
+		 */
+		environment_id?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes";
 };
@@ -5186,11 +5284,11 @@ export type AddSandboxData = {
 		 */
 		workspace_domain: string;
 	};
-	query: {
+	query?: {
 		/**
 		 * The human-readable ID of the project to filter sandboxes
 		 */
-		project_name: string;
+		project_name?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes";
 };
@@ -5881,11 +5979,15 @@ export type GetProjectSnapshotsData = {
 		 */
 		workspace_domain: string;
 	};
-	query: {
+	query?: {
 		/**
 		 * The human-readable ID of the project to filter sandboxes
 		 */
-		project_name: string;
+		project_name?: string;
+		/**
+		 * The ID of the environment to filter sandboxes
+		 */
+		environment_id?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes/snapshots";
 };
@@ -5931,11 +6033,15 @@ export type AddSandboxByYamlData = {
 		 */
 		workspace_domain: string;
 	};
-	query: {
+	query?: {
 		/**
 		 * The human-readable ID of the project to filter sandboxes
 		 */
-		project_name: string;
+		project_name?: string;
+		/**
+		 * The ID of the environment to filter sandboxes
+		 */
+		environment_id?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes/yaml";
 };

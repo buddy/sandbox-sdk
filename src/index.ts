@@ -6,6 +6,7 @@ export type {
 	ShortSnapshotView,
 	SnapshotView,
 } from "@/api/openapi/types.gen";
+export type { SandboxScope } from "@/core/buddy-api-client";
 export { BuddyApiClient } from "@/core/buddy-api-client";
 export { Command } from "@/entity/command";
 export type { FileInfo, GetFileSystemConfig } from "@/entity/filesystem";
@@ -17,6 +18,7 @@ export type {
 	CreateSandboxConfig,
 	GetSandboxConfig,
 	ListSandboxesConfig,
+	UpdateSandboxConfig,
 } from "@/entity/sandbox";
 export { Sandbox } from "@/entity/sandbox";
 export { Snapshot } from "@/entity/snapshot";
