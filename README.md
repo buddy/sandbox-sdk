@@ -2,6 +2,8 @@
 
 TypeScript SDK for managing Buddy sandboxes - isolated Ubuntu environments for running commands.
 
+[\[TypeScript SDK\]](https://github.com/buddy/sandbox-sdk) · [\[Python SDK\]](https://github.com/buddy/sandbox-sdk-python)
+
 ## Installation
 
 ```bash
