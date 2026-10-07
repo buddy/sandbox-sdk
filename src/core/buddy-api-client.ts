@@ -3,7 +3,6 @@ import {
 	addSandboxResponseTransformer,
 	addSandboxSnapshotResponseTransformer,
 	createSandboxDirectoryResponseTransformer,
-	executeSandboxCommandResponseTransformer,
 	getProjectSnapshotsResponseTransformer,
 	getSandboxCommandResponseTransformer,
 	getSandboxCommandsResponseTransformer,
@@ -37,7 +36,6 @@ import type {
 	DeleteSnapshotResponse,
 	DownloadSandboxContentData,
 	ExecuteSandboxCommandData,
-	ExecuteSandboxCommandResponse,
 	GetIdentifiersData,
 	GetIdentifiersResponse,
 	GetProjectSnapshotsData,
@@ -62,6 +60,7 @@ import type {
 	RestartSandboxData,
 	RestartSandboxResponse,
 	SandboxCommandLog,
+	SandboxCommandView,
 	StartSandboxAppData,
 	StartSandboxAppResponse,
 	StartSandboxData,
@@ -98,7 +97,6 @@ import {
 	zDownloadSandboxContentPath,
 	zExecuteSandboxCommandBody,
 	zExecuteSandboxCommandPath,
-	zExecuteSandboxCommandResponse,
 	zGetIdentifiersPath,
 	zGetIdentifiersQuery,
 	zGetIdentifiersResponse,
@@ -128,6 +126,7 @@ import {
 	zRestartSandboxPath,
 	zRestartSandboxResponse,
 	zSandboxCommandLog,
+	zSandboxCommandView,
 	zStartSandboxAppPath,
 	zStartSandboxAppResponse,
 	zStartSandboxPath,
@@ -240,7 +239,9 @@ export class BuddyApiClient extends HttpClient {
 		}
 		const validatedPath = pathResult.data as Record<string, string>;
 
-		let validatedQuery: Record<string, string | number | boolean> | undefined;
+		let validatedQuery:
+			| Record<string, string | number | bigint | boolean>
+			| undefined;
 		if (querySchema) {
 			const queryResult = await querySchema.safeParseAsync({
 				project_name: this.project_name,
@@ -251,7 +252,7 @@ export class BuddyApiClient extends HttpClient {
 			}
 			validatedQuery = queryResult.data as Record<
 				string,
-				string | number | boolean
+				string | number | bigint | boolean
 			>;
 		}
 
@@ -482,19 +483,23 @@ export class BuddyApiClient extends HttpClient {
 		});
 	}
 
-	/** Execute a command in a sandbox */
+	/**
+	 * Execute a command in a sandbox, returning once it has been accepted.
+	 * The endpoint can also answer with a finished result, but only for the
+	 * `fast` query param this method never sends - `execCommand` covers that.
+	 */
 	async executeCommand<const Data extends ExecuteSandboxCommandData>(
 		data: ClientData<Data>,
 	) {
-		return this.#requestWithValidation<Data, ExecuteSandboxCommandResponse>({
+		return this.#requestWithValidation<Data, SandboxCommandView>({
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
 			idempotent: false,
 			bodySchema: zExecuteSandboxCommandBody,
 			pathSchema: zExecuteSandboxCommandPath,
-			responseSchema: zExecuteSandboxCommandResponse.transform(
-				executeSandboxCommandResponseTransformer,
+			responseSchema: zSandboxCommandView.transform(
+				getSandboxCommandResponseTransformer,
 			),
 		});
 	}

@@ -1,10 +1,10 @@
-import type { ExecuteSandboxCommandResponse } from "@/api/openapi/types.gen";
+import type { SandboxCommandView } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
 import { pollUntil, resolvePollInterval } from "@/utils/poll";
 
 /** Represents a running or completed command execution in a sandbox */
 export class Command {
-	protected readonly commandResponse: ExecuteSandboxCommandResponse;
+	protected readonly commandResponse: SandboxCommandView;
 	protected readonly client: BuddyApiClient;
 	protected readonly sandboxId: string;
 	protected readonly commandId: string;
@@ -15,7 +15,7 @@ export class Command {
 		client,
 		sandboxId,
 	}: {
-		commandResponse: ExecuteSandboxCommandResponse;
+		commandResponse: SandboxCommandView;
 		client: BuddyApiClient;
 		sandboxId: string;
 	}) {
@@ -103,8 +103,8 @@ export class Command {
 	 */
 	protected async pollForCommandCompletion(
 		pollIntervalMs?: number,
-	): Promise<ExecuteSandboxCommandResponse> {
-		let finalResponse: ExecuteSandboxCommandResponse | undefined;
+	): Promise<SandboxCommandView> {
+		let finalResponse: SandboxCommandView | undefined;
 
 		await pollUntil(async () => {
 			const commandResponse = await this.client.getCommandDetails({

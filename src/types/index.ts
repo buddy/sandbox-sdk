@@ -3,7 +3,7 @@ import type { WithRequired } from "@/types/utils";
 export type Data = {
 	body?: Record<string, unknown>;
 	path?: Record<string, string>;
-	query?: Record<string, string | boolean>;
+	query?: Record<string, string | number | bigint | boolean>;
 	url: string;
 };
 
@@ -25,9 +25,13 @@ type PathProp<D extends Data> = [ClientPath<D>] extends [never]
 	? { path?: undefined }
 	: { path: ClientPath<D> };
 
+type AllPropsOptional<T> = Record<never, never> extends T ? true : false;
+
 type QueryProp<D extends Data> = [ClientQuery<D>] extends [never]
 	? { query?: undefined }
-	: { query: ClientQuery<D> };
+	: AllPropsOptional<ClientQuery<D>> extends true
+		? { query?: ClientQuery<D> }
+		: { query: ClientQuery<D> };
 
 export type ClientData<D extends Data> = Omit<
 	WithRequired<D, D["body"] extends undefined ? never : "body">,

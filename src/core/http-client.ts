@@ -26,7 +26,7 @@ export interface RequestConfig {
 	 */
 	idempotent?: boolean;
 	/** URL query parameters to append */
-	queryParams?: Record<string, string | number | boolean | undefined>;
+	queryParams?: Record<string, string | number | bigint | boolean | undefined>;
 	/** Additional headers for this request only */
 	headers?: Record<string, string>;
 	/** Response parsing mode */
@@ -126,7 +126,10 @@ export class HttpClient {
 	/** Build a full URL from path and optional query parameters */
 	#buildUrl(
 		path: string,
-		queryParameters?: Record<string, string | number | boolean | undefined>,
+		queryParameters?: Record<
+			string,
+			string | number | bigint | boolean | undefined
+		>,
 	): string {
 		const url = new URL(path, this.#baseURL);
 
