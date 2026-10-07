@@ -59,13 +59,14 @@ try {
 
 	log(`Stdout: ${python.stdout?.trim()}`);
 
-	log("\n=== Example 4: When to reach for runCommand() instead ===");
-	log("exec() is capped at 60 seconds and keeps no history or logs.");
-	log("Streaming output as it arrives needs runCommand():\n");
+	log("\n=== Example 4: exec() leaves no trace ===");
 
-	await sandbox.runCommand({
-		command: 'for i in 1 2 3; do echo "Line $i"; sleep 1; done',
-	});
+	const before = await sandbox.listCommands();
+	await sandbox.exec({ command: "echo untracked" });
+	const after = await sandbox.listCommands();
+
+	log(`Commands in history before: ${before.length}, after: ${after.length}`);
+	log("Use runCommand() for history, streamed logs, or over 60 seconds.");
 } finally {
 	log("\nStopping sandbox...");
 	await sandbox.stop().catch(() => undefined);

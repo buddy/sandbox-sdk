@@ -171,10 +171,10 @@ export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 	apiUrl: string;
 }
 
-/** API client for Buddy sandbox operations with request validation and response transformation */
 /** The API fails a synchronous command at 60s - outlast it, barely */
 const EXEC_TIMEOUT_MS = 65_000;
 
+/** API client for Buddy sandbox operations with request validation and response transformation */
 export class BuddyApiClient extends HttpClient {
 	readonly workspace: BuddyApiConfig["workspace"];
 	readonly project_name: BuddyApiConfig["project_name"];

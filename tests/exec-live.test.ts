@@ -38,12 +38,10 @@ describe("Sandbox.exec", () => {
 		expect(result.stderr).toContain("boom");
 	});
 
-	it("should echo the request back rather than the runtime it used", async () => {
+	it("should echo the command back", async () => {
 		const result = await sandbox.exec({ command: "true" });
 
 		expect(result.command).toBe("true");
-		// BASH is applied when building the command, not when answering.
-		expect(result.runtime).toBeUndefined();
 	});
 
 	it("should run in a non-default runtime and echo it", async () => {

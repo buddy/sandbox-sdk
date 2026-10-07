@@ -101,7 +101,7 @@ describe("Sandbox.exec", () => {
 
 		await expect(
 			sandbox.exec({ command: "sleep 10", timeoutMs: 50 }),
-		).rejects.toThrow();
+		).rejects.toThrow(/Request timeout/);
 	});
 
 	it("does not re-run a command after an ambiguous failure", async () => {
