@@ -64,15 +64,13 @@ and what to make of its code is yours to decide. Pick the runtime with
 await sandbox.exec({ command: "print(1 + 1)", runtime: "PYTHON" });
 ```
 
-The request stays open for as long as the command runs, against a 30 second
-deadline. Raise it for slower commands:
+The request stays open for as long as the command runs, and the API fails it
+after 60 seconds. Such a command is also absent from the sandbox's command
+history, streams no logs and cannot be terminated.
 
-```typescript
-await sandbox.exec({ command: "npm run build", timeoutMs: 10 * 60 * 1000 });
-```
-
-Reach for `runCommand()` instead when you want the output as it arrives, or a
-command that keeps running after the call returns:
+Reach for `runCommand()` for anything longer than a minute, when you want the
+output as it arrives, or for a command that keeps running after the call
+returns:
 
 ```typescript
 // streams to process.stdout as it runs

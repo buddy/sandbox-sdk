@@ -90,11 +90,15 @@ export interface CloneSandboxConfig
  */
 export interface ExecOptions extends ExecuteSandboxCommandRequest {
 	/**
-	 * How long to wait for the command, in milliseconds. The request stays
-	 * open until the command finishes, so raise this for slow ones.
+	 * How long to wait for the result, in milliseconds. Defaults to just past
+	 * the API's own 60 second ceiling, so the API decides the outcome rather
+	 * than the client giving up first.
 	 */
 	timeoutMs?: number;
 }
+
+/** The API fails a synchronous command at 60s - outlast it, barely */
+const EXEC_TIMEOUT_MS = 65_000;
 
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
 	/** Stream to write stdout to (default: process.stdout, null to disable) */
@@ -423,13 +427,15 @@ export class Sandbox {
 	 * Run a command in the sandbox and wait for it to finish.
 	 *
 	 * Returns the exit code and the output it produced, with no polling and no
-	 * log stream in between. Use `runCommand()` instead to follow the output
-	 * as it arrives, or to leave the command running detached.
+	 * log stream in between. The command leaves no trace in the sandbox's
+	 * command history, streams no logs and cannot be terminated, and the API
+	 * fails it after 60 seconds. Use `runCommand()` for anything longer, to
+	 * follow the output as it arrives, or to leave a command running detached.
 	 */
 	async exec(options: ExecOptions): Promise<SandboxCommandResultView> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to execute command", async () => {
-			const { timeoutMs, ...commandRequest } = options;
+			const { timeoutMs = EXEC_TIMEOUT_MS, ...commandRequest } = options;
 
 			logger.debug(`Executing command: $ ${commandRequest.command}`);
 
