@@ -36,8 +36,8 @@ try {
 	log(`Exit code: ${hello.exit_code}`);
 	log(`Stdout: ${hello.stdout?.trim()}`);
 
-	log("\n=== Example 2: A failing command is a result, not an error ===");
-	log("Nothing is thrown - read exit_code to decide what happened:\n");
+	log("\n=== Example 2: A failing command still resolves ===");
+	log("Check exit_code to see how it went:\n");
 
 	const failed = await sandbox.exec({
 		command: "echo 'something broke' >&2 && exit 3",

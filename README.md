@@ -47,8 +47,8 @@ export BUDDY_REGION="US"  # Optional: US (default), EU, or AS
 
 ## Running commands
 
-`exec()` runs a command and resolves once it has finished, with the exit code
-and everything it wrote:
+`exec()` runs a command and resolves when it finishes, with its exit code and
+output:
 
 ```typescript
 const result = await sandbox.exec({ command: "npm test" });
@@ -56,21 +56,21 @@ const result = await sandbox.exec({ command: "npm test" });
 console.log(result.exit_code, result.stdout, result.stderr);
 ```
 
-A non-zero exit code comes back as a result, not an error - the command ran,
-and what to make of its code is yours to decide. Pick the runtime with
-`runtime` (`BASH` by default, or `JAVASCRIPT`, `TYPESCRIPT`, `PYTHON`):
+A command that exits non-zero still resolves, so check `exit_code`.
+
+`runtime` picks the interpreter. It defaults to `BASH`, and also takes
+`JAVASCRIPT`, `TYPESCRIPT` or `PYTHON`:
 
 ```typescript
 await sandbox.exec({ command: "print(1 + 1)", runtime: "PYTHON" });
 ```
 
-The request stays open for as long as the command runs, and the API fails it
-after 60 seconds. Such a command is also absent from the sandbox's command
-history, streams no logs and cannot be terminated.
+The request stays open while the command runs, and the API fails it after 60
+seconds. Such a command leaves no entry in the sandbox command history, streams
+no logs, and cannot be terminated.
 
-Reach for `runCommand()` for anything longer than a minute, when you want the
-output as it arrives, or for a command that keeps running after the call
-returns:
+Use `runCommand()` for anything longer than a minute, to follow the output as
+it arrives, or to leave a command running after the call returns:
 
 ```typescript
 // streams to process.stdout as it runs

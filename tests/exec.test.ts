@@ -83,7 +83,6 @@ describe("Sandbox.exec", () => {
 			command: "import sys; sys.exit(2)",
 			runtime: "PYTHON",
 		});
-		// A non-zero exit is a result, not an error - the caller decides.
 		expect(result.exit_code).toBe(2);
 		expect(result.stderr).toBe("boom\n");
 	});
