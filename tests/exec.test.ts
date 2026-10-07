@@ -1,6 +1,7 @@
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { BuddyApiClient } from "@/core/buddy-api-client";
 import { Sandbox } from "@/entity/sandbox";
 
 const TEST_API_URL = "https://api.test.buddy.works";
@@ -102,6 +103,31 @@ describe("Sandbox.exec", () => {
 		await expect(
 			sandbox.exec({ command: "sleep 10", timeoutMs: 50 }),
 		).rejects.toThrow(/Request timeout/);
+	});
+
+	it("outlasts the client-wide timeout without being asked to", async () => {
+		server.use(
+			http.post(`${SANDBOX_URL}/exec`, async () => {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				return HttpResponse.json({ exit_code: 0 });
+			}),
+		);
+
+		// A client that would give up almost immediately on anything else.
+		const client = new BuddyApiClient({
+			workspace: TEST_WORKSPACE,
+			project_name: "test-project",
+			token: "test-token",
+			apiUrl: TEST_API_URL,
+			timeout: 10,
+		});
+
+		const result = await client.execCommand({
+			body: { command: "slow" },
+			path: { sandbox_id: SANDBOX_ID },
+		});
+
+		expect(result.exit_code).toBe(0);
 	});
 
 	it("does not re-run a command after an ambiguous failure", async () => {
