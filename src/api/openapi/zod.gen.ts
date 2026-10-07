@@ -966,16 +966,18 @@ export const zAddVariableInObjectRequest = z.object({
 	allowed_sandboxes: z.array(zAllowedSandboxView).optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
-	type: z.enum([
-		"VAR",
-		"FILE",
-		"SSH_KEY",
-		"IOS_KEYCHAIN",
-		"IOS_PROVISION_PROFILES",
-		"SSH_PUBLIC_KEY",
-		"GPG_KEY",
-		"P12",
-	]),
+	type: z
+		.enum([
+			"VAR",
+			"FILE",
+			"SSH_KEY",
+			"IOS_KEYCHAIN",
+			"IOS_PROVISION_PROFILES",
+			"SSH_PUBLIC_KEY",
+			"GPG_KEY",
+			"P12",
+		])
+		.optional(),
 });
 
 /**
@@ -1827,16 +1829,18 @@ export const zAddVariableInObjectRequestWritable = z.object({
 	allowed_sandboxes: z.array(zAllowedSandboxView).optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
-	type: z.enum([
-		"VAR",
-		"FILE",
-		"SSH_KEY",
-		"IOS_KEYCHAIN",
-		"IOS_PROVISION_PROFILES",
-		"SSH_PUBLIC_KEY",
-		"GPG_KEY",
-		"P12",
-	]),
+	type: z
+		.enum([
+			"VAR",
+			"FILE",
+			"SSH_KEY",
+			"IOS_KEYCHAIN",
+			"IOS_PROVISION_PROFILES",
+			"SSH_PUBLIC_KEY",
+			"GPG_KEY",
+			"P12",
+		])
+		.optional(),
 });
 
 /**

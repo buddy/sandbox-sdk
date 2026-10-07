@@ -2416,7 +2416,7 @@ export type AddVariableInObjectRequest = {
 	/**
 	 * The type of the added variable. Defaults to `VAR` when not set
 	 */
-	type:
+	type?:
 		| "VAR"
 		| "FILE"
 		| "SSH_KEY"
@@ -4515,7 +4515,7 @@ export type AddVariableInObjectRequestWritable = {
 	/**
 	 * The type of the added variable. Defaults to `VAR` when not set
 	 */
-	type:
+	type?:
 		| "VAR"
 		| "FILE"
 		| "SSH_KEY"
