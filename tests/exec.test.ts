@@ -40,7 +40,6 @@ describe("Sandbox.exec", () => {
 				body = (await request.json()) as Record<string, unknown>;
 				return HttpResponse.json({
 					command: "npm test",
-					runtime: "BASH",
 					exit_code: 0,
 					stdout: "All tests passed\n",
 					stderr: "",

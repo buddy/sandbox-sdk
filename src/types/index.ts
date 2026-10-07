@@ -1,9 +1,12 @@
 import type { WithRequired } from "@/types/utils";
 
+/** What a query parameter may carry before it is serialized into the URL */
+export type QueryValue = string | number | bigint | boolean;
+
 export type Data = {
 	body?: Record<string, unknown>;
 	path?: Record<string, string>;
-	query?: Record<string, string | number | bigint | boolean>;
+	query?: Record<string, QueryValue>;
 	url: string;
 };
 

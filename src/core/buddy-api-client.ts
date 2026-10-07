@@ -155,7 +155,7 @@ import {
 	type HttpResponse,
 	type RequestConfig,
 } from "@/core/http-client";
-import type { ClientData, Data, DataUrl } from "@/types";
+import type { ClientData, Data, DataUrl, QueryValue } from "@/types";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
 
@@ -250,9 +250,7 @@ export class BuddyApiClient extends HttpClient {
 		}
 		const validatedPath = pathResult.data as Record<string, string>;
 
-		let validatedQuery:
-			| Record<string, string | number | bigint | boolean>
-			| undefined;
+		let validatedQuery: Record<string, QueryValue> | undefined;
 		if (querySchema) {
 			const queryResult = await querySchema.safeParseAsync({
 				project_name: this.project_name,
@@ -261,10 +259,7 @@ export class BuddyApiClient extends HttpClient {
 			if (!queryResult.success) {
 				throw queryResult.error;
 			}
-			validatedQuery = queryResult.data as Record<
-				string,
-				string | number | bigint | boolean
-			>;
+			validatedQuery = queryResult.data as Record<string, QueryValue>;
 		}
 
 		let validatedBody: unknown = data.body;

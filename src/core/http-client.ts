@@ -1,5 +1,6 @@
 import { inspect } from "node:util";
 import pRetry, { type Options as RetryOptions } from "p-retry";
+import type { QueryValue } from "@/types";
 import logger from "@/utils/logger";
 
 /** Configuration options for creating an HttpClient instance */
@@ -26,7 +27,7 @@ export interface RequestConfig {
 	 */
 	idempotent?: boolean;
 	/** URL query parameters to append */
-	queryParams?: Record<string, string | number | bigint | boolean | undefined>;
+	queryParams?: Record<string, QueryValue | undefined>;
 	/** Additional headers for this request only */
 	headers?: Record<string, string>;
 	/** Response parsing mode */
@@ -128,10 +129,7 @@ export class HttpClient {
 	/** Build a full URL from path and optional query parameters */
 	#buildUrl(
 		path: string,
-		queryParameters?: Record<
-			string,
-			string | number | bigint | boolean | undefined
-		>,
+		queryParameters?: Record<string, QueryValue | undefined>,
 	): string {
 		const url = new URL(path, this.#baseURL);
 

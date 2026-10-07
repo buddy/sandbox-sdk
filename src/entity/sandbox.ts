@@ -83,9 +83,6 @@ export interface CloneSandboxConfig
 }
 
 /**
- * Options for running a command in the sandbox
- */
-/**
  * Options for running a command and waiting for its result
  */
 export interface ExecOptions extends ExecuteSandboxCommandRequest {
@@ -97,6 +94,9 @@ export interface ExecOptions extends ExecuteSandboxCommandRequest {
 	timeoutMs?: number;
 }
 
+/**
+ * Options for running a command in the sandbox
+ */
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
 	/** Stream to write stdout to (default: process.stdout, null to disable) */
 	stdout?: Writable | null;

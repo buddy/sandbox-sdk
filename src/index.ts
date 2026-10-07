@@ -2,6 +2,7 @@ export type {
 	AddSnapshotRequest,
 	CloneSandboxRequest,
 	SandboxAppView,
+	SandboxCommandResultView,
 	SandboxIdView,
 	ShortSnapshotView,
 	SnapshotView,
