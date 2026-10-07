@@ -97,9 +97,6 @@ export interface ExecOptions extends ExecuteSandboxCommandRequest {
 	timeoutMs?: number;
 }
 
-/** The API fails a synchronous command at 60s - outlast it, barely */
-const EXEC_TIMEOUT_MS = 65_000;
-
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
 	/** Stream to write stdout to (default: process.stdout, null to disable) */
 	stdout?: Writable | null;
@@ -435,7 +432,7 @@ export class Sandbox {
 	async exec(options: ExecOptions): Promise<SandboxCommandResultView> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to execute command", async () => {
-			const { timeoutMs = EXEC_TIMEOUT_MS, ...commandRequest } = options;
+			const { timeoutMs, ...commandRequest } = options;
 
 			logger.debug(`Executing command: $ ${commandRequest.command}`);
 

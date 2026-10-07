@@ -172,6 +172,9 @@ export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 }
 
 /** API client for Buddy sandbox operations with request validation and response transformation */
+/** The API fails a synchronous command at 60s - outlast it, barely */
+const EXEC_TIMEOUT_MS = 65_000;
+
 export class BuddyApiClient extends HttpClient {
 	readonly workspace: BuddyApiConfig["workspace"];
 	readonly project_name: BuddyApiConfig["project_name"];
@@ -515,8 +518,8 @@ export class BuddyApiClient extends HttpClient {
 
 	/**
 	 * Run a command in a sandbox and wait for its result. The request stays
-	 * open for as long as the command runs, so pass `timeoutMs` for anything
-	 * slower than the client-wide default.
+	 * open for as long as the command runs, so it outlasts the API's own 60
+	 * second ceiling by default rather than the client-wide timeout.
 	 */
 	async execCommand<const Data extends ExecSandboxCommandData>(
 		data: ClientData<Data>,
@@ -530,7 +533,7 @@ export class BuddyApiClient extends HttpClient {
 			bodySchema: zExecSandboxCommandBody,
 			pathSchema: zExecSandboxCommandPath,
 			responseSchema: zExecSandboxCommandResponse,
-			timeoutMs: options.timeoutMs,
+			timeoutMs: options.timeoutMs ?? EXEC_TIMEOUT_MS,
 		});
 	}
 
