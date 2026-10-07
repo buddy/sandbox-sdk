@@ -37,14 +37,15 @@ describe("Sandbox.exec", () => {
 		expect(result.stderr).toContain("boom");
 	});
 
-	it("should echo back the command and runtime", async () => {
+	it("should echo the request back rather than the runtime it used", async () => {
 		const result = await sandbox.exec({ command: "true" });
 
 		expect(result.command).toBe("true");
-		expect(result.runtime).toBe("BASH");
+		// BASH is applied when building the command, not when answering.
+		expect(result.runtime).toBeUndefined();
 	});
 
-	it("should run in a non-default runtime", async () => {
+	it("should run in a non-default runtime and echo it", async () => {
 		const result = await sandbox.exec({
 			command: "print(6 * 7)",
 			runtime: "PYTHON",
@@ -52,6 +53,7 @@ describe("Sandbox.exec", () => {
 
 		expect(result.exit_code).toBe(0);
 		expect(result.stdout).toContain("42");
+		expect(result.runtime).toBe("PYTHON");
 	});
 
 	it("should leave no trace in the command history", async () => {
