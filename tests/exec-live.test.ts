@@ -9,9 +9,10 @@ describe("Sandbox.exec", () => {
 	let sandbox: Sandbox;
 
 	beforeAll(async () => {
+		const stamp = Date.now();
 		sandbox = await Sandbox.create({
-			name: `exec-test-${Date.now()}`,
-			identifier: `exec_test_${Date.now()}`,
+			name: `test-exec-${stamp}`,
+			identifier: `test_exec_${stamp}`,
 		});
 		await sandbox.waitUntilRunning();
 	}, 120_000);
