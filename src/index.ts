@@ -15,6 +15,7 @@ export type {
 	ConnectionConfig,
 	CreateFromSnapshotConfig,
 	CreateSandboxConfig,
+	ExecOptions,
 	GetSandboxConfig,
 	ListSandboxesConfig,
 } from "@/entity/sandbox";

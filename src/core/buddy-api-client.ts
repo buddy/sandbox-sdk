@@ -35,6 +35,8 @@ import type {
 	DeleteSnapshotData,
 	DeleteSnapshotResponse,
 	DownloadSandboxContentData,
+	ExecSandboxCommandData,
+	ExecSandboxCommandResponse,
 	ExecuteSandboxCommandData,
 	GetIdentifiersData,
 	GetIdentifiersResponse,
@@ -95,6 +97,9 @@ import {
 	zDeleteSnapshotPath,
 	zDeleteSnapshotResponse,
 	zDownloadSandboxContentPath,
+	zExecSandboxCommandBody,
+	zExecSandboxCommandPath,
+	zExecSandboxCommandResponse,
 	zExecuteSandboxCommandBody,
 	zExecuteSandboxCommandPath,
 	zGetIdentifiersPath,
@@ -218,6 +223,7 @@ export class BuddyApiClient extends HttpClient {
 		responseSchema,
 		skipRetry,
 		idempotent,
+		timeoutMs,
 	}: {
 		method: "GET" | "POST" | "DELETE" | "PATCH";
 		url: DataUrl<D>;
@@ -229,6 +235,8 @@ export class BuddyApiClient extends HttpClient {
 		skipRetry?: boolean;
 		/** See `RequestConfig.idempotent`; creates and command runs pass `false`. */
 		idempotent?: boolean;
+		/** See `RequestConfig.timeoutMs`; a blocking exec outlives the default. */
+		timeoutMs?: number;
 	}): Promise<Response> {
 		const pathResult = await pathSchema.safeParseAsync({
 			workspace_domain: this.workspace,
@@ -274,6 +282,7 @@ export class BuddyApiClient extends HttpClient {
 			queryParams: validatedQuery,
 			skipRetry,
 			idempotent,
+			timeoutMs,
 		};
 
 		let request: Promise<HttpResponse>;
@@ -501,6 +510,27 @@ export class BuddyApiClient extends HttpClient {
 			responseSchema: zSandboxCommandView.transform(
 				getSandboxCommandResponseTransformer,
 			),
+		});
+	}
+
+	/**
+	 * Run a command in a sandbox and wait for its result. The request stays
+	 * open for as long as the command runs, so pass `timeoutMs` for anything
+	 * slower than the client-wide default.
+	 */
+	async execCommand<const Data extends ExecSandboxCommandData>(
+		data: ClientData<Data>,
+		options: { timeoutMs?: number } = {},
+	) {
+		return this.#requestWithValidation<Data, ExecSandboxCommandResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/exec",
+			idempotent: false,
+			bodySchema: zExecSandboxCommandBody,
+			pathSchema: zExecSandboxCommandPath,
+			responseSchema: zExecSandboxCommandResponse,
+			timeoutMs: options.timeoutMs,
 		});
 	}
 

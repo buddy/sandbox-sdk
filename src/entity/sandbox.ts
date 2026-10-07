@@ -8,6 +8,7 @@ import type {
 	GetSandboxAppLogsByIdResponse,
 	GetSandboxResponse,
 	SandboxAppView,
+	SandboxCommandResultView,
 	SandboxIdView,
 	ShortSnapshotView,
 	SnapshotView,
@@ -84,6 +85,17 @@ export interface CloneSandboxConfig
 /**
  * Options for running a command in the sandbox
  */
+/**
+ * Options for running a command and waiting for its result
+ */
+export interface ExecOptions extends ExecuteSandboxCommandRequest {
+	/**
+	 * How long to wait for the command, in milliseconds. The request stays
+	 * open until the command finishes, so raise this for slow ones.
+	 */
+	timeoutMs?: number;
+}
+
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
 	/** Stream to write stdout to (default: process.stdout, null to disable) */
 	stdout?: Writable | null;
@@ -404,6 +416,27 @@ export class Sandbox {
 			});
 
 			return Snapshot._build(data, client, sandboxId);
+		});
+	}
+
+	/**
+	 * Run a command in the sandbox and wait for it to finish.
+	 *
+	 * Returns the exit code and the output it produced, with no polling and no
+	 * log stream in between. Use `runCommand()` instead to follow the output
+	 * as it arrives, or to leave the command running detached.
+	 */
+	async exec(options: ExecOptions): Promise<SandboxCommandResultView> {
+		const sandboxId = this.initializedId;
+		return withErrorHandler("Failed to execute command", async () => {
+			const { timeoutMs, ...commandRequest } = options;
+
+			logger.debug(`Executing command: $ ${commandRequest.command}`);
+
+			return this.#client.execCommand(
+				{ body: commandRequest, path: { sandbox_id: sandboxId } },
+				{ timeoutMs },
+			);
 		});
 	}
 

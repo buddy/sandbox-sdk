@@ -31,6 +31,8 @@ export interface RequestConfig {
 	headers?: Record<string, string>;
 	/** Response parsing mode */
 	responseType?: "json" | "text";
+	/** Overrides the client-wide timeout for this request */
+	timeoutMs?: number;
 }
 
 /** Normalized HTTP response with status, data, and headers */
@@ -206,6 +208,7 @@ export class HttpClient {
 			queryParams,
 			headers: additionalHeaders,
 			responseType = "json",
+			timeoutMs = this.#timeout,
 		} = config ?? {};
 		const fullUrl = this.#buildUrl(url, queryParams);
 		const headers = this.#getHeaders(additionalHeaders);
@@ -214,7 +217,7 @@ export class HttpClient {
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => {
 				controller.abort();
-			}, this.#timeout);
+			}, timeoutMs);
 
 			try {
 				if (this.debugMode) {
