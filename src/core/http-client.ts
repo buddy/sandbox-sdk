@@ -1,5 +1,6 @@
 import { inspect } from "node:util";
 import pRetry, { type Options as RetryOptions } from "p-retry";
+import type { QueryValue } from "@/types";
 import logger from "@/utils/logger";
 
 /** Configuration options for creating an HttpClient instance */
@@ -26,11 +27,13 @@ export interface RequestConfig {
 	 */
 	idempotent?: boolean;
 	/** URL query parameters to append */
-	queryParams?: Record<string, string | number | boolean | undefined>;
+	queryParams?: Record<string, QueryValue | undefined>;
 	/** Additional headers for this request only */
 	headers?: Record<string, string>;
 	/** Response parsing mode */
 	responseType?: "json" | "text";
+	/** Overrides the client-wide timeout for this request */
+	timeoutMs?: number;
 }
 
 /** Normalized HTTP response with status, data, and headers */
@@ -126,7 +129,7 @@ export class HttpClient {
 	/** Build a full URL from path and optional query parameters */
 	#buildUrl(
 		path: string,
-		queryParameters?: Record<string, string | number | boolean | undefined>,
+		queryParameters?: Record<string, QueryValue | undefined>,
 	): string {
 		const url = new URL(path, this.#baseURL);
 
@@ -203,6 +206,7 @@ export class HttpClient {
 			queryParams,
 			headers: additionalHeaders,
 			responseType = "json",
+			timeoutMs = this.#timeout,
 		} = config ?? {};
 		const fullUrl = this.#buildUrl(url, queryParams);
 		const headers = this.#getHeaders(additionalHeaders);
@@ -211,7 +215,7 @@ export class HttpClient {
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => {
 				controller.abort();
-			}, this.#timeout);
+			}, timeoutMs);
 
 			try {
 				if (this.debugMode) {

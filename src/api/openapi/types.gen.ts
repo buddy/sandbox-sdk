@@ -182,13 +182,17 @@ export type UpdateIntegrationRequest = {
 	 */
 	slack_user_id?: string;
 	/**
-	 * The cloud region (e.g., us-east-1, eu-west-1)
+	 * The New Relic region. Can be one of `US` or `EU` (type NEW_RELIC)
 	 */
 	region?: string;
 	/**
 	 * The Sentry organization slug; when set, a webhook trigger is registered for this organization (type SENTRY)
 	 */
 	organization?: string;
+	/**
+	 * The ClickUp workspace (team) id this integration is bound to
+	 */
+	click_up_workspace?: string;
 	/**
 	 * AWS IAM role assumptions for cross-account access
 	 */
@@ -432,6 +436,10 @@ export type WorkspaceMemberView = {
 	 */
 	name?: string;
 	/**
+	 * The unique username of the user
+	 */
+	username?: string;
+	/**
 	 * The avatar URL of the user
 	 */
 	avatar_url?: string;
@@ -613,189 +621,15 @@ export type PipelinePropertyView = {
 	value?: string;
 };
 
-/**
- * MSSQL authentication credentials
- */
-export type MssqlAuthView = {
+export type ClickUpCustomFieldFilter = {
 	/**
-	 * Authentication method. Default: `PASSWORD`
+	 * The name of the ClickUp custom field to match
 	 */
-	method?: "PASSWORD";
+	name?: string;
 	/**
-	 * The MSSQL username
+	 * The list of accepted values of the custom field; matches when at least one value matches; empty means any value
 	 */
-	username: string;
-	/**
-	 * The MSSQL password
-	 */
-	password: string;
-};
-
-/**
- * MongoDB authentication credentials
- */
-export type MongoAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MongoDB username
-	 */
-	username: string;
-	/**
-	 * The MongoDB password
-	 */
-	password: string;
-};
-
-/**
- * PostgreSQL authentication credentials
- */
-export type PostgresqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The PostgreSQL username
-	 */
-	username: string;
-	/**
-	 * The PostgreSQL password
-	 */
-	password: string;
-};
-
-/**
- * MySQL authentication credentials
- */
-export type MysqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MySQL username
-	 */
-	username: string;
-	/**
-	 * The MySQL password
-	 */
-	password: string;
-};
-
-/**
- * Define proxy servers' authentication method using the following parameters
- */
-export type SshAuthView = {
-	/**
-	 * Authentication method
-	 */
-	method:
-		| "PASSWORD"
-		| "SSH_KEY"
-		| "ASSETS_KEY"
-		| "PROXY_CREDENTIALS"
-		| "PROXY_KEY";
-	/**
-	 * The username required to connect to the server
-	 */
-	username?: string;
-	/**
-	 * The password required to connect to the server. Required for `PASSWORD` method
-	 */
-	password?: string;
-	/**
-	 * Name of the variable containing the private key. Required for `ASSETS_KEY` method
-	 */
-	asset?: string;
-	/**
-	 * Passphrase for the SSH key
-	 */
-	passphrase?: string;
-	/**
-	 * The private SSH key. Required when method is `SSH_KEY`
-	 */
-	key?: string;
-	/**
-	 * Path to the key on proxy server. Required for method `PROXY_KEY`
-	 */
-	key_path?: string;
-};
-
-/**
- * Kubernetes cluster authentication method
- */
-export type K8sAuthView = {
-	/**
-	 * Authentication method
-	 */
-	method: "PASS" | "CERT" | "TOKEN";
-	/**
-	 * Username to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
-	 */
-	username?: string;
-	/**
-	 * Password to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
-	 */
-	password?: string;
-	/**
-	 * Kuberenetes certificate authority. Required if the `auth.method` is `CERT`
-	 */
-	certificate_authority?: string;
-	/**
-	 * Kuberenetes client certificate. Required if the `auth.method` is `CERT`
-	 */
-	client_certificate?: string;
-	/**
-	 * Kuberenetes client key. Required if the `auth.method` is `CERT`
-	 */
-	client_key?: string;
-	/**
-	 * Token for the Kubernetes cluster. Required if the `auth.method` is `TOKEN`
-	 */
-	token?: string;
-};
-
-/**
- * Authentication details
- */
-export type GitAuthView = {
-	/**
-	 * The authentication for Git
-	 */
-	method: "HTTP" | "SSH_KEY" | "ASSETS_KEY" | "CURRENT";
-	/**
-	 * Username required to connect to the Git repository. Required when method is `HTTP`
-	 */
-	username?: string;
-	/**
-	 * Password required to connect to the Git repository. Required when method is `HTTP`
-	 */
-	password?: string;
-	/**
-	 * Name of the variable containing the private key. Required when method is `ASSETS_KEY`
-	 */
-	asset?: string;
-	/**
-	 * The private SSH key. Required when method is `SSH_KEY`
-	 */
-	key?: string;
-};
-
-/**
- * Authentication details
- */
-export type FtpAuthView = {
-	/**
-	 * The username required to connect to the server
-	 */
-	username: string;
-	/**
-	 * The password required to connect to the server
-	 */
-	password: string;
+	values?: Array<string>;
 };
 
 /**
@@ -899,9 +733,6 @@ export type PermissionsView = {
 	groups?: Array<GroupPermissionView>;
 };
 
-/**
- * Short representation of an environment object
- */
 export type ShortEnvironmentView = {
 	/**
 	 * API endpoint to GET this object
@@ -912,21 +743,25 @@ export type ShortEnvironmentView = {
 	 */
 	readonly html_url?: string;
 	/**
+	 * The ID of the environment
+	 */
+	id?: string;
+	/**
 	 * The name of the environment
 	 */
 	name?: string;
 	/**
-	 * The human-readable identifier of the environment
+	 * A human-readable ID of the environment. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).
 	 */
 	identifier?: string;
 	/**
-	 * The ID of the environment
+	 * The list of tags associated with the environment
 	 */
-	id?: number;
+	tags?: Array<string>;
 	/**
-	 * The scope level of the environment
+	 * The scope of the environment
 	 */
-	scope?: "PROJECT" | "WORKSPACE" | "ANY";
+	scope?: "PROJECT" | "WORKSPACE";
 };
 
 export type PipelineEnvironmentContextView = {
@@ -978,17 +813,19 @@ export type PipelineEventView = {
 		| "SANDBOX_CREATED"
 		| "SANDBOX_DELETED"
 		| "SANDBOX_TIMED_OUT"
-		| "SENTRY";
+		| "SENTRY"
+		| "CLICKUP"
+		| "UT_SESSION_ENDED";
 	/**
 	 * The list of refs (branches/tags) that trigger the pipeline for push/ref events
 	 */
 	refs?: Array<string>;
 	/**
-	 * The list of pull request events that trigger the pipeline. Examples: `opened`, `reopened`, `synchronize`
+	 * The list of pull request events that trigger the pipeline. The accepted values depend on the repository provider, each provider uses its own native event types. For Buddy-hosted repositories the supported (and validated) types are: `OPENED`, `REOPENED`, `SYNCHRONIZED`, `CLOSED`, `MERGED`, `READY_FOR_REVIEW`. For repositories integrated with an external provider (e.g. GitHub) the provider's native events are taken as-is and are not validated, e.g. `opened`, `reopened`, `synchronize`
 	 */
 	events?: Array<string>;
 	/**
-	 * The list of branches for pull request events
+	 * The list of branches for pull request events; for type `UT_SESSION_ENDED` it filters by the session branch (wildcards supported), empty means all branches
 	 */
 	branches?: Array<string>;
 	/**
@@ -1044,10 +881,6 @@ export type PipelineEventView = {
 	 */
 	levels?: Array<string>;
 	/**
-	 * The list of Sentry issue statuses that trigger the pipeline e.g., `unresolved`; empty means all statuses (type `SENTRY`)
-	 */
-	statuses?: Array<string>;
-	/**
 	 * The list of Sentry issue substatuses that trigger the pipeline e.g., `new`, `regressed`; empty means all substatuses (type `SENTRY`)
 	 */
 	substatuses?: Array<string>;
@@ -1063,6 +896,46 @@ export type PipelineEventView = {
 	 * The number of minutes to skip subsequent runs for the same Sentry issue after a triggered run (type `SENTRY`)
 	 */
 	snooze_minutes?: number;
+	/**
+	 * The list of ClickUp folder names that trigger the pipeline; empty means all folders (type `CLICKUP`)
+	 */
+	folders?: Array<string>;
+	/**
+	 * The list of ClickUp list names that trigger the pipeline; empty means all lists (type `CLICKUP`)
+	 */
+	lists?: Array<string>;
+	/**
+	 * The list of ClickUp task priorities that trigger the pipeline e.g., `urgent`, `high`; empty means all priorities (type `CLICKUP`)
+	 */
+	priorities?: Array<string>;
+	/**
+	 * The list of ClickUp task tags that trigger the pipeline; matches when at least one tag is present; empty means all tags (type `CLICKUP`)
+	 */
+	tags?: Array<string>;
+	/**
+	 * The list of assignee email addresses that trigger the pipeline; matches when at least one assignee has a listed email; empty means all assignees (type `CLICKUP`)
+	 */
+	assignees?: Array<string>;
+	/**
+	 * The list of creator email addresses that trigger the pipeline; matches when the task creator has a listed email; empty means all creators (type `CLICKUP`)
+	 */
+	creators?: Array<string>;
+	/**
+	 * The list of custom field filters; each entry has a `name` and a list of `values` (matches when a value matches); entries are combined with AND (type `CLICKUP`)
+	 */
+	custom_fields?: Array<ClickUpCustomFieldFilter>;
+	/**
+	 * Whether to include subtasks; `true` (default) matches parent tasks and subtasks, `false` matches only top-level tasks (type `CLICKUP`)
+	 */
+	include_subtasks?: boolean;
+	/**
+	 * The list of unit test suite identifiers (wildcards supported, e.g. `integration-*`) that trigger the pipeline; empty means all suites (type `UT_SESSION_ENDED`)
+	 */
+	suites?: Array<string>;
+	/**
+	 * The list of statuses that trigger the pipeline (type `SENTRY`, `UT_SESSION_ENDED`)
+	 */
+	statuses?: Array<string>;
 };
 
 /**
@@ -1163,13 +1036,23 @@ export type ShortPipelineView = {
 	 */
 	ignore_fail_on_project_status?: boolean;
 	/**
-	 * If set to true, the pipeline will not skip queued runs to execute the most recent one
+	 * Which queued runs to skip when a new run starts: NEVER, ALWAYS, SAME_REF, SAME_ENVIRONMENT or SAME_ARTIFACT
 	 */
-	no_skip_to_most_recent?: boolean;
+	skip_queued_runs?:
+		| "NEVER"
+		| "ALWAYS"
+		| "SAME_REF"
+		| "SAME_ENVIRONMENT"
+		| "SAME_ARTIFACT";
 	/**
-	 * If set to true, stale runs will be automatically terminated
+	 * Which in-progress runs to cancel when a new run starts: NEVER, ALWAYS, SAME_REF, SAME_ENVIRONMENT or SAME_ARTIFACT
 	 */
-	terminate_stale_runs?: boolean;
+	cancel_inprogress_runs?:
+		| "NEVER"
+		| "ALWAYS"
+		| "SAME_REF"
+		| "SAME_ENVIRONMENT"
+		| "SAME_ARTIFACT";
 	/**
 	 * Defines whether to automatically clear cache before running the pipeline
 	 */
@@ -1315,6 +1198,209 @@ export type ShortProjectView = {
 };
 
 /**
+ * PostgreSQL authentication credentials
+ */
+export type PostgresqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The PostgreSQL username
+	 */
+	username: string;
+	/**
+	 * The PostgreSQL password
+	 */
+	password: string;
+};
+
+/**
+ * MySQL authentication credentials
+ */
+export type MysqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MySQL username
+	 */
+	username: string;
+	/**
+	 * The MySQL password
+	 */
+	password: string;
+};
+
+/**
+ * ClickHouse authentication credentials
+ */
+export type ClickhouseAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The ClickHouse username
+	 */
+	username: string;
+	/**
+	 * The ClickHouse password
+	 */
+	password: string;
+};
+
+/**
+ * MSSQL authentication credentials
+ */
+export type MssqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MSSQL username
+	 */
+	username: string;
+	/**
+	 * The MSSQL password
+	 */
+	password: string;
+};
+
+/**
+ * MongoDB authentication credentials
+ */
+export type MongoAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MongoDB username
+	 */
+	username: string;
+	/**
+	 * The MongoDB password
+	 */
+	password: string;
+};
+
+/**
+ * Define proxy servers' authentication method using the following parameters
+ */
+export type SshAuthView = {
+	/**
+	 * Authentication method
+	 */
+	method:
+		| "PASSWORD"
+		| "SSH_KEY"
+		| "ASSETS_KEY"
+		| "PROXY_CREDENTIALS"
+		| "PROXY_KEY";
+	/**
+	 * The username required to connect to the server
+	 */
+	username?: string;
+	/**
+	 * The password required to connect to the server. Required for `PASSWORD` method
+	 */
+	password?: string;
+	/**
+	 * Name of the variable containing the private key. Required for `ASSETS_KEY` method
+	 */
+	asset?: string;
+	/**
+	 * Passphrase for the SSH key
+	 */
+	passphrase?: string;
+	/**
+	 * The private SSH key. Required when method is `SSH_KEY`
+	 */
+	key?: string;
+	/**
+	 * Path to the key on proxy server. Required for method `PROXY_KEY`
+	 */
+	key_path?: string;
+};
+
+/**
+ * Kubernetes cluster authentication method
+ */
+export type K8sAuthView = {
+	/**
+	 * Authentication method
+	 */
+	method: "PASS" | "CERT" | "TOKEN";
+	/**
+	 * Username to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
+	 */
+	username?: string;
+	/**
+	 * Password to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
+	 */
+	password?: string;
+	/**
+	 * Kuberenetes certificate authority. Required if the `auth.method` is `CERT`
+	 */
+	certificate_authority?: string;
+	/**
+	 * Kuberenetes client certificate. Required if the `auth.method` is `CERT`
+	 */
+	client_certificate?: string;
+	/**
+	 * Kuberenetes client key. Required if the `auth.method` is `CERT`
+	 */
+	client_key?: string;
+	/**
+	 * Token for the Kubernetes cluster. Required if the `auth.method` is `TOKEN`
+	 */
+	token?: string;
+};
+
+/**
+ * Authentication details
+ */
+export type GitAuthView = {
+	/**
+	 * The authentication for Git
+	 */
+	method: "HTTP" | "SSH_KEY" | "ASSETS_KEY" | "CURRENT";
+	/**
+	 * Username required to connect to the Git repository. Required when method is `HTTP`
+	 */
+	username?: string;
+	/**
+	 * Password required to connect to the Git repository. Required when method is `HTTP`
+	 */
+	password?: string;
+	/**
+	 * Name of the variable containing the private key. Required when method is `ASSETS_KEY`
+	 */
+	asset?: string;
+	/**
+	 * The private SSH key. Required when method is `SSH_KEY`
+	 */
+	key?: string;
+};
+
+/**
+ * Authentication details
+ */
+export type FtpAuthView = {
+	/**
+	 * The username required to connect to the server
+	 */
+	username: string;
+	/**
+	 * The password required to connect to the server
+	 */
+	password: string;
+};
+
+/**
  * The integration to use for authentication
  */
 export type IntegrationView = {
@@ -1395,7 +1481,13 @@ export type IntegrationView = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE"
+		| "CLICKUP"
+		| "GROK"
+		| "TYPESAFE";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -1507,6 +1599,10 @@ export type IdsView = {
 	 */
 	sandbox_id?: string;
 	/**
+	 * The ID of the target
+	 */
+	target_id?: string;
+	/**
 	 * The ID of the unit test suite
 	 */
 	unit_test_suite_id?: string;
@@ -1534,6 +1630,10 @@ export type IdsView = {
 	 * The ID of the tunnel
 	 */
 	tunnel_id?: string;
+	/**
+	 * The hash ID of the integration
+	 */
+	integration_id?: string;
 };
 
 export type AddWorkspaceMemberRequest = {
@@ -1673,13 +1773,17 @@ export type AddIntegrationRequest = {
 	 */
 	slack_user_id?: string;
 	/**
-	 * The cloud region (e.g., us-east-1, eu-west-1)
+	 * The New Relic region. Can be one of `US` or `EU` (type NEW_RELIC)
 	 */
 	region?: string;
 	/**
 	 * The Sentry organization slug; when set, a webhook trigger is registered for this organization (type SENTRY)
 	 */
 	organization?: string;
+	/**
+	 * The ClickUp workspace (team) id this integration is bound to
+	 */
+	click_up_workspace?: string;
 	/**
 	 * AWS IAM role assumptions for cross-account access
 	 */
@@ -1800,7 +1904,13 @@ export type AddIntegrationRequest = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE"
+		| "CLICKUP"
+		| "GROK"
+		| "TYPESAFE";
 	/**
 	 * The scope of the integration
 	 */
@@ -1809,6 +1919,10 @@ export type AddIntegrationRequest = {
 	 * The human-readable ID of the project (required when scope is `PROJECT`)
 	 */
 	project_name?: string;
+	/**
+	 * The ID of the environment (required when scope is `ENVIRONMENT`)
+	 */
+	environment_id?: number;
 };
 
 /**
@@ -1932,7 +2046,13 @@ export type IntegrationIdView = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE"
+		| "CLICKUP"
+		| "GROK"
+		| "TYPESAFE";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -1994,6 +2114,10 @@ export type MemberView = {
 	 */
 	name?: string;
 	/**
+	 * The unique username of the user
+	 */
+	username?: string;
+	/**
 	 * The avatar URL of the user
 	 */
 	avatar_url?: string;
@@ -2041,11 +2165,11 @@ export type ProjectView = {
 	 */
 	create_date?: Date;
 	/**
-	 * Repo slug of the Bitbucket, GitHub or GitLab project. Required when adding the integrated project
+	 * Repo slug of the Bitbucket, GitHub or GitLab project the project is synchronized with; null for Buddy and custom repository projects
 	 */
 	external_project_id?: string;
 	/**
-	 * ID of the project in GitLab
+	 * ID of the project in GitLab. If unset, it is resolved from `external_project_id`. If set, it must point to the same GitLab project as `external_project_id`
 	 */
 	git_lab_project_id?: number;
 	/**
@@ -2061,7 +2185,7 @@ export type ProjectView = {
 	 */
 	custom_repo_pass?: string;
 	/**
-	 * The ID of the private SSH key used to authorize access to the git repository. Required when adding the project integrated with private git server by SSH url
+	 * The ID of the private SSH key used to authorize access to the git repository. Used when adding the project integrated with private git server by SSH url. If unset, the workspace SSH key is used
 	 */
 	custom_repo_ssh_key_id?: number;
 	created_by?: MemberView;
@@ -2160,6 +2284,12 @@ export type UpdateSandboxRequest = {
 	variables?: Array<AddVariableInObjectRequest>;
 	permissions?: PermissionsView;
 	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
+	project?: ShortProjectView;
+	environment?: ShortEnvironmentView;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -2194,7 +2324,7 @@ export type AddVariableInObjectRequest = {
 	 */
 	settable?: boolean;
 	/**
-	 * Available only if `type=VAR`. If set to `true` the variable value can be set by Buddy actions only for execution time
+	 * Available only if `type=VAR`. Requires `settable=true`. If set to `true` the variable value can be set by Buddy actions only for execution time
 	 */
 	run_only_settable?: boolean;
 	/**
@@ -2210,15 +2340,15 @@ export type AddVariableInObjectRequest = {
 	 */
 	defaults?: string;
 	/**
-	 * Specifies where to copy the file on each run. Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`
+	 * Specifies where to copy the file on each run. Required if `file_place` is `CONTAINER`, and must start with `/` or `~`
 	 */
 	file_path?: string;
 	/**
-	 * File permission set on copy to a container on each run. Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`
+	 * File permission set on copy to a container on each run. Required if `file_place` is `CONTAINER`
 	 */
 	file_chmod?: string;
 	/**
-	 * Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run
+	 * Required if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`, unless the variable is sandbox-scoped. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run and both `file_path` and `file_chmod` are required
 	 */
 	file_place?: "NONE" | "CONTAINER";
 	/**
@@ -2238,6 +2368,44 @@ export type AddVariableInObjectRequest = {
 	 */
 	disabled?: boolean;
 	/**
+	 * Default access level for pipelines when no rule in `allowedPipelines` matches. Default: `USE_ONLY`. Only valid for workspace- and project-scoped variables.
+	 */
+	pipelines_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * Default access level for sandboxes when no rule in `allowedSandboxes` matches. Default: `DENIED`. Only valid for workspace- and project-scoped variables.
+	 */
+	sandboxes_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * Rules that allow or deny access to this variable from specific pipelines or actions. Send an empty array to clear all rules.
+	 */
+	allowed_pipelines?: Array<AllowedPipelineView>;
+	/**
+	 * Rules that allow or deny access to this variable from specific sandboxes. Send an empty array to clear all rules.
+	 */
+	allowed_sandboxes?: Array<AllowedSandboxView>;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -2246,16 +2414,17 @@ export type AddVariableInObjectRequest = {
 	 */
 	agent_note?: string;
 	/**
-	 * The type of the added variable
+	 * The type of the added variable. Defaults to `VAR` when not set
 	 */
-	type:
+	type?:
 		| "VAR"
 		| "FILE"
 		| "SSH_KEY"
 		| "IOS_KEYCHAIN"
 		| "IOS_PROVISION_PROFILES"
 		| "SSH_PUBLIC_KEY"
-		| "GPG_KEY";
+		| "GPG_KEY"
+		| "P12";
 };
 
 /**
@@ -2271,7 +2440,7 @@ export type TlsSettingsView = {
 	 */
 	readonly html_url?: string;
 	/**
-	 * Where to terminate TLS connection
+	 * Where to terminate TLS connection. Default: `REGION`
 	 */
 	terminate_at?: "REGION" | "AGENT" | "TARGET";
 };
@@ -2364,9 +2533,9 @@ export type TunnelView = {
 	 */
 	type: "TCP" | "TLS" | "HTTP" | "SSH";
 	/**
-	 * The region where the tunnel is deployed
+	 * The region the tunnel is exposed from. When not set, the region of the agent is used
 	 */
-	region: "US" | "EU" | "AS";
+	region?: "US" | "EU" | "AS";
 	/**
 	 * The IP addresses or domains allowed to access the tunnel
 	 */
@@ -2635,6 +2804,29 @@ export type ExecuteSandboxCommandRequest = {
 	runtime?: "BASH" | "JAVASCRIPT" | "TYPESCRIPT" | "PYTHON";
 };
 
+export type SandboxCommandResultView = {
+	/**
+	 * Command to execute in the sandbox
+	 */
+	command?: string;
+	/**
+	 * Runtime environment for command execution (default: `BASH`)
+	 */
+	runtime?: "BASH" | "JAVASCRIPT" | "TYPESCRIPT" | "PYTHON";
+	/**
+	 * Command exit code
+	 */
+	exit_code?: number;
+	/**
+	 * Everything the command wrote to standard output
+	 */
+	stdout?: string;
+	/**
+	 * Everything the command wrote to standard error
+	 */
+	stderr?: string;
+};
+
 export type AddSnapshotRequest = {
 	/**
 	 * Snapshot name
@@ -2797,6 +2989,10 @@ export type CreateFromSnapshotRequest = {
 		| "12x24"
 		| "CUSTOM";
 	/**
+	 * The timeout in seconds after which the sandbox will be automatically stopped
+	 */
+	timeout?: number;
+	/**
 	 * The commands to run during first boot of the sandbox
 	 */
 	first_boot_commands?: string;
@@ -2819,108 +3015,7 @@ export type CreateFromSnapshotRequest = {
 	/**
 	 * The environment variables of the sandbox
 	 */
-	variables?: Array<EnvironmentVariableView>;
-};
-
-/**
- * The list of variables you can use the action
- */
-export type EnvironmentVariableView = {
-	/**
-	 * The ID of the variable
-	 */
-	id?: number;
-	/**
-	 * The name of the variable
-	 */
-	key?: string;
-	/**
-	 * The value of the variable
-	 */
-	value?: string;
-	/**
-	 * The type of the added variable
-	 */
-	type?:
-		| "VAR"
-		| "FILE"
-		| "SSH_KEY"
-		| "IOS_KEYCHAIN"
-		| "IOS_PROVISION_PROFILES"
-		| "SSH_PUBLIC_KEY"
-		| "GPG_KEY";
-	/**
-	 * If set to `true` the variable value will be encrypted and hidden
-	 */
-	encrypted?: boolean;
-	/**
-	 * If set to `true` the variable value can be set by Buddy actions
-	 */
-	settable?: boolean;
-	/**
-	 * Available only if `type=VAR`. If set to `true` the variable value can be set by Buddy actions only for execution time
-	 */
-	run_only_settable?: boolean;
-	/**
-	 * Initial path for the variable
-	 */
-	init_path?: string;
-	/**
-	 * Default value for the variable
-	 */
-	defaults?: string;
-	/**
-	 * Specifies where to copy the file on each run. Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`
-	 */
-	file_path?: string;
-	/**
-	 * File permission set on copy to a container on each run. Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`
-	 */
-	file_chmod?: string;
-	/**
-	 * Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run
-	 */
-	file_place?: "NONE" | "CONTAINER";
-	/**
-	 * Whether the file is binary
-	 */
-	binary?: boolean;
-	/**
-	 * Public value for SSH key type variables
-	 */
-	public_value?: string;
-	/**
-	 * Fingerprint of SSH key
-	 */
-	key_fingerprint?: string;
-	/**
-	 * Checksum of the variable value
-	 */
-	checksum?: string;
-	/**
-	 * Password for certificates
-	 */
-	password?: string;
-	/**
-	 * Passphrase for encrypted SSH keys
-	 */
-	passphrase?: string;
-	/**
-	 * Key identifier for iOS certificates, provisioning profiles, or GPG keys
-	 */
-	key_identifier?: string;
-	/**
-	 * Set to `true` to disable the variable. Disabled variables are not injected anywhere
-	 */
-	disabled?: boolean;
-	/**
-	 * Note for this resource
-	 */
-	note?: string;
-	/**
-	 * YAML note for AI agents operating on this resource
-	 */
-	agent_note?: string;
+	variables?: Array<AddVariableInObjectRequest>;
 };
 
 export type CloneSandboxRequest = {
@@ -3034,7 +3129,12 @@ export type SandboxResponse = {
 	 * The SSH port
 	 */
 	ssh_port?: number;
+	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
 	project?: ProjectView;
+	environment?: ShortEnvironmentView;
 	permissions?: PermissionsView;
 	/**
 	 * Note for this resource
@@ -3045,9 +3145,115 @@ export type SandboxResponse = {
 	 */
 	agent_note?: string;
 	/**
+	 * Sandbox creation date
+	 */
+	create_date?: Date;
+	/**
 	 * The environment variables of the sandbox
 	 */
 	variables?: Array<EnvironmentVariableView>;
+};
+
+/**
+ * The list of variables you can use the action
+ */
+export type EnvironmentVariableView = {
+	/**
+	 * The ID of the variable
+	 */
+	id?: number;
+	/**
+	 * The name of the variable
+	 */
+	key?: string;
+	/**
+	 * The value of the variable
+	 */
+	value?: string;
+	/**
+	 * The type of the added variable. Defaults to `VAR` when not set
+	 */
+	type?:
+		| "VAR"
+		| "FILE"
+		| "SSH_KEY"
+		| "IOS_KEYCHAIN"
+		| "IOS_PROVISION_PROFILES"
+		| "SSH_PUBLIC_KEY"
+		| "GPG_KEY"
+		| "P12";
+	/**
+	 * If set to `true` the variable value will be encrypted and hidden
+	 */
+	encrypted?: boolean;
+	/**
+	 * If set to `true` the variable value can be set by Buddy actions
+	 */
+	settable?: boolean;
+	/**
+	 * Available only if `type=VAR`. Requires `settable=true`. If set to `true` the variable value can be set by Buddy actions only for execution time
+	 */
+	run_only_settable?: boolean;
+	/**
+	 * Initial path for the variable
+	 */
+	init_path?: string;
+	/**
+	 * Default value for the variable
+	 */
+	defaults?: string;
+	/**
+	 * Specifies where to copy the file on each run. Required if `file_place` is `CONTAINER`, and must start with `/` or `~`
+	 */
+	file_path?: string;
+	/**
+	 * File permission set on copy to a container on each run. Required if `file_place` is `CONTAINER`
+	 */
+	file_chmod?: string;
+	/**
+	 * Required if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`, unless the variable is sandbox-scoped. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run and both `file_path` and `file_chmod` are required
+	 */
+	file_place?: "NONE" | "CONTAINER";
+	/**
+	 * Whether the file is binary
+	 */
+	binary?: boolean;
+	/**
+	 * Public value for SSH key type variables
+	 */
+	public_value?: string;
+	/**
+	 * Fingerprint of SSH key
+	 */
+	key_fingerprint?: string;
+	/**
+	 * Checksum of the variable value
+	 */
+	checksum?: string;
+	/**
+	 * Password for certificates
+	 */
+	password?: string;
+	/**
+	 * Passphrase for encrypted SSH keys
+	 */
+	passphrase?: string;
+	/**
+	 * Key identifier for iOS certificates, provisioning profiles, or GPG keys
+	 */
+	key_identifier?: string;
+	/**
+	 * Set to `true` to disable the variable. Disabled variables are not injected anywhere
+	 */
+	disabled?: boolean;
+	/**
+	 * Note for this resource
+	 */
+	note?: string;
+	/**
+	 * YAML note for AI agents operating on this resource
+	 */
+	agent_note?: string;
 };
 
 export type ProjectsView = {
@@ -3094,6 +3300,10 @@ export type WorkspaceMemberViewWritable = {
 	 * The name of the user
 	 */
 	name?: string;
+	/**
+	 * The unique username of the user
+	 */
+	username?: string;
 	/**
 	 * The avatar URL of the user
 	 */
@@ -3220,26 +3430,27 @@ export type IntegrationsViewWritable = {
 	integrations?: Array<IntegrationViewWritable>;
 };
 
-/**
- * Short representation of an environment object
- */
 export type ShortEnvironmentViewWritable = {
+	/**
+	 * The ID of the environment
+	 */
+	id?: string;
 	/**
 	 * The name of the environment
 	 */
 	name?: string;
 	/**
-	 * The human-readable identifier of the environment
+	 * A human-readable ID of the environment. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).
 	 */
 	identifier?: string;
 	/**
-	 * The ID of the environment
+	 * The list of tags associated with the environment
 	 */
-	id?: number;
+	tags?: Array<string>;
 	/**
-	 * The scope level of the environment
+	 * The scope of the environment
 	 */
-	scope?: "PROJECT" | "WORKSPACE" | "ANY";
+	scope?: "PROJECT" | "WORKSPACE";
 };
 
 /**
@@ -3265,17 +3476,19 @@ export type PipelineEventViewWritable = {
 		| "SANDBOX_CREATED"
 		| "SANDBOX_DELETED"
 		| "SANDBOX_TIMED_OUT"
-		| "SENTRY";
+		| "SENTRY"
+		| "CLICKUP"
+		| "UT_SESSION_ENDED";
 	/**
 	 * The list of refs (branches/tags) that trigger the pipeline for push/ref events
 	 */
 	refs?: Array<string>;
 	/**
-	 * The list of pull request events that trigger the pipeline. Examples: `opened`, `reopened`, `synchronize`
+	 * The list of pull request events that trigger the pipeline. The accepted values depend on the repository provider, each provider uses its own native event types. For Buddy-hosted repositories the supported (and validated) types are: `OPENED`, `REOPENED`, `SYNCHRONIZED`, `CLOSED`, `MERGED`, `READY_FOR_REVIEW`. For repositories integrated with an external provider (e.g. GitHub) the provider's native events are taken as-is and are not validated, e.g. `opened`, `reopened`, `synchronize`
 	 */
 	events?: Array<string>;
 	/**
-	 * The list of branches for pull request events
+	 * The list of branches for pull request events; for type `UT_SESSION_ENDED` it filters by the session branch (wildcards supported), empty means all branches
 	 */
 	branches?: Array<string>;
 	/**
@@ -3331,10 +3544,6 @@ export type PipelineEventViewWritable = {
 	 */
 	levels?: Array<string>;
 	/**
-	 * The list of Sentry issue statuses that trigger the pipeline e.g., `unresolved`; empty means all statuses (type `SENTRY`)
-	 */
-	statuses?: Array<string>;
-	/**
 	 * The list of Sentry issue substatuses that trigger the pipeline e.g., `new`, `regressed`; empty means all substatuses (type `SENTRY`)
 	 */
 	substatuses?: Array<string>;
@@ -3350,6 +3559,46 @@ export type PipelineEventViewWritable = {
 	 * The number of minutes to skip subsequent runs for the same Sentry issue after a triggered run (type `SENTRY`)
 	 */
 	snooze_minutes?: number;
+	/**
+	 * The list of ClickUp folder names that trigger the pipeline; empty means all folders (type `CLICKUP`)
+	 */
+	folders?: Array<string>;
+	/**
+	 * The list of ClickUp list names that trigger the pipeline; empty means all lists (type `CLICKUP`)
+	 */
+	lists?: Array<string>;
+	/**
+	 * The list of ClickUp task priorities that trigger the pipeline e.g., `urgent`, `high`; empty means all priorities (type `CLICKUP`)
+	 */
+	priorities?: Array<string>;
+	/**
+	 * The list of ClickUp task tags that trigger the pipeline; matches when at least one tag is present; empty means all tags (type `CLICKUP`)
+	 */
+	tags?: Array<string>;
+	/**
+	 * The list of assignee email addresses that trigger the pipeline; matches when at least one assignee has a listed email; empty means all assignees (type `CLICKUP`)
+	 */
+	assignees?: Array<string>;
+	/**
+	 * The list of creator email addresses that trigger the pipeline; matches when the task creator has a listed email; empty means all creators (type `CLICKUP`)
+	 */
+	creators?: Array<string>;
+	/**
+	 * The list of custom field filters; each entry has a `name` and a list of `values` (matches when a value matches); entries are combined with AND (type `CLICKUP`)
+	 */
+	custom_fields?: Array<ClickUpCustomFieldFilter>;
+	/**
+	 * Whether to include subtasks; `true` (default) matches parent tasks and subtasks, `false` matches only top-level tasks (type `CLICKUP`)
+	 */
+	include_subtasks?: boolean;
+	/**
+	 * The list of unit test suite identifiers (wildcards supported, e.g. `integration-*`) that trigger the pipeline; empty means all suites (type `UT_SESSION_ENDED`)
+	 */
+	suites?: Array<string>;
+	/**
+	 * The list of statuses that trigger the pipeline (type `SENTRY`, `UT_SESSION_ENDED`)
+	 */
+	statuses?: Array<string>;
 };
 
 /**
@@ -3442,13 +3691,23 @@ export type ShortPipelineViewWritable = {
 	 */
 	ignore_fail_on_project_status?: boolean;
 	/**
-	 * If set to true, the pipeline will not skip queued runs to execute the most recent one
+	 * Which queued runs to skip when a new run starts: NEVER, ALWAYS, SAME_REF, SAME_ENVIRONMENT or SAME_ARTIFACT
 	 */
-	no_skip_to_most_recent?: boolean;
+	skip_queued_runs?:
+		| "NEVER"
+		| "ALWAYS"
+		| "SAME_REF"
+		| "SAME_ENVIRONMENT"
+		| "SAME_ARTIFACT";
 	/**
-	 * If set to true, stale runs will be automatically terminated
+	 * Which in-progress runs to cancel when a new run starts: NEVER, ALWAYS, SAME_REF, SAME_ENVIRONMENT or SAME_ARTIFACT
 	 */
-	terminate_stale_runs?: boolean;
+	cancel_inprogress_runs?:
+		| "NEVER"
+		| "ALWAYS"
+		| "SAME_REF"
+		| "SAME_ENVIRONMENT"
+		| "SAME_ARTIFACT";
 	/**
 	 * Defines whether to automatically clear cache before running the pipeline
 	 */
@@ -3658,7 +3917,13 @@ export type IntegrationViewWritable = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE"
+		| "CLICKUP"
+		| "GROK"
+		| "TYPESAFE";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -3762,6 +4027,10 @@ export type IdsViewWritable = {
 	 */
 	sandbox_id?: string;
 	/**
+	 * The ID of the target
+	 */
+	target_id?: string;
+	/**
 	 * The ID of the unit test suite
 	 */
 	unit_test_suite_id?: string;
@@ -3789,6 +4058,10 @@ export type IdsViewWritable = {
 	 * The ID of the tunnel
 	 */
 	tunnel_id?: string;
+	/**
+	 * The hash ID of the integration
+	 */
+	integration_id?: string;
 };
 
 /**
@@ -3896,7 +4169,13 @@ export type IntegrationIdViewWritable = {
 		| "JIRA"
 		| "NPM_REGISTRY"
 		| "ANTHROPIC"
-		| "GOOGLE_GEMINI";
+		| "GOOGLE_GEMINI"
+		| "OPEN_AI"
+		| "CURSOR"
+		| "OPENCODE"
+		| "CLICKUP"
+		| "GROK"
+		| "TYPESAFE";
 	/**
 	 * The authentication method used by the integration
 	 */
@@ -3950,6 +4229,10 @@ export type MemberViewWritable = {
 	 */
 	name?: string;
 	/**
+	 * The unique username of the user
+	 */
+	username?: string;
+	/**
 	 * The avatar URL of the user
 	 */
 	avatar_url?: string;
@@ -3989,11 +4272,11 @@ export type ProjectViewWritable = {
 	 */
 	create_date?: Date;
 	/**
-	 * Repo slug of the Bitbucket, GitHub or GitLab project. Required when adding the integrated project
+	 * Repo slug of the Bitbucket, GitHub or GitLab project the project is synchronized with; null for Buddy and custom repository projects
 	 */
 	external_project_id?: string;
 	/**
-	 * ID of the project in GitLab
+	 * ID of the project in GitLab. If unset, it is resolved from `external_project_id`. If set, it must point to the same GitLab project as `external_project_id`
 	 */
 	git_lab_project_id?: number;
 	/**
@@ -4009,7 +4292,7 @@ export type ProjectViewWritable = {
 	 */
 	custom_repo_pass?: string;
 	/**
-	 * The ID of the private SSH key used to authorize access to the git repository. Required when adding the project integrated with private git server by SSH url
+	 * The ID of the private SSH key used to authorize access to the git repository. Used when adding the project integrated with private git server by SSH url. If unset, the workspace SSH key is used
 	 */
 	custom_repo_ssh_key_id?: number;
 	created_by?: MemberViewWritable;
@@ -4108,6 +4391,12 @@ export type UpdateSandboxRequestWritable = {
 	variables?: Array<AddVariableInObjectRequestWritable>;
 	permissions?: PermissionsView;
 	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
+	project?: ShortProjectViewWritable;
+	environment?: ShortEnvironmentViewWritable;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -4134,7 +4423,7 @@ export type AddVariableInObjectRequestWritable = {
 	 */
 	settable?: boolean;
 	/**
-	 * Available only if `type=VAR`. If set to `true` the variable value can be set by Buddy actions only for execution time
+	 * Available only if `type=VAR`. Requires `settable=true`. If set to `true` the variable value can be set by Buddy actions only for execution time
 	 */
 	run_only_settable?: boolean;
 	/**
@@ -4150,15 +4439,15 @@ export type AddVariableInObjectRequestWritable = {
 	 */
 	defaults?: string;
 	/**
-	 * Specifies where to copy the file on each run. Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`
+	 * Specifies where to copy the file on each run. Required if `file_place` is `CONTAINER`, and must start with `/` or `~`
 	 */
 	file_path?: string;
 	/**
-	 * File permission set on copy to a container on each run. Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`
+	 * File permission set on copy to a container on each run. Required if `file_place` is `CONTAINER`
 	 */
 	file_chmod?: string;
 	/**
-	 * Set if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run
+	 * Required if `type` is `FILE`, `SSH_KEY`, `SSH_PUBLIC_KEY`, `IOS_KEYCHAIN`, or `IOS_PROVISION_PROFILES`, unless the variable is sandbox-scoped. If it's `NONE`, the variable can be used as a parameter in an action. For `CONTAINER`, the given key is additionally copied to an action container on each run and both `file_path` and `file_chmod` are required
 	 */
 	file_place?: "NONE" | "CONTAINER";
 	/**
@@ -4178,6 +4467,44 @@ export type AddVariableInObjectRequestWritable = {
 	 */
 	disabled?: boolean;
 	/**
+	 * Default access level for pipelines when no rule in `allowedPipelines` matches. Default: `USE_ONLY`. Only valid for workspace- and project-scoped variables.
+	 */
+	pipelines_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * Default access level for sandboxes when no rule in `allowedSandboxes` matches. Default: `DENIED`. Only valid for workspace- and project-scoped variables.
+	 */
+	sandboxes_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * Rules that allow or deny access to this variable from specific pipelines or actions. Send an empty array to clear all rules.
+	 */
+	allowed_pipelines?: Array<AllowedPipelineView>;
+	/**
+	 * Rules that allow or deny access to this variable from specific sandboxes. Send an empty array to clear all rules.
+	 */
+	allowed_sandboxes?: Array<AllowedSandboxView>;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -4186,16 +4513,17 @@ export type AddVariableInObjectRequestWritable = {
 	 */
 	agent_note?: string;
 	/**
-	 * The type of the added variable
+	 * The type of the added variable. Defaults to `VAR` when not set
 	 */
-	type:
+	type?:
 		| "VAR"
 		| "FILE"
 		| "SSH_KEY"
 		| "IOS_KEYCHAIN"
 		| "IOS_PROVISION_PROFILES"
 		| "SSH_PUBLIC_KEY"
-		| "GPG_KEY";
+		| "GPG_KEY"
+		| "P12";
 };
 
 /**
@@ -4215,7 +4543,7 @@ export type TlsSettingsViewWritable = {
 	 */
 	ca_certificate?: string;
 	/**
-	 * Where to terminate TLS connection
+	 * Where to terminate TLS connection. Default: `REGION`
 	 */
 	terminate_at?: "REGION" | "AGENT" | "TARGET";
 };
@@ -4300,9 +4628,9 @@ export type TunnelViewWritable = {
 	 */
 	type: "TCP" | "TLS" | "HTTP" | "SSH";
 	/**
-	 * The region where the tunnel is deployed
+	 * The region the tunnel is exposed from. When not set, the region of the agent is used
 	 */
-	region: "US" | "EU" | "AS";
+	region?: "US" | "EU" | "AS";
 	/**
 	 * The IP addresses or domains allowed to access the tunnel
 	 */
@@ -4582,6 +4910,10 @@ export type CreateFromSnapshotRequestWritable = {
 		| "12x24"
 		| "CUSTOM";
 	/**
+	 * The timeout in seconds after which the sandbox will be automatically stopped
+	 */
+	timeout?: number;
+	/**
 	 * The commands to run during first boot of the sandbox
 	 */
 	first_boot_commands?: string;
@@ -4604,7 +4936,7 @@ export type CreateFromSnapshotRequestWritable = {
 	/**
 	 * The environment variables of the sandbox
 	 */
-	variables?: Array<EnvironmentVariableView>;
+	variables?: Array<AddVariableInObjectRequestWritable>;
 };
 
 export type SandboxResponseWritable = {
@@ -4695,7 +5027,12 @@ export type SandboxResponseWritable = {
 	 * The SSH port
 	 */
 	ssh_port?: number;
+	/**
+	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
+	 */
+	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
 	project?: ProjectViewWritable;
+	environment?: ShortEnvironmentViewWritable;
 	permissions?: PermissionsView;
 	/**
 	 * Note for this resource
@@ -4705,6 +5042,10 @@ export type SandboxResponseWritable = {
 	 * YAML note for AI agents operating on this resource
 	 */
 	agent_note?: string;
+	/**
+	 * Sandbox creation date
+	 */
+	create_date?: Date;
 	/**
 	 * The environment variables of the sandbox
 	 */
@@ -4800,15 +5141,15 @@ export type GetIdentifiersData = {
 		 */
 		project?: string;
 		/**
-		 * The human-readable ID of the pipeline
+		 * The human-readable ID or the ID of the pipeline. The human-readable ID is resolved first.
 		 */
 		pipeline?: string;
 		/**
-		 * The human-readable ID of the environment
+		 * The human-readable ID or the ID of the environment. The human-readable ID is resolved first.
 		 */
 		environment?: string;
 		/**
-		 * The human-readable ID of the artifact
+		 * The human-readable ID or the ID of the artifact. The human-readable ID is resolved first.
 		 */
 		artifact?: string;
 		/**
@@ -4816,25 +5157,33 @@ export type GetIdentifiersData = {
 		 */
 		artifact_version?: string;
 		/**
-		 * The human-readable ID of the sandbox
+		 * The human-readable ID or the ID of the sandbox. The human-readable ID is resolved first. Resolved against the given environment or project, then the workspace.
 		 */
 		sandbox?: string;
 		/**
-		 * The human-readable ID of the unit test suite
+		 * The human-readable ID or the ID of the unit test suite. The human-readable ID is resolved first.
 		 */
 		unit_test_suite?: string;
 		/**
-		 * The human-readable ID of the visual test suite
+		 * The human-readable ID or the ID of the visual test suite. The human-readable ID is resolved first.
 		 */
 		visual_test_suite?: string;
 		/**
-		 * The human-readable ID of the crawl suite
+		 * The human-readable ID or the ID of the crawl suite. The human-readable ID is resolved first.
 		 */
 		crawl_suite?: string;
 		/**
-		 * The human-readable ID of the distribution
+		 * The human-readable ID or the ID of the distribution. The human-readable ID is resolved first.
 		 */
 		distribution?: string;
+		/**
+		 * The human-readable ID or the ID of the target. The human-readable ID is resolved first. Resolved against the given pipeline, environment or project, then the workspace.
+		 */
+		target?: string;
+		/**
+		 * The human-readable ID of the integration. Resolved against the given environment, then its project or the given project, then the workspace. Without project and environment only workspace integrations are matched.
+		 */
+		integration?: string;
 		/**
 		 * The subdomain of the route. Resolved together with route_domain and route_path against the parent distribution.
 		 */
@@ -4848,11 +5197,11 @@ export type GetIdentifiersData = {
 		 */
 		route_path?: string;
 		/**
-		 * The human-readable ID of the tunnel agent
+		 * The human-readable ID or the ID of the tunnel agent. The human-readable ID is resolved first.
 		 */
 		agent?: string;
 		/**
-		 * The name of the tunnel. Requires agent to be resolved.
+		 * The name or the ID of the tunnel. The name is resolved first. Requires agent to be resolved.
 		 */
 		tunnel?: string;
 	};
@@ -4874,7 +5223,16 @@ export type GetIntegrationsData = {
 		 */
 		workspace_domain: string;
 	};
-	query?: never;
+	query?: {
+		/**
+		 * The name of the project
+		 */
+		project_name?: string;
+		/**
+		 * The ID of the environment
+		 */
+		environment_id?: string;
+	};
 	url: "/workspaces/{workspace_domain}/integrations";
 };
 
@@ -4886,7 +5244,7 @@ export type GetIntegrationsResponse =
 	GetIntegrationsResponses[keyof GetIntegrationsResponses];
 
 export type AddIntegrationData = {
-	body?: AddIntegrationRequest;
+	body: AddIntegrationRequest;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -4954,7 +5312,7 @@ export type GetIntegrationResponse =
 	GetIntegrationResponses[keyof GetIntegrationResponses];
 
 export type UpdateIntegrationData = {
-	body?: UpdateIntegrationRequest;
+	body: UpdateIntegrationRequest;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -5013,7 +5371,7 @@ export type GetWorkspaceMembersResponse =
 	GetWorkspaceMembersResponses[keyof GetWorkspaceMembersResponses];
 
 export type AddWorkspaceMemberData = {
-	body?: AddWorkspaceMemberRequest;
+	body: AddWorkspaceMemberRequest;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -5081,7 +5439,7 @@ export type GetWorkspaceMemberResponse =
 	GetWorkspaceMemberResponses[keyof GetWorkspaceMemberResponses];
 
 export type UpdateWorkspaceMemberData = {
-	body?: UpdateWorkspaceMemberRequest;
+	body: UpdateWorkspaceMemberRequest;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -5159,11 +5517,15 @@ export type GetSandboxesData = {
 		 */
 		workspace_domain: string;
 	};
-	query: {
+	query?: {
 		/**
 		 * The human-readable ID of the project to filter sandboxes
 		 */
-		project_name: string;
+		project_name?: string;
+		/**
+		 * The ID of the environment to filter sandboxes
+		 */
+		environment_id?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes";
 };
@@ -5176,7 +5538,7 @@ export type GetSandboxesResponse =
 	GetSandboxesResponses[keyof GetSandboxesResponses];
 
 export type AddSandboxData = {
-	body?:
+	body:
 		| CloneSandboxRequest
 		| CreateFromSnapshotRequestWritable
 		| CreateNewSandboxRequestWritable;
@@ -5186,11 +5548,11 @@ export type AddSandboxData = {
 		 */
 		workspace_domain: string;
 	};
-	query: {
+	query?: {
 		/**
 		 * The human-readable ID of the project to filter sandboxes
 		 */
-		project_name: string;
+		project_name?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes";
 };
@@ -5250,7 +5612,7 @@ export type GetSandboxResponses = {
 export type GetSandboxResponse = GetSandboxResponses[keyof GetSandboxResponses];
 
 export type UpdateSandboxData = {
-	body?: UpdateSandboxRequestWritable;
+	body: UpdateSandboxRequestWritable;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -5370,7 +5732,16 @@ export type GetSandboxCommandsData = {
 		 */
 		sandbox_id: string;
 	};
-	query?: never;
+	query?: {
+		/**
+		 * Returns only commands older than the command with this ID. Pass the ID of the last command from the previous page to fetch the next one.
+		 */
+		cursor?: string;
+		/**
+		 * Maximum number of commands to return (most recent first). Default: 50, max: 200.
+		 */
+		limit?: bigint;
+	};
 	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands";
 };
 
@@ -5382,7 +5753,7 @@ export type GetSandboxCommandsResponse =
 	GetSandboxCommandsResponses[keyof GetSandboxCommandsResponses];
 
 export type ExecuteSandboxCommandData = {
-	body?: ExecuteSandboxCommandRequest;
+	body: ExecuteSandboxCommandRequest;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -5393,12 +5764,17 @@ export type ExecuteSandboxCommandData = {
 		 */
 		sandbox_id: string;
 	};
-	query?: never;
+	query?: {
+		/**
+		 * If true, the command runs synchronously and the response carries its output and exit code. The command is not saved in the sandbox command history, produces no logs to stream and cannot be terminated. Commands that do not finish within 60 seconds fail - use the default mode for those.
+		 */
+		fast?: boolean;
+	};
 	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands";
 };
 
 export type ExecuteSandboxCommandResponses = {
-	200: SandboxCommandView;
+	200: SandboxCommandView | SandboxCommandResultView;
 };
 
 export type ExecuteSandboxCommandResponse =
@@ -5591,7 +5967,7 @@ export type UploadSandboxFileData = {
 	/**
 	 * File to upload
 	 */
-	body?: Blob | File;
+	body: Blob | File;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -5655,6 +6031,52 @@ export type DownloadSandboxContentResponses = {
 export type DownloadSandboxContentResponse =
 	DownloadSandboxContentResponses[keyof DownloadSandboxContentResponses];
 
+export type ExecSandboxCommandData = {
+	body: ExecuteSandboxCommandRequest;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/exec";
+};
+
+export type ExecSandboxCommandResponses = {
+	200: SandboxCommandResultView;
+};
+
+export type ExecSandboxCommandResponse =
+	ExecSandboxCommandResponses[keyof ExecSandboxCommandResponses];
+
+export type RecreateSandboxData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/recreate";
+};
+
+export type RecreateSandboxResponses = {
+	200: SandboxResponse;
+};
+
+export type RecreateSandboxResponse =
+	RecreateSandboxResponses[keyof RecreateSandboxResponses];
+
 export type RestartSandboxData = {
 	body?: never;
 	path: {
@@ -5702,7 +6124,7 @@ export type GetSandboxSnapshotsResponse =
 	GetSandboxSnapshotsResponses[keyof GetSandboxSnapshotsResponses];
 
 export type AddSandboxSnapshotData = {
-	body?: AddSnapshotRequest;
+	body: AddSnapshotRequest;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -5851,7 +6273,7 @@ export type GetSandboxYamlResponse =
 	GetSandboxYamlResponses[keyof GetSandboxYamlResponses];
 
 export type UpdateSandboxByYamlData = {
-	body?: SandboxYamlViewWritable;
+	body: SandboxYamlViewWritable;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
@@ -5881,11 +6303,15 @@ export type GetProjectSnapshotsData = {
 		 */
 		workspace_domain: string;
 	};
-	query: {
+	query?: {
 		/**
 		 * The human-readable ID of the project to filter sandboxes
 		 */
-		project_name: string;
+		project_name?: string;
+		/**
+		 * The ID of the environment to filter sandboxes
+		 */
+		environment_id?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes/snapshots";
 };
@@ -5924,18 +6350,22 @@ export type DeleteSnapshotResponse =
 	DeleteSnapshotResponses[keyof DeleteSnapshotResponses];
 
 export type AddSandboxByYamlData = {
-	body?: SandboxYamlViewWritable;
+	body: SandboxYamlViewWritable;
 	path: {
 		/**
 		 * The human-readable ID of the workspace
 		 */
 		workspace_domain: string;
 	};
-	query: {
+	query?: {
 		/**
 		 * The human-readable ID of the project to filter sandboxes
 		 */
-		project_name: string;
+		project_name?: string;
+		/**
+		 * The ID of the environment to filter sandboxes
+		 */
+		environment_id?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes/yaml";
 };
@@ -5966,7 +6396,7 @@ export type GetSsoResponses = {
 export type GetSsoResponse = GetSsoResponses[keyof GetSsoResponses];
 
 export type UpdateSsoData = {
-	body?: UpdateSsoRequest;
+	body: UpdateSsoRequest;
 	path: {
 		/**
 		 * The human-readable ID of the workspace

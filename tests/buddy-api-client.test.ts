@@ -259,6 +259,36 @@ describe("BuddyApiClient", () => {
 			expect(receivedBody?.["fetch"]).toEqual(fetchItems);
 			expect(response?.fetch).toEqual(fetchItems);
 		});
+
+		it("should accept snapshot variables without a type", async () => {
+			let receivedBody: Record<string, unknown> | undefined;
+			server.use(
+				http.post(
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`,
+					async ({ request }) => {
+						receivedBody = (await request.json()) as Record<string, unknown>;
+						return HttpResponse.json({
+							id: "from-snapshot",
+							name: receivedBody["name"],
+							status: "STARTING",
+						});
+					},
+				),
+			);
+
+			const client = createClient();
+			await client.addSandbox({
+				body: {
+					snapshot_id: "snapshot-id",
+					name: "Snapshot Sandbox",
+					variables: [{ key: "GREETING", value: "hello" }],
+				},
+			});
+
+			expect(receivedBody?.["variables"]).toEqual([
+				{ key: "GREETING", value: "hello" },
+			]);
+		});
 	});
 
 	describe("deleteSandboxById", () => {

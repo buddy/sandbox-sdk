@@ -3,7 +3,6 @@ import {
 	addSandboxResponseTransformer,
 	addSandboxSnapshotResponseTransformer,
 	createSandboxDirectoryResponseTransformer,
-	executeSandboxCommandResponseTransformer,
 	getProjectSnapshotsResponseTransformer,
 	getSandboxCommandResponseTransformer,
 	getSandboxCommandsResponseTransformer,
@@ -36,8 +35,9 @@ import type {
 	DeleteSnapshotData,
 	DeleteSnapshotResponse,
 	DownloadSandboxContentData,
+	ExecSandboxCommandData,
+	ExecSandboxCommandResponse,
 	ExecuteSandboxCommandData,
-	ExecuteSandboxCommandResponse,
 	GetIdentifiersData,
 	GetIdentifiersResponse,
 	GetProjectSnapshotsData,
@@ -62,6 +62,7 @@ import type {
 	RestartSandboxData,
 	RestartSandboxResponse,
 	SandboxCommandLog,
+	SandboxCommandView,
 	StartSandboxAppData,
 	StartSandboxAppResponse,
 	StartSandboxData,
@@ -96,9 +97,11 @@ import {
 	zDeleteSnapshotPath,
 	zDeleteSnapshotResponse,
 	zDownloadSandboxContentPath,
+	zExecSandboxCommandBody,
+	zExecSandboxCommandPath,
+	zExecSandboxCommandResponse,
 	zExecuteSandboxCommandBody,
 	zExecuteSandboxCommandPath,
-	zExecuteSandboxCommandResponse,
 	zGetIdentifiersPath,
 	zGetIdentifiersQuery,
 	zGetIdentifiersResponse,
@@ -128,6 +131,7 @@ import {
 	zRestartSandboxPath,
 	zRestartSandboxResponse,
 	zSandboxCommandLog,
+	zSandboxCommandView,
 	zStartSandboxAppPath,
 	zStartSandboxAppResponse,
 	zStartSandboxPath,
@@ -151,7 +155,7 @@ import {
 	type HttpResponse,
 	type RequestConfig,
 } from "@/core/http-client";
-import type { ClientData, Data, DataUrl } from "@/types";
+import type { ClientData, Data, DataUrl, QueryValue } from "@/types";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
 
@@ -166,6 +170,9 @@ export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 	/** Base URL of the Buddy API */
 	apiUrl: string;
 }
+
+/** The API fails a synchronous command at 60s - outlast it, barely */
+const EXEC_TIMEOUT_MS = 65_000;
 
 /** API client for Buddy sandbox operations with request validation and response transformation */
 export class BuddyApiClient extends HttpClient {
@@ -219,6 +226,7 @@ export class BuddyApiClient extends HttpClient {
 		responseSchema,
 		skipRetry,
 		idempotent,
+		timeoutMs,
 	}: {
 		method: "GET" | "POST" | "DELETE" | "PATCH";
 		url: DataUrl<D>;
@@ -230,6 +238,8 @@ export class BuddyApiClient extends HttpClient {
 		skipRetry?: boolean;
 		/** See `RequestConfig.idempotent`; creates and command runs pass `false`. */
 		idempotent?: boolean;
+		/** See `RequestConfig.timeoutMs`; a blocking exec outlives the default. */
+		timeoutMs?: number;
 	}): Promise<Response> {
 		const pathResult = await pathSchema.safeParseAsync({
 			workspace_domain: this.workspace,
@@ -240,7 +250,7 @@ export class BuddyApiClient extends HttpClient {
 		}
 		const validatedPath = pathResult.data as Record<string, string>;
 
-		let validatedQuery: Record<string, string | number | boolean> | undefined;
+		let validatedQuery: Record<string, QueryValue> | undefined;
 		if (querySchema) {
 			const queryResult = await querySchema.safeParseAsync({
 				project_name: this.project_name,
@@ -249,10 +259,7 @@ export class BuddyApiClient extends HttpClient {
 			if (!queryResult.success) {
 				throw queryResult.error;
 			}
-			validatedQuery = queryResult.data as Record<
-				string,
-				string | number | boolean
-			>;
+			validatedQuery = queryResult.data as Record<string, QueryValue>;
 		}
 
 		let validatedBody: unknown = data.body;
@@ -273,6 +280,7 @@ export class BuddyApiClient extends HttpClient {
 			queryParams: validatedQuery,
 			skipRetry,
 			idempotent,
+			timeoutMs,
 		};
 
 		let request: Promise<HttpResponse>;
@@ -482,20 +490,45 @@ export class BuddyApiClient extends HttpClient {
 		});
 	}
 
-	/** Execute a command in a sandbox */
+	/**
+	 * Execute a command in a sandbox, returning once it has been accepted.
+	 * The endpoint can also answer with a finished result, but only for the
+	 * `fast` query param this method never sends - `execCommand` covers that.
+	 */
 	async executeCommand<const Data extends ExecuteSandboxCommandData>(
 		data: ClientData<Data>,
 	) {
-		return this.#requestWithValidation<Data, ExecuteSandboxCommandResponse>({
+		return this.#requestWithValidation<Data, SandboxCommandView>({
 			method: "POST",
 			data,
 			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
 			idempotent: false,
 			bodySchema: zExecuteSandboxCommandBody,
 			pathSchema: zExecuteSandboxCommandPath,
-			responseSchema: zExecuteSandboxCommandResponse.transform(
-				executeSandboxCommandResponseTransformer,
+			responseSchema: zSandboxCommandView.transform(
+				getSandboxCommandResponseTransformer,
 			),
+		});
+	}
+
+	/**
+	 * Run a command in a sandbox and wait for its result. The request stays
+	 * open for as long as the command runs, so it outlasts the API's own 60
+	 * second ceiling by default rather than the client-wide timeout.
+	 */
+	async execCommand<const Data extends ExecSandboxCommandData>(
+		data: ClientData<Data>,
+		options: { timeoutMs?: number } = {},
+	) {
+		return this.#requestWithValidation<Data, ExecSandboxCommandResponse>({
+			method: "POST",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/exec",
+			idempotent: false,
+			bodySchema: zExecSandboxCommandBody,
+			pathSchema: zExecSandboxCommandPath,
+			responseSchema: zExecSandboxCommandResponse,
+			timeoutMs: options.timeoutMs ?? EXEC_TIMEOUT_MS,
 		});
 	}
 

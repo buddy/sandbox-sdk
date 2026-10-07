@@ -6,7 +6,6 @@ import type {
 	AddSandboxResponse,
 	AddSandboxSnapshotResponse,
 	CreateSandboxDirectoryResponse,
-	ExecuteSandboxCommandResponse,
 	GetIntegrationResponse,
 	GetIntegrationsResponse,
 	GetProjectSnapshotsResponse,
@@ -18,6 +17,7 @@ import type {
 	GetSandboxSnapshotsResponse,
 	GetWorkspaceMemberProjectsResponse,
 	GetWorkspaceResponse,
+	RecreateSandboxResponse,
 	RestartSandboxResponse,
 	StartSandboxAppResponse,
 	StartSandboxResponse,
@@ -161,6 +161,9 @@ const sandboxResponseSchemaResponseTransformer = (data: any) => {
 	if (data.project) {
 		data.project = projectViewSchemaResponseTransformer(data.project);
 	}
+	if (data.create_date) {
+		data.create_date = new Date(data.create_date);
+	}
 	return data;
 };
 
@@ -225,13 +228,6 @@ export const getSandboxCommandsResponseTransformer = async (
 	return data;
 };
 
-export const executeSandboxCommandResponseTransformer = async (
-	data: any,
-): Promise<ExecuteSandboxCommandResponse> => {
-	data = sandboxCommandViewSchemaResponseTransformer(data);
-	return data;
-};
-
 export const getSandboxCommandResponseTransformer = async (
 	data: any,
 ): Promise<GetSandboxCommandResponse> => {
@@ -280,6 +276,13 @@ export const uploadSandboxFileResponseTransformer = async (
 	data: any,
 ): Promise<UploadSandboxFileResponse> => {
 	data = sandboxContentItemSchemaResponseTransformer(data);
+	return data;
+};
+
+export const recreateSandboxResponseTransformer = async (
+	data: any,
+): Promise<RecreateSandboxResponse> => {
+	data = sandboxResponseSchemaResponseTransformer(data);
 	return data;
 };
 

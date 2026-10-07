@@ -2,6 +2,7 @@ export type {
 	AddSnapshotRequest,
 	CloneSandboxRequest,
 	SandboxAppView,
+	SandboxCommandResultView,
 	SandboxIdView,
 	ShortSnapshotView,
 	SnapshotView,
@@ -15,6 +16,7 @@ export type {
 	ConnectionConfig,
 	CreateFromSnapshotConfig,
 	CreateSandboxConfig,
+	ExecOptions,
 	GetSandboxConfig,
 	ListSandboxesConfig,
 } from "@/entity/sandbox";

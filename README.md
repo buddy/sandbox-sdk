@@ -45,6 +45,44 @@ export BUDDY_PROJECT="your-project"
 export BUDDY_REGION="US"  # Optional: US (default), EU, or AS
 ```
 
+## Running commands
+
+`exec()` runs a command and resolves when it finishes, with its exit code and
+output:
+
+```typescript
+const result = await sandbox.exec({ command: "npm test" });
+
+console.log(result.exit_code, result.stdout, result.stderr);
+```
+
+A command that exits non-zero still resolves, so check `exit_code`.
+
+`runtime` picks the interpreter. It defaults to `BASH`, and also takes
+`JAVASCRIPT`, `TYPESCRIPT` or `PYTHON`:
+
+```typescript
+await sandbox.exec({ command: "print(1 + 1)", runtime: "PYTHON" });
+```
+
+The request stays open while the command runs, and the API fails it after 60
+seconds. Whatever it does, a command run this way leaves no entry in the sandbox
+command history, streams no logs, and cannot be terminated.
+
+Use `runCommand()` for anything longer than a minute, to follow the output as
+it arrives, or to leave a command running after the call returns:
+
+```typescript
+// streams to process.stdout as it runs
+const command = await sandbox.runCommand({ command: "npm test" });
+
+// returns immediately, leaving the command running
+const detached = await sandbox.runCommand({
+    command: "npm run dev",
+    detached: true,
+});
+```
+
 ## Waiting for readiness
 
 `Sandbox.create()` blocks until the sandbox has finished setup and reached
