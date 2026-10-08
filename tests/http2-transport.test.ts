@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import http2, {
 	type Http2Server,
 	type Http2Session,
@@ -5,7 +7,11 @@ import http2, {
 	type ServerHttp2Session,
 	type ServerHttp2Stream,
 } from "node:http2";
+import https from "node:https";
 import net, { type AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import tls from "node:tls";
 import {
 	afterAll,
 	afterEach,
@@ -141,7 +147,10 @@ describe("createHttp2Transport", () => {
 				stream.end("nope");
 			};
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/missing`, { method: "GET" });
 
 			expect(response.status).toBe(404);
@@ -164,7 +173,10 @@ describe("createHttp2Transport", () => {
 				});
 			};
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/items?x=1`, {
 				method: "POST",
 				headers: {
@@ -188,7 +200,10 @@ describe("createHttp2Transport", () => {
 			handler = (stream) =>
 				stream.respond({ ":status": 204 }, { endStream: true });
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/`, { method: "DELETE" });
 
 			expect(response.status).toBe(204);
@@ -199,7 +214,10 @@ describe("createHttp2Transport", () => {
 			const fetchMock = vi.fn(async () => Response.json({ via: "fetch" }));
 			vi.stubGlobal("fetch", fetchMock);
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/upload`, {
 				method: "POST",
 				body: new FormData(),
@@ -217,7 +235,10 @@ describe("createHttp2Transport", () => {
 			};
 			const controller = new AbortController();
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const pending = transport(`${origin}/slow`, {
 				method: "GET",
 				signal: controller.signal,
@@ -234,7 +255,10 @@ describe("createHttp2Transport", () => {
 			};
 			const controller = new AbortController();
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/stall`, {
 				method: "GET",
 				signal: controller.signal,
@@ -255,7 +279,10 @@ describe("createHttp2Transport", () => {
 				stream.write("first chunk of a stream that never ends");
 			};
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/follow`, { method: "GET" });
 			const reader = response.body?.getReader();
 			await reader?.read();
@@ -267,7 +294,10 @@ describe("createHttp2Transport", () => {
 
 	describe("session pool", () => {
 		it("should open every session on the first request", async () => {
-			const transport = createHttp2Transport({ sessions: 4 });
+			const transport = createHttp2Transport({
+				sessions: 4,
+				allowCleartext: true,
+			});
 			await transport(`${origin}/`, { method: "GET" });
 
 			await vi.waitFor(() => expect(sessionsOpened).toBe(4));
@@ -281,7 +311,10 @@ describe("createHttp2Transport", () => {
 				stream.respond({ ":status": 200 }, { endStream: true });
 			};
 
-			const transport = createHttp2Transport({ sessions: 4 });
+			const transport = createHttp2Transport({
+				sessions: 4,
+				allowCleartext: true,
+			});
 			for (let i = 0; i < 8; i++) {
 				await transport(`${origin}/`, { method: "GET" });
 			}
@@ -296,7 +329,10 @@ describe("createHttp2Transport", () => {
 				stream.respond({ ":status": 200 }, { endStream: true });
 			};
 
-			const transport = createHttp2Transport({ sessions: 2 });
+			const transport = createHttp2Transport({
+				sessions: 2,
+				allowCleartext: true,
+			});
 			await transport(`${origin}/`, { method: "GET" });
 			await transport(`${origin}/`, { method: "GET" });
 			served[0]?.destroy();
@@ -318,7 +354,10 @@ describe("createHttp2Transport", () => {
 				stream.respond({ ":status": 200 }, { endStream: true });
 			};
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			await transport(`${origin}/`, { method: "GET" });
 			served[0]?.goaway();
 			await new Promise((resolve) => setTimeout(resolve, 20));
@@ -348,7 +387,10 @@ describe("createHttp2Transport", () => {
 				stream.close(http2.constants.NGHTTP2_REFUSED_STREAM),
 			);
 
-			const transport = createHttp2Transport({ sessions: 2 });
+			const transport = createHttp2Transport({
+				sessions: 2,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/sandboxes`, {
 				method: "POST",
 				body: "{}",
@@ -361,7 +403,10 @@ describe("createHttp2Transport", () => {
 		it("should send a POST again when a GOAWAY leaves its stream out", async () => {
 			const goawayServer = await startGoawayServer();
 			try {
-				const transport = createHttp2Transport({ sessions: 1 });
+				const transport = createHttp2Transport({
+					sessions: 1,
+					allowCleartext: true,
+				});
 				const response = await transport(`${goawayServer.origin}/sandboxes`, {
 					method: "POST",
 					body: "{}",
@@ -381,7 +426,10 @@ describe("createHttp2Transport", () => {
 				stream.respond({ ":status": 200 }, { endStream: true });
 			});
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/sandboxes`, {
 				method: "POST",
 				body: "{}",
@@ -403,7 +451,10 @@ describe("createHttp2Transport", () => {
 				});
 			probe.destroy();
 
-			const transport = createHttp2Transport({ sessions: 2 });
+			const transport = createHttp2Transport({
+				sessions: 2,
+				allowCleartext: true,
+			});
 			const response = await transport(`${origin}/sandboxes`, {
 				method: "POST",
 				body: "{}",
@@ -423,7 +474,10 @@ describe("createHttp2Transport", () => {
 			const { port } = closed.address() as AddressInfo;
 			await new Promise((resolve) => closed.close(resolve));
 
-			const transport = createHttp2Transport({ sessions: 1 });
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
 			const response = await transport(
 				`http://127.0.0.1:${String(port)}/sandboxes`,
 				{ method: "POST", body: "{}" },
@@ -442,7 +496,10 @@ describe("createHttp2Transport", () => {
 				stream.session?.destroy();
 			};
 
-			const transport = createHttp2Transport({ sessions: 2 });
+			const transport = createHttp2Transport({
+				sessions: 2,
+				allowCleartext: true,
+			});
 			await expect(
 				transport(`${origin}/sandboxes`, { method: "POST", body: "{}" }),
 			).rejects.toThrow();
@@ -452,11 +509,135 @@ describe("createHttp2Transport", () => {
 		});
 	});
 
+	describe("origins that stay on fetch", () => {
+		let certificate: { key: Buffer; cert: Buffer };
+
+		beforeAll(() => {
+			const dir = mkdtempSync(join(tmpdir(), "sdk-tls-"));
+			try {
+				const key = join(dir, "key.pem");
+				const cert = join(dir, "cert.pem");
+				const args =
+					"req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost";
+				execFileSync(
+					"openssl",
+					[...args.split(" "), "-keyout", key, "-out", cert],
+					{
+						stdio: "ignore",
+					},
+				);
+				certificate = { key: readFileSync(key), cert: readFileSync(cert) };
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		});
+
+		const withTlsServer = async (
+			server: tls.Server,
+			test: (origin: string, connections: () => number) => Promise<void>,
+		) => {
+			let connections = 0;
+			const sockets = new Set<net.Socket>();
+			server.on("secureConnection", (socket) => {
+				connections++;
+				sockets.add(socket);
+				socket.on("error", () => undefined);
+			});
+			server.on("tlsClientError", () => undefined);
+			await new Promise<void>((resolve) =>
+				server.listen(0, "127.0.0.1", resolve),
+			);
+			// Self-signed fixture
+			vi.stubEnv("NODE_TLS_REJECT_UNAUTHORIZED", "0");
+			try {
+				const { port } = server.address() as AddressInfo;
+				await test(`https://127.0.0.1:${String(port)}`, () => connections);
+			} finally {
+				for (const socket of sockets) socket.destroy();
+				await new Promise((resolve) => server.close(resolve));
+			}
+		};
+
+		const stubFetch = () => {
+			const fetchMock = vi.fn(async () => Response.json({ via: "fetch" }));
+			vi.stubGlobal("fetch", fetchMock);
+			return fetchMock;
+		};
+
+		it("should send a POST to fetch when the server picks no protocol", async () => {
+			const fetchMock = stubFetch();
+			// No ALPN: handshake succeeds without h2
+			const server = tls.createServer(certificate, (socket) => {
+				socket.on("data", () => undefined);
+			});
+
+			await withTlsServer(server, async (origin, connections) => {
+				const transport = createHttp2Transport({ sessions: 1 });
+				const first = await transport(`${origin}/sandboxes`, {
+					method: "POST",
+					body: "{}",
+				});
+				const opened = connections();
+				await transport(`${origin}/sandboxes`, { method: "GET" });
+
+				expect(await first.json()).toEqual({ via: "fetch" });
+				expect(fetchMock).toHaveBeenCalledTimes(2);
+				expect(connections()).toBe(opened);
+			});
+		});
+
+		it("should send a POST to fetch when the server refuses h2", async () => {
+			const fetchMock = stubFetch();
+			// Answers an h2 offer with a TLS alert
+			const server = https.createServer(certificate, (_request, response) =>
+				response.end(),
+			);
+
+			await withTlsServer(server, async (origin, connections) => {
+				const transport = createHttp2Transport({ sessions: 1 });
+				const first = await transport(`${origin}/sandboxes`, {
+					method: "POST",
+					body: "{}",
+				});
+				const opened = connections();
+				await transport(`${origin}/sandboxes`, { method: "GET" });
+
+				expect(await first.json()).toEqual({ via: "fetch" });
+				expect(fetchMock).toHaveBeenCalledTimes(2);
+				expect(connections()).toBe(opened);
+			});
+		});
+
+		it("should send http origins to fetch", async () => {
+			const fetchMock = stubFetch();
+
+			const transport = createHttp2Transport({ sessions: 2 });
+			await transport(`${origin}/`, { method: "GET" });
+
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			expect(sessionsOpened).toBe(0);
+		});
+
+		it("should send everything to fetch when a proxy is set", async () => {
+			const fetchMock = stubFetch();
+			vi.stubEnv("HTTPS_PROXY", "http://proxy.example:3128");
+
+			const transport = createHttp2Transport({
+				sessions: 2,
+				allowCleartext: true,
+			});
+			await transport(`${origin}/`, { method: "GET" });
+
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			expect(sessionsOpened).toBe(0);
+		});
+	});
+
 	describe("session count", () => {
 		it("should read the session count from BUDDY_HTTP2_SESSIONS", async () => {
 			vi.stubEnv("BUDDY_HTTP2_SESSIONS", "3");
 
-			const transport = createHttp2Transport();
+			const transport = createHttp2Transport({ allowCleartext: true });
 			await transport(`${origin}/`, { method: "GET" });
 
 			await vi.waitFor(() => expect(sessionsOpened).toBe(3));
@@ -471,7 +652,9 @@ describe("createHttp2Transport", () => {
 		])("should reject BUDDY_HTTP2_SESSIONS=%s", (value) => {
 			vi.stubEnv("BUDDY_HTTP2_SESSIONS", value);
 
-			expect(() => createHttp2Transport()).toThrow(/BUDDY_HTTP2_SESSIONS/);
+			expect(() => createHttp2Transport({ allowCleartext: true })).toThrow(
+				/BUDDY_HTTP2_SESSIONS/,
+			);
 		});
 	});
 });

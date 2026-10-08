@@ -38,9 +38,24 @@ const SESSION_REFUSED_CODES = new Set([
 	"ERR_HTTP2_OUT_OF_STREAMS",
 ]);
 
+/** `http2.connect` ignores proxies */
+const PROXY_VARIABLES = [
+	"HTTPS_PROXY",
+	"https_proxy",
+	"HTTP_PROXY",
+	"http_proxy",
+	"ALL_PROXY",
+	"all_proxy",
+];
+
+/** TLS alert from a server that refuses h2 */
+const NO_APPLICATION_PROTOCOL = "ERR_SSL_TLSV1_ALERT_NO_APPLICATION_PROTOCOL";
+
 export interface Http2TransportOptions {
 	/** Sessions per origin; defaults to `BUDDY_HTTP2_SESSIONS`, else 16 */
 	sessions?: number;
+	/** @internal Use h2c for `http:` origins (tests) */
+	allowCleartext?: boolean;
 }
 
 interface Pool {
@@ -95,13 +110,41 @@ export function createHttp2Transport(
 	options: Http2TransportOptions = {},
 ): Transport {
 	const count = resolveSessionCount(options.sessions);
+	const proxy = PROXY_VARIABLES.find((name) => process.env[name]);
 	const pools = new Map<string, Pool>();
 	const activeStreams = new WeakMap<ClientHttp2Session, number>();
 	const draining = new WeakSet<ClientHttp2Session>();
+	const fetchOrigins = new Map<string, string>();
+
+	const sendToFetch = (origin: string, reason: string) => {
+		if (!fetchOrigins.has(origin)) {
+			fetchOrigins.set(origin, reason);
+			logger.debug("[HTTP2] Origin switched to fetch", { origin, reason });
+		}
+	};
+
+	const fetchReason = (origin: string): string | undefined => {
+		const known = fetchOrigins.get(origin);
+		if (known) {
+			return known;
+		}
+		if (proxy) {
+			sendToFetch(origin, `${proxy} is set`);
+		} else if (!origin.startsWith("https:") && !options.allowCleartext) {
+			sendToFetch(origin, "not an https origin");
+		}
+		return fetchOrigins.get(origin);
+	};
 
 	const connect = (origin: string): ClientHttp2Session => {
 		const session = http2.connect(origin);
 		session.once("connect", (_session, socket) => {
+			// Runs before buffered streams go out, so they stay unsent
+			if (origin.startsWith("https:") && session.alpnProtocol !== "h2") {
+				sendToFetch(origin, "the server does not offer h2");
+				session.destroy();
+				return;
+			}
 			// keepAlive passed to http2.connect never reaches a TLS socket
 			socket.setKeepAlive(true, KEEP_ALIVE_DELAY_MS);
 		});
@@ -109,6 +152,9 @@ export function createHttp2Transport(
 			draining.add(session);
 		});
 		session.on("error", (error) => {
+			if ((error as { code?: unknown }).code === NO_APPLICATION_PROTOCOL) {
+				sendToFetch(origin, "the server does not offer h2");
+			}
 			logger.debug("[HTTP2] Session error", { origin, error: error.message });
 		});
 		session.unref();
@@ -175,6 +221,9 @@ export function createHttp2Transport(
 		signal?.throwIfAborted();
 
 		const target = new URL(url);
+		if (fetchReason(target.origin)) {
+			return fetchTransport(url, init);
+		}
 		const method = (init.method ?? "GET").toUpperCase();
 		const headers = toRequestHeaders(init.headers);
 		headers[":method"] = method;
