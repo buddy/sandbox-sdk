@@ -1,10 +1,8 @@
 import { inspect } from "node:util";
 import pRetry, { type Options as RetryOptions } from "p-retry";
+import { fetchTransport, type Transport } from "@/core/transport";
 import type { QueryValue } from "@/types";
 import logger from "@/utils/logger";
-
-/** Sends one HTTP request, shaped like `fetch` */
-export type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
 /** Configuration options for creating an HttpClient instance */
 export interface HttpClientConfig {
@@ -16,7 +14,7 @@ export interface HttpClientConfig {
 	headers?: Record<string, string>;
 	/** Enable detailed request/response logging */
 	debugMode?: boolean;
-	/** @internal Test seam; defaults to the global `fetch`, looked up per call */
+	/** @internal Test seam; defaults to `fetchTransport` */
 	transport?: Transport;
 }
 
@@ -124,7 +122,7 @@ export class HttpClient {
 	constructor(config: HttpClientConfig = {}) {
 		// Enable HTTP debugging when logger level is debug
 		this.debugMode = config.debugMode ?? logger.level >= 5;
-		this.transport = config.transport ?? ((url, init) => fetch(url, init));
+		this.transport = config.transport ?? fetchTransport;
 		this.#baseURL = config.baseURL ?? "";
 		this.#timeout = config.timeout ?? 30_000;
 		this.#defaultHeaders = {
