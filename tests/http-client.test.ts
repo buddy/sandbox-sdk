@@ -55,6 +55,25 @@ describe("HttpClient", () => {
 			expect(response.status).toBe(200);
 			expect(response.data).toEqual({ deleted: true });
 		});
+
+		it("should send requests through an injected transport", async () => {
+			const calls: { url: string; init: RequestInit }[] = [];
+			const client = new HttpClient({
+				baseURL: TEST_BASE_URL,
+				transport: async (url, init) => {
+					calls.push({ url, init });
+					return Response.json({ via: "transport" });
+				},
+			});
+
+			const response = await client.post("/test", { foo: "bar" });
+
+			expect(response.data).toEqual({ via: "transport" });
+			expect(calls).toHaveLength(1);
+			expect(calls[0]?.url).toBe(`${TEST_BASE_URL}/test`);
+			expect(calls[0]?.init.method).toBe("POST");
+			expect(calls[0]?.init.body).toBe(JSON.stringify({ foo: "bar" }));
+		});
 	});
 
 	describe("query parameters", () => {

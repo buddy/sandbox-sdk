@@ -3,6 +3,9 @@ import pRetry, { type Options as RetryOptions } from "p-retry";
 import type { QueryValue } from "@/types";
 import logger from "@/utils/logger";
 
+/** Sends one HTTP request, shaped like `fetch` */
+export type Transport = (url: string, init: RequestInit) => Promise<Response>;
+
 /** Configuration options for creating an HttpClient instance */
 export interface HttpClientConfig {
 	/** Base URL prepended to all request paths */
@@ -13,6 +16,8 @@ export interface HttpClientConfig {
 	headers?: Record<string, string>;
 	/** Enable detailed request/response logging */
 	debugMode?: boolean;
+	/** @internal Test seam; defaults to the global `fetch`, looked up per call */
+	transport?: Transport;
 }
 
 /** Per-request configuration options */
@@ -112,12 +117,14 @@ export class HttpClient {
 	readonly #timeout: number;
 	readonly #defaultHeaders: Record<string, string>;
 	protected readonly debugMode: boolean;
+	protected readonly transport: Transport;
 	#authToken?: string;
 
 	/** Create a new HTTP client with optional base URL, timeout, and headers */
 	constructor(config: HttpClientConfig = {}) {
 		// Enable HTTP debugging when logger level is debug
 		this.debugMode = config.debugMode ?? logger.level >= 5;
+		this.transport = config.transport ?? ((url, init) => fetch(url, init));
 		this.#baseURL = config.baseURL ?? "";
 		this.#timeout = config.timeout ?? 30_000;
 		this.#defaultHeaders = {
@@ -240,7 +247,7 @@ export class HttpClient {
 					fetchOptions.body = JSON.stringify(data);
 				}
 
-				const response = await fetch(fullUrl, fetchOptions);
+				const response = await this.transport(fullUrl, fetchOptions);
 
 				let responseData: T;
 				if (responseType === "text") {
