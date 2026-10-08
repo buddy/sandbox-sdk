@@ -965,5 +965,36 @@ describe("BuddyApiClient", () => {
 			expect(calls).toHaveLength(1);
 			expect(calls[0]?.url).toContain("follow=true");
 		});
+
+		it("should cancel the log stream when the consumer stops early", async () => {
+			let cancelled = false;
+			const { client } = createRecordingClient(
+				() =>
+					new Response(
+						new ReadableStream({
+							start(controller) {
+								// One line, then silence - like a follow that never ends.
+								controller.enqueue(
+									new TextEncoder().encode('{"type":"STDOUT","data":"one"}\n'),
+								);
+							},
+							cancel() {
+								cancelled = true;
+							},
+						}),
+						{ headers: { "Content-Type": "application/jsonl" } },
+					),
+			);
+
+			for await (const log of client.streamCommandLogs({
+				path: { sandbox_id: "sandbox-1", command_id: "command-1" },
+				query: { follow: true },
+			})) {
+				expect(log.data).toBe("one");
+				break;
+			}
+
+			expect(cancelled).toBe(true);
+		});
 	});
 });

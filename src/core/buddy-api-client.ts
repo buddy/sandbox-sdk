@@ -981,6 +981,8 @@ export class BuddyApiClient extends HttpClient {
 				yield this.#parseAndValidateLogEntry(buffer);
 			}
 		} finally {
+			// Close the response when the consumer stops early
+			await reader.cancel().catch(() => undefined);
 			reader.releaseLock();
 		}
 	}
