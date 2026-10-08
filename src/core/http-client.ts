@@ -1,6 +1,6 @@
 import { inspect } from "node:util";
 import pRetry, { type Options as RetryOptions } from "p-retry";
-import { fetchTransport, type Transport } from "@/core/transport";
+import { defaultTransport, type Transport } from "@/core/transport";
 import type { QueryValue } from "@/types";
 import logger from "@/utils/logger";
 
@@ -14,7 +14,7 @@ export interface HttpClientConfig {
 	headers?: Record<string, string>;
 	/** Enable detailed request/response logging */
 	debugMode?: boolean;
-	/** @internal Test seam; defaults to `fetchTransport` */
+	/** @internal Test seam; defaults to `defaultTransport` */
 	transport?: Transport;
 }
 
@@ -122,7 +122,7 @@ export class HttpClient {
 	constructor(config: HttpClientConfig = {}) {
 		// Enable HTTP debugging when logger level is debug
 		this.debugMode = config.debugMode ?? logger.level >= 5;
-		this.transport = config.transport ?? fetchTransport;
+		this.transport = config.transport ?? defaultTransport;
 		this.#baseURL = config.baseURL ?? "";
 		this.#timeout = config.timeout ?? 30_000;
 		this.#defaultHeaders = {

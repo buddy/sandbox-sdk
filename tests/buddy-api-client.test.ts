@@ -1,6 +1,14 @@
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	describe,
+	expect,
+	it,
+	vi,
+} from "vitest";
 import { BuddyApiClient } from "@/core/buddy-api-client";
 import { HttpError } from "@/core/http-client";
 
@@ -18,6 +26,9 @@ const createClient = () =>
 	});
 
 const server = setupServer();
+
+// msw intercepts fetch, not node:http2
+vi.stubEnv("BUDDY_HTTP2", "0");
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());

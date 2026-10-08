@@ -5,7 +5,7 @@ import http2, {
 	type OutgoingHttpHeaders,
 } from "node:http2";
 import { Readable } from "node:stream";
-import { fetchTransport, type Transport } from "@/core/transport";
+import type { Transport } from "@/core/transport";
 import environment from "@/utils/environment";
 import logger from "@/utils/logger";
 
@@ -222,7 +222,7 @@ export function createHttp2Transport(
 
 		const target = new URL(url);
 		if (fetchReason(target.origin)) {
-			return fetchTransport(url, init);
+			return fetch(url, init);
 		}
 		const method = (init.method ?? "GET").toUpperCase();
 		const headers = toRequestHeaders(init.headers);
@@ -315,13 +315,13 @@ export function createHttp2Transport(
 			via: viaFetch ? "fetch" : "http2",
 			reason: error instanceof Error ? error.message : String(error),
 		});
-		return viaFetch ? fetchTransport(url, init) : send(url, init, attempt + 1);
+		return viaFetch ? fetch(url, init) : send(url, init, attempt + 1);
 	};
 
 	return async (url, init) => {
 		const { body } = init;
 		if (body !== undefined && body !== null && typeof body !== "string") {
-			return fetchTransport(url, init);
+			return fetch(url, init);
 		}
 		return send(url, init, 1);
 	};

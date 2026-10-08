@@ -1,5 +1,5 @@
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { execFile, execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http2, {
 	type Http2Server,
 	type Http2Session,
@@ -12,6 +12,8 @@ import net, { type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import tls from "node:tls";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import {
 	afterAll,
 	afterEach,
@@ -630,6 +632,44 @@ describe("createHttp2Transport", () => {
 
 			expect(fetchMock).toHaveBeenCalledTimes(1);
 			expect(sessionsOpened).toBe(0);
+		});
+	});
+
+	describe("process lifetime", () => {
+		it("should keep the process alive for a pending request, then let it exit", async () => {
+			handler = (stream) => {
+				setTimeout(() => {
+					stream.respond({ ":status": 200 });
+					stream.end("done");
+				}, 200);
+			};
+			const dir = mkdtempSync(join(tmpdir(), "sdk-exit-"));
+			const script = join(dir, "script.mts");
+			const transportPath = fileURLToPath(
+				new URL("../src/core/http2-transport.ts", import.meta.url),
+			);
+			// Not awaited: only the open stream may keep the process running
+			writeFileSync(
+				script,
+				`import { createHttp2Transport } from ${JSON.stringify(transportPath)};
+const transport = createHttp2Transport({ sessions: 2, allowCleartext: true });
+transport(process.argv[2], { method: "GET" }).then(async (r) => console.log(await r.text()));
+`,
+			);
+
+			try {
+				const { stdout } = await promisify(execFile)(
+					process.execPath,
+					["--import", "tsx", script, `${origin}/`],
+					{
+						cwd: fileURLToPath(new URL("..", import.meta.url)),
+						timeout: 10_000,
+					},
+				);
+				expect(stdout.trim()).toBe("done");
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
 		});
 	});
 
