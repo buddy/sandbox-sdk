@@ -28,6 +28,16 @@ const CONNECTION_HEADERS = new Set([
 
 const NULL_BODY_STATUSES = new Set([204, 205, 304]);
 
+/** HTTP/2 attempts for a request the server never saw, before fetch */
+const MAX_HTTP2_ATTEMPTS = 2;
+
+/** Thrown by `session.request()` when the session takes no new streams */
+const SESSION_REFUSED_CODES = new Set([
+	"ERR_HTTP2_GOAWAY_SESSION",
+	"ERR_HTTP2_INVALID_SESSION",
+	"ERR_HTTP2_OUT_OF_STREAMS",
+]);
+
 export interface Http2TransportOptions {
 	/** Sessions per origin; defaults to `BUDDY_HTTP2_SESSIONS`, else 16 */
 	sessions?: number;
@@ -77,7 +87,10 @@ function toResponseHeaders(incoming: IncomingHttpHeaders): Headers {
 	return headers;
 }
 
-/** Create a transport over a round-robin pool of HTTP/2 sessions per origin */
+/**
+ * Create a transport over a round-robin pool of HTTP/2 sessions per origin.
+ * Requests the server never saw are sent again, even POSTs.
+ */
 export function createHttp2Transport(
 	options: Http2TransportOptions = {},
 ): Transport {
@@ -148,11 +161,17 @@ export function createHttp2Transport(
 		});
 	};
 
-	return async (url, init) => {
+	/** GOAWAY-excluded streams also close as REFUSED_STREAM */
+	const wasNotSent = (stream: http2.ClientHttp2Stream): boolean =>
+		stream.id === undefined ||
+		stream.rstCode === http2.constants.NGHTTP2_REFUSED_STREAM;
+
+	const send = async (
+		url: string,
+		init: RequestInit,
+		attempt: number,
+	): Promise<Response> => {
 		const { body, signal } = init;
-		if (body !== undefined && body !== null && typeof body !== "string") {
-			return fetchTransport(url, init);
-		}
 		signal?.throwIfAborted();
 
 		const target = new URL(url);
@@ -165,9 +184,19 @@ export function createHttp2Transport(
 		}
 
 		const session = pick(target.origin);
-		const stream = session.request(headers, {
-			endStream: typeof body !== "string",
-		});
+		let stream: http2.ClientHttp2Stream;
+		try {
+			stream = session.request(headers, {
+				endStream: typeof body !== "string",
+			});
+		} catch (error) {
+			const code = (error as { code?: unknown }).code;
+			if (typeof code !== "string" || !SESSION_REFUSED_CODES.has(code)) {
+				throw error;
+			}
+			draining.add(session);
+			return resend(url, init, attempt, error);
+		}
 		track(session, stream);
 
 		const onAbort = () => stream.destroy(signal?.reason as Error);
@@ -175,8 +204,29 @@ export function createHttp2Transport(
 		stream.once("close", () => signal?.removeEventListener("abort", onAbort));
 
 		return new Promise<Response>((resolve, reject) => {
-			stream.on("error", reject);
+			let settled = false;
+			const fail = (error: Error) => {
+				if (settled) {
+					return;
+				}
+				settled = true;
+				if (!signal?.aborted && wasNotSent(stream)) {
+					resolve(resend(url, init, attempt, error));
+					return;
+				}
+				reject(error);
+			};
+			stream.on("error", fail);
+			// Dropped sessions close streams without an error
+			stream.once("close", () =>
+				fail(
+					new Error(
+						`HTTP/2 stream closed before a response (code ${String(stream.rstCode)})`,
+					),
+				),
+			);
 			stream.once("response", (incoming) => {
+				settled = true;
 				const status = Number(incoming[":status"]);
 				const nullBody = NULL_BODY_STATUSES.has(status) || method === "HEAD";
 				if (nullBody) {
@@ -201,5 +251,29 @@ export function createHttp2Transport(
 				stream.end(body);
 			}
 		});
+	};
+
+	const resend = (
+		url: string,
+		init: RequestInit,
+		attempt: number,
+		error: unknown,
+	): Promise<Response> => {
+		const viaFetch = attempt >= MAX_HTTP2_ATTEMPTS;
+		logger.debug("[HTTP2] Request never reached the server, sending again", {
+			url,
+			attempt,
+			via: viaFetch ? "fetch" : "http2",
+			reason: error instanceof Error ? error.message : String(error),
+		});
+		return viaFetch ? fetchTransport(url, init) : send(url, init, attempt + 1);
+	};
+
+	return async (url, init) => {
+		const { body } = init;
+		if (body !== undefined && body !== null && typeof body !== "string") {
+			return fetchTransport(url, init);
+		}
+		return send(url, init, 1);
 	};
 }

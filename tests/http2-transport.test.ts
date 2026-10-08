@@ -5,7 +5,7 @@ import http2, {
 	type ServerHttp2Session,
 	type ServerHttp2Stream,
 } from "node:http2";
-import type { AddressInfo } from "node:net";
+import net, { type AddressInfo } from "node:net";
 import {
 	afterAll,
 	afterEach,
@@ -41,7 +41,10 @@ beforeAll(async () => {
 		serverSessions.add(session);
 		session.on("close", () => serverSessions.delete(session));
 	});
-	server.on("stream", (stream, headers) => handler(stream, headers));
+	server.on("stream", (stream, headers) => {
+		stream.on("error", () => undefined);
+		handler(stream, headers);
+	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 	origin = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
 });
@@ -55,9 +58,80 @@ afterEach(() => {
 	for (const session of serverSessions) session.destroy();
 	vi.unstubAllEnvs();
 	vi.unstubAllGlobals();
+	vi.restoreAllMocks();
 });
 
 afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+
+/**
+ * Raw HTTP/2 server: node's own cannot send a GOAWAY that leaves out a
+ * received stream. First connection gets GOAWAY(0), later ones get 200.
+ */
+async function startGoawayServer() {
+	let connections = 0;
+	let requests = 0;
+	const sockets = new Set<net.Socket>();
+	const frame = (
+		type: number,
+		flags: number,
+		streamId: number,
+		payload = Buffer.alloc(0),
+	) => {
+		const header = Buffer.alloc(9);
+		header.writeUIntBE(payload.length, 0, 3);
+		header.writeUInt8(type, 3);
+		header.writeUInt8(flags, 4);
+		header.writeUInt32BE(streamId, 5);
+		return Buffer.concat([header, payload]);
+	};
+	const raw = net.createServer((socket) => {
+		const connection = ++connections;
+		sockets.add(socket);
+		let buffer = Buffer.alloc(0);
+		let prefaceSeen = false;
+		socket.on("error", () => undefined);
+		socket.write(frame(0x4, 0, 0)); // SETTINGS
+		socket.on("data", (chunk: Buffer) => {
+			buffer = Buffer.concat([buffer, chunk]);
+			if (!prefaceSeen) {
+				if (buffer.length < 24) return;
+				buffer = buffer.subarray(24);
+				prefaceSeen = true;
+			}
+			while (buffer.length >= 9) {
+				const length = buffer.readUIntBE(0, 3);
+				if (buffer.length < 9 + length) return;
+				const type = buffer.readUInt8(3);
+				const flags = buffer.readUInt8(4);
+				const streamId = buffer.readUInt32BE(5) & 0x7fffffff;
+				buffer = buffer.subarray(9 + length);
+				if (type === 0x4 && (flags & 0x1) === 0) {
+					socket.write(frame(0x4, 0x1, 0)); // SETTINGS ACK
+				}
+				if (type === 0x1) {
+					requests++;
+					if (connection === 1) {
+						socket.end(frame(0x7, 0, 0, Buffer.alloc(8)));
+					} else {
+						// :status 200 is entry 8 of the HPACK static table
+						socket.write(frame(0x1, 0x5, streamId, Buffer.from([0x88])));
+					}
+				}
+			}
+		});
+	});
+	await new Promise<void>((resolve) => raw.listen(0, "127.0.0.1", resolve));
+	return {
+		origin: `http://127.0.0.1:${String((raw.address() as AddressInfo).port)}`,
+		requests: () => requests,
+		connections: () => connections,
+		close: () =>
+			new Promise((resolve) => {
+				for (const socket of sockets) socket.destroy();
+				raw.close(resolve);
+			}),
+	};
+}
 
 describe("createHttp2Transport", () => {
 	describe("requests and responses", () => {
@@ -252,6 +326,129 @@ describe("createHttp2Transport", () => {
 
 			expect(sessionsOpened).toBe(2);
 			expect(idOf(served[1])).toBe(2);
+		});
+	});
+
+	describe("requests the server never saw", () => {
+		const failFirstStream = (first: (stream: ServerHttp2Stream) => void) => {
+			let streams = 0;
+			handler = (stream) => {
+				streams++;
+				if (streams === 1) {
+					first(stream);
+					return;
+				}
+				stream.respond({ ":status": 200 }, { endStream: true });
+			};
+			return () => streams;
+		};
+
+		it("should send a POST again after REFUSED_STREAM", async () => {
+			const streams = failFirstStream((stream) =>
+				stream.close(http2.constants.NGHTTP2_REFUSED_STREAM),
+			);
+
+			const transport = createHttp2Transport({ sessions: 2 });
+			const response = await transport(`${origin}/sandboxes`, {
+				method: "POST",
+				body: "{}",
+			});
+
+			expect(response.status).toBe(200);
+			expect(streams()).toBe(2);
+		});
+
+		it("should send a POST again when a GOAWAY leaves its stream out", async () => {
+			const goawayServer = await startGoawayServer();
+			try {
+				const transport = createHttp2Transport({ sessions: 1 });
+				const response = await transport(`${goawayServer.origin}/sandboxes`, {
+					method: "POST",
+					body: "{}",
+				});
+
+				expect(response.status).toBe(200);
+				expect(goawayServer.requests()).toBe(2);
+				expect(goawayServer.connections()).toBe(2);
+			} finally {
+				await goawayServer.close();
+			}
+		});
+
+		it("should finish a stream the GOAWAY still covers", async () => {
+			const streams = failFirstStream((stream) => {
+				stream.session?.goaway(http2.constants.NGHTTP2_NO_ERROR, stream.id);
+				stream.respond({ ":status": 200 }, { endStream: true });
+			});
+
+			const transport = createHttp2Transport({ sessions: 1 });
+			const response = await transport(`${origin}/sandboxes`, {
+				method: "POST",
+				body: "{}",
+			});
+
+			expect(response.status).toBe(200);
+			expect(streams()).toBe(1);
+		});
+
+		it("should send again when the session refuses new streams", async () => {
+			const probe = http2.connect(origin);
+			const request = vi
+				.spyOn(Object.getPrototypeOf(probe), "request")
+				.mockImplementationOnce(() => {
+					throw Object.assign(
+						new Error("New streams cannot be created after receiving a GOAWAY"),
+						{ code: "ERR_HTTP2_GOAWAY_SESSION" },
+					);
+				});
+			probe.destroy();
+
+			const transport = createHttp2Transport({ sessions: 2 });
+			const response = await transport(`${origin}/sandboxes`, {
+				method: "POST",
+				body: "{}",
+			});
+
+			expect(response.status).toBe(200);
+			expect(request).toHaveBeenCalledTimes(2);
+		});
+
+		it("should go to fetch when the session never connects", async () => {
+			const fetchMock = vi.fn(async () => Response.json({ via: "fetch" }));
+			vi.stubGlobal("fetch", fetchMock);
+			const closed = http2.createServer();
+			await new Promise<void>((resolve) =>
+				closed.listen(0, "127.0.0.1", resolve),
+			);
+			const { port } = closed.address() as AddressInfo;
+			await new Promise((resolve) => closed.close(resolve));
+
+			const transport = createHttp2Transport({ sessions: 1 });
+			const response = await transport(
+				`http://127.0.0.1:${String(port)}/sandboxes`,
+				{ method: "POST", body: "{}" },
+			);
+
+			expect(await response.json()).toEqual({ via: "fetch" });
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		});
+
+		it("should not send a POST again when it may have reached the server", async () => {
+			const fetchMock = vi.fn();
+			vi.stubGlobal("fetch", fetchMock);
+			let streams = 0;
+			handler = (stream) => {
+				streams++;
+				stream.session?.destroy();
+			};
+
+			const transport = createHttp2Transport({ sessions: 2 });
+			await expect(
+				transport(`${origin}/sandboxes`, { method: "POST", body: "{}" }),
+			).rejects.toThrow();
+
+			expect(streams).toBe(1);
+			expect(fetchMock).not.toHaveBeenCalled();
 		});
 	});
 
