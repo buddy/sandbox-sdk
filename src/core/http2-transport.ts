@@ -239,12 +239,17 @@ export function createHttp2Transport(
 				endStream: typeof body !== "string",
 			});
 		} catch (error) {
+			// Nothing was sent, so even a POST is safe to send again
 			const code = (error as { code?: unknown }).code;
-			if (typeof code !== "string" || !SESSION_REFUSED_CODES.has(code)) {
-				throw error;
+			if (typeof code === "string" && SESSION_REFUSED_CODES.has(code)) {
+				draining.add(session);
+				return resend(url, init, attempt, error);
 			}
-			draining.add(session);
-			return resend(url, init, attempt, error);
+			logger.debug("[HTTP2] Session rejected the request, using fetch", {
+				url,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			return fetch(url, init);
 		}
 		track(session, stream);
 

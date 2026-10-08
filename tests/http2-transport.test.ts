@@ -466,6 +466,38 @@ describe("createHttp2Transport", () => {
 			expect(request).toHaveBeenCalledTimes(2);
 		});
 
+		it("should go to fetch when the session throws on any other request", async () => {
+			const fetchMock = vi.fn(async () => Response.json({ via: "fetch" }));
+			vi.stubGlobal("fetch", fetchMock);
+			let streams = 0;
+			handler = (stream) => {
+				streams++;
+				stream.respond({ ":status": 200 }, { endStream: true });
+			};
+			const probe = http2.connect(origin);
+			vi.spyOn(Object.getPrototypeOf(probe), "request").mockImplementationOnce(
+				() => {
+					throw Object.assign(new Error("Invalid value for header"), {
+						code: "ERR_HTTP2_INVALID_HEADER_VALUE",
+					});
+				},
+			);
+			probe.destroy();
+
+			const transport = createHttp2Transport({
+				sessions: 1,
+				allowCleartext: true,
+			});
+			const response = await transport(`${origin}/sandboxes`, {
+				method: "POST",
+				body: "{}",
+			});
+
+			expect(await response.json()).toEqual({ via: "fetch" });
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			expect(streams).toBe(0);
+		});
+
 		it("should go to fetch when the session never connects", async () => {
 			const fetchMock = vi.fn(async () => Response.json({ via: "fetch" }));
 			vi.stubGlobal("fetch", fetchMock);
