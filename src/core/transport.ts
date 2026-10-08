@@ -5,7 +5,7 @@ import environment from "@/utils/environment";
 export type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
 /** Global `fetch`, looked up per call so msw can intercept it */
-export const fetchTransport: Transport = (url, init) => fetch(url, init);
+const fetchTransport: Transport = (url, init) => fetch(url, init);
 
 let selected: Transport | undefined;
 
