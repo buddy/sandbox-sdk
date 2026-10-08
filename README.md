@@ -258,4 +258,4 @@ export BUDDY_HTTP2_SESSIONS="32"  # 1-64, default 16
 export BUDDY_HTTP2="0"            # use fetch instead
 ```
 
-Set them before the first request. If `HTTPS_PROXY`, `HTTP_PROXY` or `ALL_PROXY` is set, the SDK uses `fetch`, because Node's `http2` module ignores proxy settings and would connect directly.
+Set them before the first request. If a proxy variable is set (`HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`), the SDK uses `fetch`: Node's `http2` module never connects through a proxy, while `fetch` does when Node runs with `--use-env-proxy` or `NODE_USE_ENV_PROXY=1`.
