@@ -248,3 +248,14 @@ await Sandbox.create({
     }
 });
 ```
+
+## HTTP/2
+
+The SDK sends API requests over HTTP/2, using a pool of 16 connections per process shared by all sandboxes. To change the pool size, or to use `fetch` (HTTP/1.1) instead:
+
+```bash
+export BUDDY_HTTP2_SESSIONS="32"  # 1-64, default 16
+export BUDDY_HTTP2="0"            # use fetch instead
+```
+
+Set them before the first request. If a proxy variable is set (`HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`), the SDK uses `fetch`: Node's `http2` module never connects through a proxy, while `fetch` does when Node runs with `--use-env-proxy` or `NODE_USE_ENV_PROXY=1`.

@@ -26,6 +26,9 @@ const SANDBOX_URL = `${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes`;
 
 const server = setupServer();
 
+// msw intercepts fetch, not node:http2
+vi.stubEnv("BUDDY_HTTP2", "0");
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
 	server.resetHandlers();

@@ -1,11 +1,22 @@
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	describe,
+	expect,
+	it,
+	vi,
+} from "vitest";
 import { HttpClient, HttpError } from "@/core/http-client";
 
 const TEST_BASE_URL = "https://test-api.example.com";
 
 const server = setupServer();
+
+// msw intercepts fetch, not node:http2
+vi.stubEnv("BUDDY_HTTP2", "0");
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
@@ -54,6 +65,25 @@ describe("HttpClient", () => {
 
 			expect(response.status).toBe(200);
 			expect(response.data).toEqual({ deleted: true });
+		});
+
+		it("should send requests through an injected transport", async () => {
+			const calls: { url: string; init: RequestInit }[] = [];
+			const client = new HttpClient({
+				baseURL: TEST_BASE_URL,
+				transport: async (url, init) => {
+					calls.push({ url, init });
+					return Response.json({ via: "transport" });
+				},
+			});
+
+			const response = await client.post("/test", { foo: "bar" });
+
+			expect(response.data).toEqual({ via: "transport" });
+			expect(calls).toHaveLength(1);
+			expect(calls[0]?.url).toBe(`${TEST_BASE_URL}/test`);
+			expect(calls[0]?.init.method).toBe("POST");
+			expect(calls[0]?.init.body).toBe(JSON.stringify({ foo: "bar" }));
 		});
 	});
 

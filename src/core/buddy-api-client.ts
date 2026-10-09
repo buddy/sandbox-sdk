@@ -789,7 +789,7 @@ export class BuddyApiClient extends HttpClient {
 			});
 		}
 
-		const response = await fetch(url.toString(), {
+		const response = await this.transport(url.toString(), {
 			method: "POST",
 			headers,
 			body: formData,
@@ -852,7 +852,7 @@ export class BuddyApiClient extends HttpClient {
 			});
 		}
 
-		const response = await fetch(url.toString(), {
+		const response = await this.transport(url.toString(), {
 			method: "GET",
 			headers,
 		});
@@ -912,7 +912,7 @@ export class BuddyApiClient extends HttpClient {
 			Authorization: `Bearer ${this.#token}`,
 		};
 
-		const response = await fetch(url.toString(), {
+		const response = await this.transport(url.toString(), {
 			method: "GET",
 			headers,
 		});
@@ -981,6 +981,8 @@ export class BuddyApiClient extends HttpClient {
 				yield this.#parseAndValidateLogEntry(buffer);
 			}
 		} finally {
+			// Close the response when the consumer stops early
+			await reader.cancel().catch(() => undefined);
 			reader.releaseLock();
 		}
 	}

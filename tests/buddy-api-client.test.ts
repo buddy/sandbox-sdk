@@ -1,6 +1,14 @@
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	describe,
+	expect,
+	it,
+	vi,
+} from "vitest";
 import { BuddyApiClient } from "@/core/buddy-api-client";
 import { HttpError } from "@/core/http-client";
 
@@ -18,6 +26,9 @@ const createClient = () =>
 	});
 
 const server = setupServer();
+
+// msw intercepts fetch, not node:http2
+vi.stubEnv("BUDDY_HTTP2", "0");
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
@@ -888,6 +899,113 @@ describe("BuddyApiClient", () => {
 			await expect(
 				client.deleteSnapshot({ path: { id: "missing-orphan" } }),
 			).resolves.toBeUndefined();
+		});
+	});
+
+	describe("transport", () => {
+		const createRecordingClient = (respond: () => Response) => {
+			const calls: { url: string; init: RequestInit }[] = [];
+			const client = new BuddyApiClient({
+				workspace: TEST_WORKSPACE,
+				project_name: TEST_PROJECT,
+				token: TEST_TOKEN,
+				apiUrl: TEST_API_URL,
+				transport: async (url, init) => {
+					calls.push({ url, init });
+					return respond();
+				},
+			});
+			return { client, calls };
+		};
+
+		it("should upload a file through the transport", async () => {
+			const { client, calls } = createRecordingClient(() =>
+				Response.json({ type: "FILE", name: "a.txt", path: "/tmp/a.txt" }),
+			);
+
+			const result = await client.uploadSandboxFile({
+				body: new Blob(["hello"]),
+				path: { sandbox_id: "sandbox-1", path: "/tmp/a.txt" },
+			});
+
+			expect(result.name).toBe("a.txt");
+			expect(calls).toHaveLength(1);
+			expect(calls[0]?.init.method).toBe("POST");
+			expect(calls[0]?.init.body).toBeInstanceOf(FormData);
+		});
+
+		it("should download content through the transport", async () => {
+			const { client, calls } = createRecordingClient(
+				() =>
+					new Response("file-bytes", {
+						headers: { "Content-Disposition": 'attachment; filename="a.txt"' },
+					}),
+			);
+
+			const result = await client.downloadSandboxContent({
+				path: { sandbox_id: "sandbox-1", path: "/tmp/a.txt" },
+			});
+
+			expect(result.filename).toBe("a.txt");
+			expect(new TextDecoder().decode(result.data)).toBe("file-bytes");
+			expect(calls).toHaveLength(1);
+			expect(calls[0]?.init.method).toBe("GET");
+		});
+
+		it("should stream command logs through the transport", async () => {
+			const { client, calls } = createRecordingClient(
+				() =>
+					new Response(
+						'{"type":"STDOUT","data":"one"}\n{"type":"STDERR","data":"two"}\n',
+						{ headers: { "Content-Type": "application/jsonl" } },
+					),
+			);
+
+			const logs = [];
+			for await (const log of client.streamCommandLogs({
+				path: { sandbox_id: "sandbox-1", command_id: "command-1" },
+				query: { follow: true },
+			})) {
+				logs.push(log);
+			}
+
+			expect(logs).toEqual([
+				{ type: "STDOUT", data: "one" },
+				{ type: "STDERR", data: "two" },
+			]);
+			expect(calls).toHaveLength(1);
+			expect(calls[0]?.url).toContain("follow=true");
+		});
+
+		it("should cancel the log stream when the consumer stops early", async () => {
+			let cancelled = false;
+			const { client } = createRecordingClient(
+				() =>
+					new Response(
+						new ReadableStream({
+							start(controller) {
+								// One line, then silence - like a follow that never ends.
+								controller.enqueue(
+									new TextEncoder().encode('{"type":"STDOUT","data":"one"}\n'),
+								);
+							},
+							cancel() {
+								cancelled = true;
+							},
+						}),
+						{ headers: { "Content-Type": "application/jsonl" } },
+					),
+			);
+
+			for await (const log of client.streamCommandLogs({
+				path: { sandbox_id: "sandbox-1", command_id: "command-1" },
+				query: { follow: true },
+			})) {
+				expect(log.data).toBe("one");
+				break;
+			}
+
+			expect(cancelled).toBe(true);
 		});
 	});
 });
