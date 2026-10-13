@@ -67,7 +67,7 @@ zodContent = zodContent.replace(
 zodContent = relaxVariableType(
 	zodContent,
 	/^export const zAddVariableInObjectRequest(?:Writable)? = /m,
-	/^(\s*type: z\.enum\(\[[^\]]*\]\)),$/m,
+	/^(\s*type: z\.enum\(\[[^\]]*\]\)),?$/m,
 	"$1.optional(),",
 );
 
