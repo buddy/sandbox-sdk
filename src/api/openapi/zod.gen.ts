@@ -352,6 +352,102 @@ export const zClickUpCustomFieldFilter = z.object({
 });
 
 /**
+ * PostgreSQL authentication credentials
+ */
+export const zPostgresqlAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * MySQL authentication credentials
+ */
+export const zMysqlAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * ClickHouse authentication credentials
+ */
+export const zClickhouseAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * MSSQL authentication credentials
+ */
+export const zMssqlAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * MongoDB authentication credentials
+ */
+export const zMongoAuthView = z.object({
+	method: z.enum(["PASSWORD"]).optional(),
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
+ * Define proxy servers' authentication method using the following parameters
+ */
+export const zSshAuthView = z.object({
+	method: z.enum([
+		"PASSWORD",
+		"SSH_KEY",
+		"ASSETS_KEY",
+		"PROXY_CREDENTIALS",
+		"PROXY_KEY",
+	]),
+	username: z.string().optional(),
+	password: z.string().optional(),
+	asset: z.string().optional(),
+	passphrase: z.string().optional(),
+	key: z.string().optional(),
+	key_path: z.string().optional(),
+});
+
+/**
+ * Kubernetes cluster authentication method
+ */
+export const zK8sAuthView = z.object({
+	method: z.enum(["PASS", "CERT", "TOKEN"]),
+	username: z.string().optional(),
+	password: z.string().optional(),
+	certificate_authority: z.string().optional(),
+	client_certificate: z.string().optional(),
+	client_key: z.string().optional(),
+	token: z.string().optional(),
+});
+
+/**
+ * Authentication details
+ */
+export const zGitAuthView = z.object({
+	method: z.enum(["HTTP", "SSH_KEY", "ASSETS_KEY", "CURRENT"]),
+	username: z.string().optional(),
+	password: z.string().optional(),
+	asset: z.string().optional(),
+	key: z.string().optional(),
+});
+
+/**
+ * Authentication details
+ */
+export const zFtpAuthView = z.object({
+	username: z.string(),
+	password: z.string(),
+});
+
+/**
  * Defines how the target can be used (as deployment target, proxy, or both)
  */
 export const zUseAsView = z.object({
@@ -462,102 +558,6 @@ export const zShortProjectView = z.object({
 	create_date: z.iso.datetime().optional(),
 });
 
-/**
- * PostgreSQL authentication credentials
- */
-export const zPostgresqlAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * MySQL authentication credentials
- */
-export const zMysqlAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * ClickHouse authentication credentials
- */
-export const zClickhouseAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * MSSQL authentication credentials
- */
-export const zMssqlAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * MongoDB authentication credentials
- */
-export const zMongoAuthView = z.object({
-	method: z.enum(["PASSWORD"]).optional(),
-	username: z.string(),
-	password: z.string(),
-});
-
-/**
- * Define proxy servers' authentication method using the following parameters
- */
-export const zSshAuthView = z.object({
-	method: z.enum([
-		"PASSWORD",
-		"SSH_KEY",
-		"ASSETS_KEY",
-		"PROXY_CREDENTIALS",
-		"PROXY_KEY",
-	]),
-	username: z.string().optional(),
-	password: z.string().optional(),
-	asset: z.string().optional(),
-	passphrase: z.string().optional(),
-	key: z.string().optional(),
-	key_path: z.string().optional(),
-});
-
-/**
- * Kubernetes cluster authentication method
- */
-export const zK8sAuthView = z.object({
-	method: z.enum(["PASS", "CERT", "TOKEN"]),
-	username: z.string().optional(),
-	password: z.string().optional(),
-	certificate_authority: z.string().optional(),
-	client_certificate: z.string().optional(),
-	client_key: z.string().optional(),
-	token: z.string().optional(),
-});
-
-/**
- * Authentication details
- */
-export const zGitAuthView = z.object({
-	method: z.enum(["HTTP", "SSH_KEY", "ASSETS_KEY", "CURRENT"]),
-	username: z.string().optional(),
-	password: z.string().optional(),
-	asset: z.string().optional(),
-	key: z.string().optional(),
-});
-
-/**
- * Authentication details
- */
-export const zFtpAuthView = z.object({
-	username: z.string(),
-	password: z.string(),
-});
-
 export const zIdsView = z.object({
 	url: z.string().readonly().optional(),
 	html_url: z.string().readonly().optional(),
@@ -576,6 +576,7 @@ export const zIdsView = z.object({
 	artifact_id: z.string().optional(),
 	artifact_version_id: z.string().optional(),
 	sandbox_id: z.string().optional(),
+	sandbox_app_id: z.string().optional(),
 	target_id: z.string().optional(),
 	unit_test_suite_id: z.string().optional(),
 	visual_test_suite_id: z.string().optional(),
@@ -726,15 +727,7 @@ export const zAddIntegrationRequest = z.object({
 	]),
 	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"]),
 	project_name: z.string().optional(),
-	environment_id: z
-		.int()
-		.min(-2147483648, {
-			error: "Invalid value: Expected int32 to be >= -2147483648",
-		})
-		.max(2147483647, {
-			error: "Invalid value: Expected int32 to be <= 2147483647",
-		})
-		.optional(),
+	environment_id: z.string().optional(),
 });
 
 /**
@@ -1060,7 +1053,9 @@ export const zSandboxFetchView = z.object({
 
 export const zSandboxAppView = z.object({
 	id: z.string().optional(),
+	identifier: z.string().optional(),
 	command: z.string().optional(),
+	path: z.string().optional(),
 	app_status: z.enum(["NONE", "RUNNING", "ENDED", "FAILED"]).optional(),
 });
 
@@ -1279,7 +1274,7 @@ export const zCreateNewSandboxRequest = z.object({
 		.optional(),
 	first_boot_commands: z.string().optional(),
 	app_dir: z.string().optional(),
-	apps: z.array(z.string()).optional(),
+	apps: z.array(zSandboxAppView).optional(),
 	fetch: z.array(zSandboxFetchView).optional(),
 	tags: z.array(z.string()).optional(),
 	endpoints: z.array(zTunnelView).optional(),
@@ -1331,7 +1326,7 @@ export const zCreateFromSnapshotRequest = z.object({
 		.optional(),
 	first_boot_commands: z.string().optional(),
 	app_dir: z.string().optional(),
-	apps: z.array(z.string()).optional(),
+	apps: z.array(zSandboxAppView).optional(),
 	tags: z.array(z.string()).optional(),
 	endpoints: z.array(zTunnelView).optional(),
 	variables: z.array(zAddVariableInObjectRequest).optional(),
@@ -1599,6 +1594,7 @@ export const zIdsViewWritable = z.object({
 	artifact_id: z.string().optional(),
 	artifact_version_id: z.string().optional(),
 	sandbox_id: z.string().optional(),
+	sandbox_app_id: z.string().optional(),
 	target_id: z.string().optional(),
 	unit_test_suite_id: z.string().optional(),
 	visual_test_suite_id: z.string().optional(),
@@ -2076,7 +2072,7 @@ export const zCreateNewSandboxRequestWritable = z.object({
 		.optional(),
 	first_boot_commands: z.string().optional(),
 	app_dir: z.string().optional(),
-	apps: z.array(z.string()).optional(),
+	apps: z.array(zSandboxAppView).optional(),
 	fetch: z.array(zSandboxFetchView).optional(),
 	tags: z.array(z.string()).optional(),
 	endpoints: z.array(zTunnelViewWritable).optional(),
@@ -2128,7 +2124,7 @@ export const zCreateFromSnapshotRequestWritable = z.object({
 		.optional(),
 	first_boot_commands: z.string().optional(),
 	app_dir: z.string().optional(),
-	apps: z.array(z.string()).optional(),
+	apps: z.array(zSandboxAppView).optional(),
 	tags: z.array(z.string()).optional(),
 	endpoints: z.array(zTunnelViewWritable).optional(),
 	variables: z.array(zAddVariableInObjectRequestWritable).optional(),
@@ -2841,6 +2837,7 @@ export const zGetIdentifiersQuery = z.object({
 	artifact: z.string().optional(),
 	artifact_version: z.string().optional(),
 	sandbox: z.string().optional(),
+	sandbox_app: z.string().optional(),
 	unit_test_suite: z.string().optional(),
 	visual_test_suite: z.string().optional(),
 	crawl_suite: z.string().optional(),

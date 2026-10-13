@@ -633,6 +633,209 @@ export type ClickUpCustomFieldFilter = {
 };
 
 /**
+ * PostgreSQL authentication credentials
+ */
+export type PostgresqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The PostgreSQL username
+	 */
+	username: string;
+	/**
+	 * The PostgreSQL password
+	 */
+	password: string;
+};
+
+/**
+ * MySQL authentication credentials
+ */
+export type MysqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MySQL username
+	 */
+	username: string;
+	/**
+	 * The MySQL password
+	 */
+	password: string;
+};
+
+/**
+ * ClickHouse authentication credentials
+ */
+export type ClickhouseAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The ClickHouse username
+	 */
+	username: string;
+	/**
+	 * The ClickHouse password
+	 */
+	password: string;
+};
+
+/**
+ * MSSQL authentication credentials
+ */
+export type MssqlAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MSSQL username
+	 */
+	username: string;
+	/**
+	 * The MSSQL password
+	 */
+	password: string;
+};
+
+/**
+ * MongoDB authentication credentials
+ */
+export type MongoAuthView = {
+	/**
+	 * Authentication method. Default: `PASSWORD`
+	 */
+	method?: "PASSWORD";
+	/**
+	 * The MongoDB username
+	 */
+	username: string;
+	/**
+	 * The MongoDB password
+	 */
+	password: string;
+};
+
+/**
+ * Define proxy servers' authentication method using the following parameters
+ */
+export type SshAuthView = {
+	/**
+	 * Authentication method
+	 */
+	method:
+		| "PASSWORD"
+		| "SSH_KEY"
+		| "ASSETS_KEY"
+		| "PROXY_CREDENTIALS"
+		| "PROXY_KEY";
+	/**
+	 * The username required to connect to the server
+	 */
+	username?: string;
+	/**
+	 * The password required to connect to the server. Required for `PASSWORD` method
+	 */
+	password?: string;
+	/**
+	 * Name of the variable containing the private key. Required for `ASSETS_KEY` method
+	 */
+	asset?: string;
+	/**
+	 * Passphrase for the SSH key
+	 */
+	passphrase?: string;
+	/**
+	 * The private SSH key. Required when method is `SSH_KEY`
+	 */
+	key?: string;
+	/**
+	 * Path to the key on proxy server. Required for method `PROXY_KEY`
+	 */
+	key_path?: string;
+};
+
+/**
+ * Kubernetes cluster authentication method
+ */
+export type K8sAuthView = {
+	/**
+	 * Authentication method
+	 */
+	method: "PASS" | "CERT" | "TOKEN";
+	/**
+	 * Username to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
+	 */
+	username?: string;
+	/**
+	 * Password to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
+	 */
+	password?: string;
+	/**
+	 * Kuberenetes certificate authority. Required if the `auth.method` is `CERT`
+	 */
+	certificate_authority?: string;
+	/**
+	 * Kuberenetes client certificate. Required if the `auth.method` is `CERT`
+	 */
+	client_certificate?: string;
+	/**
+	 * Kuberenetes client key. Required if the `auth.method` is `CERT`
+	 */
+	client_key?: string;
+	/**
+	 * Token for the Kubernetes cluster. Required if the `auth.method` is `TOKEN`
+	 */
+	token?: string;
+};
+
+/**
+ * Authentication details
+ */
+export type GitAuthView = {
+	/**
+	 * The authentication for Git
+	 */
+	method: "HTTP" | "SSH_KEY" | "ASSETS_KEY" | "CURRENT";
+	/**
+	 * Username required to connect to the Git repository. Required when method is `HTTP`
+	 */
+	username?: string;
+	/**
+	 * Password required to connect to the Git repository. Required when method is `HTTP`
+	 */
+	password?: string;
+	/**
+	 * Name of the variable containing the private key. Required when method is `ASSETS_KEY`
+	 */
+	asset?: string;
+	/**
+	 * The private SSH key. Required when method is `SSH_KEY`
+	 */
+	key?: string;
+};
+
+/**
+ * Authentication details
+ */
+export type FtpAuthView = {
+	/**
+	 * The username required to connect to the server
+	 */
+	username: string;
+	/**
+	 * The password required to connect to the server
+	 */
+	password: string;
+};
+
+/**
  * Defines how the target can be used (as deployment target, proxy, or both)
  */
 export type UseAsView = {
@@ -1198,209 +1401,6 @@ export type ShortProjectView = {
 };
 
 /**
- * PostgreSQL authentication credentials
- */
-export type PostgresqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The PostgreSQL username
-	 */
-	username: string;
-	/**
-	 * The PostgreSQL password
-	 */
-	password: string;
-};
-
-/**
- * MySQL authentication credentials
- */
-export type MysqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MySQL username
-	 */
-	username: string;
-	/**
-	 * The MySQL password
-	 */
-	password: string;
-};
-
-/**
- * ClickHouse authentication credentials
- */
-export type ClickhouseAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The ClickHouse username
-	 */
-	username: string;
-	/**
-	 * The ClickHouse password
-	 */
-	password: string;
-};
-
-/**
- * MSSQL authentication credentials
- */
-export type MssqlAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MSSQL username
-	 */
-	username: string;
-	/**
-	 * The MSSQL password
-	 */
-	password: string;
-};
-
-/**
- * MongoDB authentication credentials
- */
-export type MongoAuthView = {
-	/**
-	 * Authentication method. Default: `PASSWORD`
-	 */
-	method?: "PASSWORD";
-	/**
-	 * The MongoDB username
-	 */
-	username: string;
-	/**
-	 * The MongoDB password
-	 */
-	password: string;
-};
-
-/**
- * Define proxy servers' authentication method using the following parameters
- */
-export type SshAuthView = {
-	/**
-	 * Authentication method
-	 */
-	method:
-		| "PASSWORD"
-		| "SSH_KEY"
-		| "ASSETS_KEY"
-		| "PROXY_CREDENTIALS"
-		| "PROXY_KEY";
-	/**
-	 * The username required to connect to the server
-	 */
-	username?: string;
-	/**
-	 * The password required to connect to the server. Required for `PASSWORD` method
-	 */
-	password?: string;
-	/**
-	 * Name of the variable containing the private key. Required for `ASSETS_KEY` method
-	 */
-	asset?: string;
-	/**
-	 * Passphrase for the SSH key
-	 */
-	passphrase?: string;
-	/**
-	 * The private SSH key. Required when method is `SSH_KEY`
-	 */
-	key?: string;
-	/**
-	 * Path to the key on proxy server. Required for method `PROXY_KEY`
-	 */
-	key_path?: string;
-};
-
-/**
- * Kubernetes cluster authentication method
- */
-export type K8sAuthView = {
-	/**
-	 * Authentication method
-	 */
-	method: "PASS" | "CERT" | "TOKEN";
-	/**
-	 * Username to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
-	 */
-	username?: string;
-	/**
-	 * Password to the Kubernetes cluster. Required if the `auth.method` is `BASIC`
-	 */
-	password?: string;
-	/**
-	 * Kuberenetes certificate authority. Required if the `auth.method` is `CERT`
-	 */
-	certificate_authority?: string;
-	/**
-	 * Kuberenetes client certificate. Required if the `auth.method` is `CERT`
-	 */
-	client_certificate?: string;
-	/**
-	 * Kuberenetes client key. Required if the `auth.method` is `CERT`
-	 */
-	client_key?: string;
-	/**
-	 * Token for the Kubernetes cluster. Required if the `auth.method` is `TOKEN`
-	 */
-	token?: string;
-};
-
-/**
- * Authentication details
- */
-export type GitAuthView = {
-	/**
-	 * The authentication for Git
-	 */
-	method: "HTTP" | "SSH_KEY" | "ASSETS_KEY" | "CURRENT";
-	/**
-	 * Username required to connect to the Git repository. Required when method is `HTTP`
-	 */
-	username?: string;
-	/**
-	 * Password required to connect to the Git repository. Required when method is `HTTP`
-	 */
-	password?: string;
-	/**
-	 * Name of the variable containing the private key. Required when method is `ASSETS_KEY`
-	 */
-	asset?: string;
-	/**
-	 * The private SSH key. Required when method is `SSH_KEY`
-	 */
-	key?: string;
-};
-
-/**
- * Authentication details
- */
-export type FtpAuthView = {
-	/**
-	 * The username required to connect to the server
-	 */
-	username: string;
-	/**
-	 * The password required to connect to the server
-	 */
-	password: string;
-};
-
-/**
  * The integration to use for authentication
  */
 export type IntegrationView = {
@@ -1598,6 +1598,10 @@ export type IdsView = {
 	 * The ID of the sandbox
 	 */
 	sandbox_id?: string;
+	/**
+	 * The ID of the sandbox app
+	 */
+	sandbox_app_id?: string;
 	/**
 	 * The ID of the target
 	 */
@@ -1922,7 +1926,7 @@ export type AddIntegrationRequest = {
 	/**
 	 * The ID of the environment (required when scope is `ENVIRONMENT`)
 	 */
-	environment_id?: number;
+	environment_id?: string;
 };
 
 /**
@@ -2259,7 +2263,7 @@ export type UpdateSandboxRequest = {
 	 */
 	app_dir?: string;
 	/**
-	 * The list of apps (run commands) for the sandbox
+	 * The list of apps started in the sandbox
 	 */
 	apps?: Array<SandboxAppView>;
 	/**
@@ -2593,9 +2597,17 @@ export type SandboxAppView = {
 	 */
 	id?: string;
 	/**
+	 * The identifier of the app, generated from the run command when not given
+	 */
+	identifier?: string;
+	/**
 	 * The run command of the app
 	 */
 	command?: string;
+	/**
+	 * The directory the app is run in, defaults to the sandbox application directory
+	 */
+	path?: string;
 	/**
 	 * The current status of the app
 	 */
@@ -2920,9 +2932,9 @@ export type CreateNewSandboxRequest = {
 	 */
 	app_dir?: string;
 	/**
-	 * The list of apps (run commands) for the sandbox
+	 * The list of apps started in the sandbox
 	 */
-	apps?: Array<string>;
+	apps?: Array<SandboxAppView>;
 	/**
 	 * The list of items (repositories and artifacts) to fetch into the sandbox
 	 */
@@ -3001,9 +3013,9 @@ export type CreateFromSnapshotRequest = {
 	 */
 	app_dir?: string;
 	/**
-	 * The list of apps (run commands) for the sandbox
+	 * The list of apps started in the sandbox
 	 */
-	apps?: Array<string>;
+	apps?: Array<SandboxAppView>;
 	/**
 	 * The list of tags associated with the sandbox
 	 */
@@ -3098,7 +3110,7 @@ export type SandboxResponse = {
 	 */
 	app_dir?: string;
 	/**
-	 * The list of apps (run commands) for the sandbox
+	 * The list of apps started in the sandbox
 	 */
 	apps?: Array<SandboxAppView>;
 	/**
@@ -4027,6 +4039,10 @@ export type IdsViewWritable = {
 	 */
 	sandbox_id?: string;
 	/**
+	 * The ID of the sandbox app
+	 */
+	sandbox_app_id?: string;
+	/**
 	 * The ID of the target
 	 */
 	target_id?: string;
@@ -4366,7 +4382,7 @@ export type UpdateSandboxRequestWritable = {
 	 */
 	app_dir?: string;
 	/**
-	 * The list of apps (run commands) for the sandbox
+	 * The list of apps started in the sandbox
 	 */
 	apps?: Array<SandboxAppView>;
 	/**
@@ -4841,9 +4857,9 @@ export type CreateNewSandboxRequestWritable = {
 	 */
 	app_dir?: string;
 	/**
-	 * The list of apps (run commands) for the sandbox
+	 * The list of apps started in the sandbox
 	 */
-	apps?: Array<string>;
+	apps?: Array<SandboxAppView>;
 	/**
 	 * The list of items (repositories and artifacts) to fetch into the sandbox
 	 */
@@ -4922,9 +4938,9 @@ export type CreateFromSnapshotRequestWritable = {
 	 */
 	app_dir?: string;
 	/**
-	 * The list of apps (run commands) for the sandbox
+	 * The list of apps started in the sandbox
 	 */
-	apps?: Array<string>;
+	apps?: Array<SandboxAppView>;
 	/**
 	 * The list of tags associated with the sandbox
 	 */
@@ -4996,7 +5012,7 @@ export type SandboxResponseWritable = {
 	 */
 	app_dir?: string;
 	/**
-	 * The list of apps (run commands) for the sandbox
+	 * The list of apps started in the sandbox
 	 */
 	apps?: Array<SandboxAppView>;
 	/**
@@ -5160,6 +5176,10 @@ export type GetIdentifiersData = {
 		 * The human-readable ID or the ID of the sandbox. The human-readable ID is resolved first. Resolved against the given environment or project, then the workspace.
 		 */
 		sandbox?: string;
+		/**
+		 * The human-readable ID or the ID of the sandbox app. The human-readable ID is resolved first. Requires sandbox to be resolved.
+		 */
+		sandbox_app?: string;
 		/**
 		 * The human-readable ID or the ID of the unit test suite. The human-readable ID is resolved first.
 		 */

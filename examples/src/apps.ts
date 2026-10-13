@@ -22,8 +22,14 @@ try {
 		os: "ubuntu:24.04",
 		first_boot_commands: "apt-get update && apt-get install -y curl",
 		apps: [
-			'while true; do echo "[app1] ping $(date)"; sleep 2; done',
-			'while true; do echo "[app2] pong $(date)"; sleep 3; done',
+			{
+				identifier: "app1",
+				command: 'while true; do echo "[app1] ping $(date)"; sleep 2; done',
+			},
+			{
+				identifier: "app2",
+				command: 'while true; do echo "[app2] pong $(date)"; sleep 3; done',
+			},
 		],
 	});
 	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
@@ -31,35 +37,31 @@ try {
 
 	log("Apps:");
 	for (const app of sandbox.data.apps ?? []) {
-		log(`  ${app.id}: "${app.command}" -> ${app.app_status}`);
+		log(
+			`  ${app.identifier} (${app.id}): "${app.command}" -> ${app.app_status}`,
+		);
 	}
 
-	const firstApp = sandbox.data.apps?.[0];
-	const secondApp = sandbox.data.apps?.[1];
-
-	if (!firstApp?.id || !secondApp?.id) {
-		throw new Error("Expected 2 apps in sandbox");
-	}
-
-	log(`\nStopping the first app (${firstApp.id})...`);
-	await sandbox.stopApp(firstApp.id);
-	log("Apps after stopping the first one:");
+	// apps are addressed by their identifier or by their generated id
+	log("\nStopping app1...");
+	await sandbox.stopApp("app1");
+	log("Apps after stopping app1:");
 	for (const app of sandbox.data.apps ?? []) {
-		log(`  ${app.id}: ${app.app_status}`);
+		log(`  ${app.identifier}: ${app.app_status}`);
 	}
 
-	log(`\nStarting the first app (${firstApp.id})...`);
-	await sandbox.startApp(firstApp.id);
-	log("Apps after starting the first one:");
+	log("\nStarting app1...");
+	await sandbox.startApp("app1");
+	log("Apps after starting app1:");
 	for (const app of sandbox.data.apps ?? []) {
-		log(`  ${app.id}: ${app.app_status}`);
+		log(`  ${app.identifier}: ${app.app_status}`);
 	}
 
 	log("\nWaiting a few seconds for log output...");
 	await new Promise((resolve) => setTimeout(resolve, 5000));
 
-	log(`Getting logs for the second app (${secondApp.id})...`);
-	const logs = await sandbox.getAppLogs(secondApp.id);
+	log("Getting logs for app2...");
+	const logs = await sandbox.getAppLogs("app2");
 	log(`Logs (${logs.logs?.length ?? 0} entries):`);
 	for (const entry of logs.logs ?? []) {
 		log(`  ${entry}`);

@@ -22,7 +22,7 @@ try {
 		os: "ubuntu:24.04",
 		timeout: 300,
 		tags: ["initial"],
-		apps: ["echo initial-app"],
+		apps: [{ command: "echo initial-app" }],
 	});
 	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
 	log(`Initial timeout: ${sandbox.data.timeout}`);

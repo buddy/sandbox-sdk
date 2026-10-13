@@ -19,6 +19,7 @@ export type {
 	ExecOptions,
 	GetSandboxConfig,
 	ListSandboxesConfig,
+	SandboxAppRef,
 } from "@/entity/sandbox";
 export { Sandbox } from "@/entity/sandbox";
 export { Snapshot } from "@/entity/snapshot";

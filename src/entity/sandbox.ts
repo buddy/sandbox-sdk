@@ -28,6 +28,11 @@ export type { ConnectionConfig };
 
 const CREATE_MAX_INTERVAL_MS = 500;
 
+/** An app's human-readable `identifier` or its auto-generated `id` */
+export type SandboxAppRef = NonNullable<
+	SandboxAppView["identifier"] | SandboxAppView["id"]
+>;
+
 // Symbol for private constructor protection
 const PRIVATE_CONSTRUCTOR_KEY = Symbol("SandboxConstructor");
 const INITIALIZE_INSTRUCTIONS =
@@ -903,14 +908,49 @@ export class Sandbox {
 	}
 
 	/**
+	 * Resolve an app reference to the ID the API expects
+	 *
+	 * The human-readable `identifier` is matched first, the auto-generated `id`
+	 * second - the same precedence the API's own `/identifiers` uses. The apps
+	 * endpoints take the ID only: a stale reference makes `stop` a silent no-op
+	 * and `start` fail with an opaque backend message, so an unknown app throws
+	 * here instead of reaching the API.
+	 */
+	async #resolveAppId(app: SandboxAppRef): Promise<string> {
+		const match = () => {
+			const apps = this.data.apps ?? [];
+			const byIdentifier = apps.find((a) => a.identifier === app);
+			return (byIdentifier ?? apps.find((a) => a.id === app))?.id;
+		};
+
+		const known = match();
+		if (known) {
+			return known;
+		}
+
+		// apps added since this snapshot (an update() elsewhere) are not in it yet
+		await this.refresh();
+
+		const refreshed = match();
+		if (!refreshed) {
+			throw new Error(
+				`App '${app}' not found in sandbox ${this.initializedId}`,
+			);
+		}
+
+		return refreshed;
+	}
+
+	/**
 	 * Start a specific app within the sandbox
 	 *
 	 * Updates the internal sandbox data with the latest state after starting.
-	 * @param appId - The auto-generated ID of the app (from sandbox.data.apps)
+	 * @param app - The app's `identifier` or its auto-generated `id`
 	 */
-	async startApp(appId: NonNullable<SandboxAppView["id"]>): Promise<void> {
+	async startApp(app: SandboxAppRef): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to start app", async () => {
+			const appId = await this.#resolveAppId(app);
 			this.#sandboxData = await this.#client.startSandboxApp({
 				path: { sandbox_id: sandboxId, app_id: appId },
 			});
@@ -921,11 +961,12 @@ export class Sandbox {
 	 * Stop a specific app within the sandbox
 	 *
 	 * Updates the internal sandbox data with the latest state after stopping.
-	 * @param appId - The auto-generated ID of the app (from sandbox.data.apps)
+	 * @param app - The app's `identifier` or its auto-generated `id`
 	 */
-	async stopApp(appId: NonNullable<SandboxAppView["id"]>): Promise<void> {
+	async stopApp(app: SandboxAppRef): Promise<void> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to stop app", async () => {
+			const appId = await this.#resolveAppId(app);
 			this.#sandboxData = await this.#client.stopSandboxApp({
 				path: { sandbox_id: sandboxId, app_id: appId },
 			});
@@ -936,16 +977,17 @@ export class Sandbox {
 	 * Get logs for a specific app within the sandbox
 	 *
 	 * Returns paginated log entries. Pass the returned cursor to fetch the next page.
-	 * @param appId - The auto-generated ID of the app (from sandbox.data.apps)
+	 * @param app - The app's `identifier` or its auto-generated `id`
 	 * @param cursor - Pagination cursor from a previous response
 	 * @returns Log entries and a cursor for the next page
 	 */
 	async getAppLogs(
-		appId: NonNullable<SandboxAppView["id"]>,
+		app: SandboxAppRef,
 		cursor?: string,
 	): Promise<GetSandboxAppLogsByIdResponse> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to get app logs", async () => {
+			const appId = await this.#resolveAppId(app);
 			return this.#client.getSandboxAppLogs({
 				path: { sandbox_id: sandboxId, app_id: appId },
 				query: { cursor },

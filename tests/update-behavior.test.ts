@@ -23,7 +23,7 @@ describe("Sandbox.update - soft fields (shared sandbox)", () => {
 			identifier: `update_probe_${Date.now()}`,
 			timeout: 600,
 			tags: ["initial"],
-			apps: ["echo initial-app"],
+			apps: [{ command: "echo initial-app" }],
 			first_boot_commands: "echo initial-first-boot",
 		});
 	}, 120_000);
