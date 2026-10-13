@@ -111,7 +111,7 @@ await sandbox.waitUntilRunning(500); // check every 500ms
 
 ## Apps
 
-Sandboxes can run multiple apps simultaneously. Each app is a long-running process defined by a command string.
+Sandboxes can run multiple apps simultaneously. Each app is a long-running process defined by a run command, an optional `identifier` (generated from the command when omitted) and an optional `path` it runs in (defaults to `app_dir`).
 
 ```typescript
 const sandbox = await Sandbox.create({
@@ -119,7 +119,10 @@ const sandbox = await Sandbox.create({
     name: "My Sandbox",
     os: "ubuntu:24.04",
     first_boot_commands: "apt-get update && apt-get install -y curl",
-    apps: ["node server.js", "python worker.py"],
+    apps: [
+        { identifier: "api", command: "node server.js" },
+        { identifier: "worker", command: "python worker.py", path: "/app/jobs" },
+    ],
     timeout: 600, // auto-stop after 10 minutes of inactivity
 });
 

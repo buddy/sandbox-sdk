@@ -352,8 +352,8 @@ describe("Sandbox", () => {
 				name: `test-apps-${Date.now()}`,
 				identifier: `test_apps_${Date.now()}`,
 				apps: [
-					"echo 'app1 running' && sleep 3600",
-					"echo 'app2 running' && sleep 3600",
+					{ command: "echo 'app1 running' && sleep 3600" },
+					{ command: "echo 'app2 running' && sleep 3600" },
 				],
 			});
 			await appSandbox.waitUntilRunning();

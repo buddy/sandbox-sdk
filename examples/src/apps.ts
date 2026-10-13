@@ -22,8 +22,14 @@ try {
 		os: "ubuntu:24.04",
 		first_boot_commands: "apt-get update && apt-get install -y curl",
 		apps: [
-			'while true; do echo "[app1] ping $(date)"; sleep 2; done',
-			'while true; do echo "[app2] pong $(date)"; sleep 3; done',
+			{
+				identifier: "app1",
+				command: 'while true; do echo "[app1] ping $(date)"; sleep 2; done',
+			},
+			{
+				identifier: "app2",
+				command: 'while true; do echo "[app2] pong $(date)"; sleep 3; done',
+			},
 		],
 	});
 	log(`Created sandbox: ${sandbox.data.identifier} (${sandbox.data.html_url})`);
