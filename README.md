@@ -128,16 +128,14 @@ const sandbox = await Sandbox.create({
 
 // List apps
 for (const app of sandbox.data.apps ?? []) {
-    console.log(`${app.id}: "${app.command}" -> ${app.app_status}`);
+    console.log(`${app.identifier}: "${app.command}" -> ${app.app_status}`);
 }
 
-// Control individual apps
-const appId = sandbox.data.apps![0].id!;
+// Control individual apps - by identifier or by the generated id
+await sandbox.stopApp("api");
+await sandbox.startApp("api");
 
-await sandbox.stopApp(appId);
-await sandbox.startApp(appId);
-
-const { logs } = await sandbox.getAppLogs(appId);
+const { logs } = await sandbox.getAppLogs("api");
 console.log(logs);
 ```
 

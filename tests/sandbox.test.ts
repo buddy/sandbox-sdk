@@ -352,8 +352,8 @@ describe("Sandbox", () => {
 				name: `test-apps-${Date.now()}`,
 				identifier: `test_apps_${Date.now()}`,
 				apps: [
-					{ command: "echo 'app1 running' && sleep 3600" },
-					{ command: "echo 'app2 running' && sleep 3600" },
+					{ identifier: "app1", command: "echo 'app1 running' && sleep 3600" },
+					{ identifier: "app2", command: "echo 'app2 running' && sleep 3600" },
 				],
 			});
 			await appSandbox.waitUntilRunning();
@@ -369,6 +369,7 @@ describe("Sandbox", () => {
 
 			for (const app of apps) {
 				expect(app.id).toBeDefined();
+				expect(app.identifier).toBeDefined();
 				expect(app.command).toBeDefined();
 				expect(["NONE", "RUNNING", "ENDED", "FAILED"]).toContain(
 					app.app_status,
@@ -415,6 +416,31 @@ describe("Sandbox", () => {
 			expect(logs).toBeDefined();
 			expect(logs.logs).toBeDefined();
 			expect(Array.isArray(logs.logs)).toBe(true);
+		});
+
+		it("should accept the human-readable identifier as well as the id", async () => {
+			const identifier = getApps()[1]?.identifier;
+			if (!identifier) {
+				throw new Error("App at index 1 has no identifier");
+			}
+
+			await appSandbox.stopApp(identifier);
+			const stopped = appSandbox.data.apps?.find(
+				(a) => a.identifier === identifier,
+			);
+			expect(["ENDED", "NONE"]).toContain(stopped?.app_status);
+
+			await appSandbox.startApp(identifier);
+			const started = appSandbox.data.apps?.find(
+				(a) => a.identifier === identifier,
+			);
+			expect(started?.app_status).toBe("RUNNING");
+		});
+
+		it("should throw on an unknown app instead of calling the API", async () => {
+			await expect(appSandbox.stopApp("no-such-app")).rejects.toThrow(
+				/not found/,
+			);
 		});
 	});
 
