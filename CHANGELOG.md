@@ -36,6 +36,15 @@ ignoring them and writing the output to `process.stdout`.
 - `status` can be `CANCELLED`, which is what `kill()` ends with instead of
   `FAILED` with exit code 143.
 
+Code that calls the API through `BuddyApiClient` directly changes too:
+
+- `terminateCommand()` is now `cancelCommand()`, and `streamCommandLogs()` is
+  now `getCommandLog()`, which returns one slice of the log (`lines`,
+  `next_offset`, `truncated`) instead of a stream,
+- the command methods take `exec_id` instead of `id` or `command_id`, and
+  `getCommandDetails()` takes a `wait` query,
+- `getSandboxCommands()` returns an array instead of `{ commands }`.
+
 Starting and cancelling a command needs the `SANDBOX_USE` token scope, which
 `SANDBOX_WRITE` includes. Reading a sandbox's command history and logs needs
 run access to it; read-only access no longer shows them.
