@@ -3,19 +3,20 @@ import {
 	addSandboxResponseTransformer,
 	addSandboxSnapshotResponseTransformer,
 	createSandboxDirectoryResponseTransformer,
+	executeSandboxResponseTransformer,
 	getProjectSnapshotsResponseTransformer,
-	getSandboxCommandResponseTransformer,
-	getSandboxCommandsResponseTransformer,
 	getSandboxContentResponseTransformer,
+	getSandboxExecLogResponseTransformer,
+	getSandboxExecResponseTransformer,
 	getSandboxResponseTransformer,
 	getSandboxSnapshotResponseTransformer,
 	getSandboxSnapshotsResponseTransformer,
+	listSandboxExecsResponseTransformer,
 	restartSandboxResponseTransformer,
 	startSandboxAppResponseTransformer,
 	startSandboxResponseTransformer,
 	stopSandboxAppResponseTransformer,
 	stopSandboxResponseTransformer,
-	terminateSandboxCommandResponseTransformer,
 	updateSandboxResponseTransformer,
 	uploadSandboxFileResponseTransformer,
 } from "@/api/openapi/transformers.gen";
@@ -24,6 +25,8 @@ import type {
 	AddSandboxResponse,
 	AddSandboxSnapshotData,
 	AddSandboxSnapshotResponse,
+	CancelSandboxExecData,
+	CancelSandboxExecResponse,
 	CreateSandboxDirectoryData,
 	CreateSandboxDirectoryResponse,
 	DeleteSandboxData,
@@ -37,21 +40,21 @@ import type {
 	DownloadSandboxContentData,
 	ExecSandboxCommandData,
 	ExecSandboxCommandResponse,
-	ExecuteSandboxCommandData,
+	ExecuteSandboxData,
+	ExecuteSandboxResponse,
 	GetIdentifiersData,
 	GetIdentifiersResponse,
 	GetProjectSnapshotsData,
 	GetProjectSnapshotsResponse,
 	GetSandboxAppLogsByIdData,
 	GetSandboxAppLogsByIdResponse,
-	GetSandboxCommandData,
-	GetSandboxCommandLogsData,
-	GetSandboxCommandResponse,
-	GetSandboxCommandsData,
-	GetSandboxCommandsResponse,
 	GetSandboxContentData,
 	GetSandboxContentResponse,
 	GetSandboxData,
+	GetSandboxExecData,
+	GetSandboxExecLogData,
+	GetSandboxExecLogResponse,
+	GetSandboxExecResponse,
 	GetSandboxesData,
 	GetSandboxesResponse,
 	GetSandboxResponse,
@@ -59,10 +62,10 @@ import type {
 	GetSandboxSnapshotResponse,
 	GetSandboxSnapshotsData,
 	GetSandboxSnapshotsResponse,
+	ListSandboxExecsData,
+	ListSandboxExecsResponse,
 	RestartSandboxData,
 	RestartSandboxResponse,
-	SandboxCommandLog,
-	SandboxCommandView,
 	StartSandboxAppData,
 	StartSandboxAppResponse,
 	StartSandboxData,
@@ -71,8 +74,6 @@ import type {
 	StopSandboxAppResponse,
 	StopSandboxData,
 	StopSandboxResponse,
-	TerminateSandboxCommandData,
-	TerminateSandboxCommandResponse,
 	UpdateSandboxData,
 	UpdateSandboxResponse,
 	UploadSandboxFileData,
@@ -86,6 +87,8 @@ import {
 	zAddSandboxSnapshotBody,
 	zAddSandboxSnapshotPath,
 	zAddSandboxSnapshotResponse,
+	zCancelSandboxExecPath,
+	zCancelSandboxExecResponse,
 	zCreateSandboxDirectoryPath,
 	zCreateSandboxDirectoryResponse,
 	zDeleteSandboxFilePath,
@@ -100,8 +103,9 @@ import {
 	zExecSandboxCommandBody,
 	zExecSandboxCommandPath,
 	zExecSandboxCommandResponse,
-	zExecuteSandboxCommandBody,
-	zExecuteSandboxCommandPath,
+	zExecuteSandboxBody,
+	zExecuteSandboxPath,
+	zExecuteSandboxResponse,
 	zGetIdentifiersPath,
 	zGetIdentifiersQuery,
 	zGetIdentifiersResponse,
@@ -111,14 +115,14 @@ import {
 	zGetSandboxAppLogsByIdPath,
 	zGetSandboxAppLogsByIdQuery,
 	zGetSandboxAppLogsByIdResponse,
-	zGetSandboxCommandLogsPath,
-	zGetSandboxCommandLogsQuery,
-	zGetSandboxCommandPath,
-	zGetSandboxCommandResponse,
-	zGetSandboxCommandsPath,
-	zGetSandboxCommandsResponse,
 	zGetSandboxContentPath,
 	zGetSandboxContentResponse,
+	zGetSandboxExecLogPath,
+	zGetSandboxExecLogQuery,
+	zGetSandboxExecLogResponse,
+	zGetSandboxExecPath,
+	zGetSandboxExecQuery,
+	zGetSandboxExecResponse,
 	zGetSandboxesPath,
 	zGetSandboxesQuery,
 	zGetSandboxesResponse,
@@ -128,10 +132,11 @@ import {
 	zGetSandboxSnapshotResponse,
 	zGetSandboxSnapshotsPath,
 	zGetSandboxSnapshotsResponse,
+	zListSandboxExecsPath,
+	zListSandboxExecsQuery,
+	zListSandboxExecsResponse,
 	zRestartSandboxPath,
 	zRestartSandboxResponse,
-	zSandboxCommandLog,
-	zSandboxCommandView,
 	zStartSandboxAppPath,
 	zStartSandboxAppResponse,
 	zStartSandboxPath,
@@ -140,8 +145,6 @@ import {
 	zStopSandboxAppResponse,
 	zStopSandboxPath,
 	zStopSandboxResponse,
-	zTerminateSandboxCommandPath,
-	zTerminateSandboxCommandResponse,
 	zUpdateSandboxBody,
 	zUpdateSandboxPath,
 	zUpdateSandboxResponse,
@@ -173,6 +176,9 @@ export interface BuddyApiConfig extends Omit<HttpClientConfig, "baseURL"> {
 
 /** The API fails a synchronous command at 60s - outlast it, barely */
 const EXEC_TIMEOUT_MS = 65_000;
+
+/** The API holds a command status request for at most 25s - outlast it */
+const WAIT_TIMEOUT_MS = 35_000;
 
 /** API client for Buddy sandbox operations with request validation and response transformation */
 export class BuddyApiClient extends HttpClient {
@@ -490,23 +496,19 @@ export class BuddyApiClient extends HttpClient {
 		});
 	}
 
-	/**
-	 * Execute a command in a sandbox, returning once it has been accepted.
-	 * The endpoint can also answer with a finished result, but only for the
-	 * `fast` query param this method never sends - `execCommand` covers that.
-	 */
-	async executeCommand<const Data extends ExecuteSandboxCommandData>(
+	/** Execute a command in a sandbox, returning once it has been accepted */
+	async executeCommand<const Data extends ExecuteSandboxData>(
 		data: ClientData<Data>,
 	) {
-		return this.#requestWithValidation<Data, SandboxCommandView>({
+		return this.#requestWithValidation<Data, ExecuteSandboxResponse>({
 			method: "POST",
 			data,
-			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs",
 			idempotent: false,
-			bodySchema: zExecuteSandboxCommandBody,
-			pathSchema: zExecuteSandboxCommandPath,
-			responseSchema: zSandboxCommandView.transform(
-				getSandboxCommandResponseTransformer,
+			bodySchema: zExecuteSandboxBody,
+			pathSchema: zExecuteSandboxPath,
+			responseSchema: zExecuteSandboxResponse.transform(
+				executeSandboxResponseTransformer,
 			),
 		});
 	}
@@ -532,48 +534,71 @@ export class BuddyApiClient extends HttpClient {
 		});
 	}
 
-	/** List all command executions in a sandbox (history) */
-	async getSandboxCommands<const Data extends GetSandboxCommandsData>(
+	/** List the most recent command executions in a sandbox, newest first */
+	async getSandboxCommands<const Data extends ListSandboxExecsData>(
 		data: ClientData<Data>,
 	) {
-		return this.#requestWithValidation<Data, GetSandboxCommandsResponse>({
+		return this.#requestWithValidation<Data, ListSandboxExecsResponse>({
 			method: "GET",
 			data,
-			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands",
-			pathSchema: zGetSandboxCommandsPath,
-			responseSchema: zGetSandboxCommandsResponse.transform(
-				getSandboxCommandsResponseTransformer,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs",
+			pathSchema: zListSandboxExecsPath,
+			querySchema: zListSandboxExecsQuery,
+			responseSchema: zListSandboxExecsResponse.transform(
+				listSandboxExecsResponseTransformer,
 			),
 		});
 	}
 
-	/** Get a specific command execution details */
-	async getCommandDetails<const Data extends GetSandboxCommandData>(
+	/**
+	 * Get a command execution. With `wait`, the API holds the request until
+	 * the command finishes or that many milliseconds pass.
+	 */
+	async getCommandDetails<const Data extends GetSandboxExecData>(
 		data: ClientData<Data>,
 	) {
-		return this.#requestWithValidation<Data, GetSandboxCommandResponse>({
+		return this.#requestWithValidation<Data, GetSandboxExecResponse>({
 			method: "GET",
 			data,
-			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{id}",
-			pathSchema: zGetSandboxCommandPath,
-			responseSchema: zGetSandboxCommandResponse.transform(
-				getSandboxCommandResponseTransformer,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs/{exec_id}",
+			pathSchema: zGetSandboxExecPath,
+			querySchema: zGetSandboxExecQuery,
+			responseSchema: zGetSandboxExecResponse.transform(
+				getSandboxExecResponseTransformer,
+			),
+			timeoutMs: WAIT_TIMEOUT_MS,
+		});
+	}
+
+	/** Get a slice of a command execution's log */
+	async getCommandLog<const Data extends GetSandboxExecLogData>(
+		data: ClientData<Data>,
+	) {
+		return this.#requestWithValidation<Data, GetSandboxExecLogResponse>({
+			method: "GET",
+			data,
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs/{exec_id}/log",
+			pathSchema: zGetSandboxExecLogPath,
+			querySchema: zGetSandboxExecLogQuery,
+			responseSchema: zGetSandboxExecLogResponse.transform(
+				getSandboxExecLogResponseTransformer,
 			),
 		});
 	}
 
-	/** Terminate a running command in a sandbox */
-	async terminateCommand<const Data extends TerminateSandboxCommandData>(
+	/**
+	 * Cancel a running command in a sandbox. Returns once the cancellation is
+	 * signalled, not once the command has stopped.
+	 */
+	async cancelCommand<const Data extends CancelSandboxExecData>(
 		data: ClientData<Data>,
 	) {
-		return this.#requestWithValidation<Data, TerminateSandboxCommandResponse>({
-			method: "POST",
+		return this.#requestWithValidation<Data, CancelSandboxExecResponse>({
+			method: "DELETE",
 			data,
-			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/terminate",
-			pathSchema: zTerminateSandboxCommandPath,
-			responseSchema: zTerminateSandboxCommandResponse.transform(
-				terminateSandboxCommandResponseTransformer,
-			),
+			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs/{exec_id}",
+			pathSchema: zCancelSandboxExecPath,
+			responseSchema: zCancelSandboxExecResponse,
 		});
 	}
 
@@ -875,135 +900,6 @@ export class BuddyApiClient extends HttpClient {
 
 		const arrayBuffer = await response.arrayBuffer();
 		return { data: arrayBuffer, filename };
-	}
-
-	/** Stream logs from a specific command execution */
-	async *streamCommandLogs<const Data extends GetSandboxCommandLogsData>(
-		data: ClientData<Data>,
-	): AsyncGenerator<SandboxCommandLog, void, unknown> {
-		const pathResult = await zGetSandboxCommandLogsPath.safeParseAsync({
-			workspace_domain: this.workspace,
-			...(data.path ?? {}),
-		});
-		if (!pathResult.success) {
-			throw pathResult.error;
-		}
-
-		const queryResult = await zGetSandboxCommandLogsQuery.safeParseAsync(
-			data.query ?? {},
-		);
-		if (!queryResult.success) {
-			throw queryResult.error;
-		}
-
-		const parameterizedUrl = this.#buildUrl<Data>({
-			url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/logs",
-			path: pathResult.data as Record<string, string>,
-		});
-
-		const url = new URL(parameterizedUrl, this.#apiUrl);
-		if (queryResult.data.follow !== undefined) {
-			url.searchParams.set("follow", String(queryResult.data.follow));
-		}
-
-		const headers = {
-			Accept: "application/jsonl",
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${this.#token}`,
-		};
-
-		const response = await this.transport(url.toString(), {
-			method: "GET",
-			headers,
-		});
-
-		if (this.debugMode) {
-			logger.debug("[HTTP REQUEST - Streaming]", {
-				method: "GET",
-				url: url.toString(),
-				headers: {
-					...headers,
-					Authorization: "***",
-				},
-			});
-		}
-
-		if (!response.ok) {
-			throw new HttpError(
-				`Failed to stream logs: ${response.statusText}`,
-				response.status,
-			);
-		}
-
-		const contentType = response.headers.get("content-type");
-		if (!contentType?.includes("application/jsonl")) {
-			throw new Error(
-				`Expected application/jsonl content type, got: ${contentType ?? "none"}`,
-			);
-		}
-
-		if (!response.body) {
-			throw new Error("No response body available for streaming");
-		}
-
-		const reader = response.body.getReader();
-		const decoder = new TextDecoder();
-		let buffer = "";
-
-		try {
-			while (true) {
-				const readResult = await reader.read();
-				if (readResult.done) break;
-
-				const chunk = readResult.value as Uint8Array;
-				buffer += decoder.decode(chunk, { stream: true });
-
-				const lines = buffer.split("\n");
-				buffer = lines.pop() || "";
-
-				for (const line of lines) {
-					if (!line.trim()) continue;
-
-					const logEntry = await this.#parseAndValidateLogEntry(line);
-
-					if (this.debugMode) {
-						logger.debug(`[STREAM] ${logEntry.type}`, {
-							content: logEntry.data,
-						});
-					}
-
-					yield logEntry;
-				}
-			}
-
-			// Process any remaining data in buffer
-			if (buffer.trim()) {
-				yield this.#parseAndValidateLogEntry(buffer);
-			}
-		} finally {
-			// Close the response when the consumer stops early
-			await reader.cancel().catch(() => undefined);
-			reader.releaseLock();
-		}
-	}
-
-	/** Parse a JSON line and validate it as a SandboxCommandLog */
-	async #parseAndValidateLogEntry(line: string): Promise<SandboxCommandLog> {
-		let parsed: unknown;
-		try {
-			parsed = JSON.parse(line);
-		} catch (error) {
-			throw new Error(
-				`Failed to parse log entry as JSON: ${error instanceof Error ? error.message : String(error)}. Line: ${line}`,
-			);
-		}
-
-		const result = await zSandboxCommandLog.safeParseAsync(parsed);
-		if (!result.success) {
-			throw result.error;
-		}
-
-		return result.data;
 	}
 
 	/** Create a new Buddy API client instance */

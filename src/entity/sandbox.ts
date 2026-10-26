@@ -28,6 +28,9 @@ export type { ConnectionConfig };
 
 const CREATE_MAX_INTERVAL_MS = 500;
 
+/** The API keeps the 200 newest executions per sandbox and lists at most that many */
+const COMMAND_HISTORY_LIMIT = 200;
+
 /** An app's human-readable `identifier` or its auto-generated `id` */
 export type SandboxAppRef = NonNullable<
 	SandboxAppView["identifier"] | SandboxAppView["id"]
@@ -103,10 +106,11 @@ export interface ExecOptions extends ExecuteSandboxCommandRequest {
  * Options for running a command in the sandbox
  */
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
-	/** Stream to write stdout to (default: process.stdout, null to disable) */
-	stdout?: Writable | null;
-	/** Stream to write stderr to (default: process.stderr, null to disable) */
-	stderr?: Writable | null;
+	/**
+	 * Stream to write the output to, stdout and stderr interleaved
+	 * (default: process.stdout, null to disable)
+	 */
+	output?: Writable | null;
 	/** Whether to run the command in detached mode (non-blocking) */
 	detached?: boolean;
 }
@@ -455,11 +459,10 @@ export class Sandbox {
 	async runCommand(options: RunCommandOptions): Promise<Command> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to run command", async () => {
-			const { stdout, stderr, detached, ...commandRequest } = options;
+			const { output, detached, ...commandRequest } = options;
 
 			// undefined = use default, null = disable, Writable = use that stream
-			const outputStdout = stdout === null ? null : (stdout ?? process.stdout);
-			const outputStderr = stderr === null ? null : (stderr ?? process.stderr);
+			const outputStream = output === null ? null : (output ?? process.stdout);
 
 			logger.debug(`Executing command: $ ${commandRequest.command}`);
 
@@ -474,36 +477,27 @@ export class Sandbox {
 				sandboxId,
 			});
 
-			const streamingPromise =
-				outputStdout || outputStderr
-					? (async () => {
-							for await (const log of command.logs({ follow: true })) {
-								const output = `${log.data ?? ""}\n`;
-
-								if (log.type === "STDOUT" && outputStdout) {
-									outputStdout.write(output);
-								} else if (log.type === "STDERR" && outputStderr) {
-									outputStderr.write(output);
-								}
-							}
-						})()
-					: Promise.resolve();
+			const streamingPromise = outputStream
+				? (async () => {
+						for await (const line of command.logs({ follow: true })) {
+							outputStream.write(`${line}\n`);
+						}
+					})()
+				: Promise.resolve();
 
 			if (detached) {
 				return command;
 			}
 
-			// Wait for both streaming and command completion
-			const [finishedCommand] = await Promise.all([
-				command.wait(),
-				streamingPromise,
-			]);
-			return finishedCommand;
+			// Streaming ends once the command has finished, so wait() answers at once
+			await streamingPromise;
+			return command.wait();
 		});
 	}
 
 	/**
-	 * List all command executions in this sandbox (history).
+	 * List command executions in this sandbox (history), newest first. The API
+	 * keeps only the 200 most recent.
 	 *
 	 * Returns one `Command` instance per past execution. Useful for inspecting
 	 * previous runs, fetching their logs, or killing still-running detached
@@ -514,8 +508,9 @@ export class Sandbox {
 		return withErrorHandler("Failed to list commands", async () => {
 			const response = await this.#client.getSandboxCommands({
 				path: { sandbox_id: sandboxId },
+				query: { limit: BigInt(COMMAND_HISTORY_LIMIT) },
 			});
-			return (response?.commands ?? []).map(
+			return response.map(
 				(commandResponse) =>
 					new Command({
 						commandResponse,

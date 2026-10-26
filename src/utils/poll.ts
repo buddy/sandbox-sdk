@@ -35,7 +35,7 @@ export function resolvePollInterval(
 }
 
 /** Suspend execution for the given number of milliseconds */
-function sleep(ms: number): Promise<void> {
+export function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 

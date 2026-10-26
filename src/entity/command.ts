@@ -1,10 +1,27 @@
-import type { SandboxCommandView } from "@/api/openapi/types.gen";
+import type { ExecView } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
-import { pollUntil, resolvePollInterval } from "@/utils/poll";
+import { sleep } from "@/utils/poll";
+
+/** How long to let the API hold a status request while waiting (its maximum) */
+const WAIT_MS = 25_000;
+
+/** How long to let the API hold a status request between log reads */
+const FOLLOW_WAIT_MS = 1_000;
+
+/** Shortest gap between status requests the API answers without holding */
+const MIN_POLL_INTERVAL_MS = 1_000;
+
+/** Log lines per request (the API's maximum) */
+const LOG_PAGE_SIZE = 1_000;
+
+/** Anything but INPROGRESS is final, including statuses added later */
+function isFinished(response: ExecView) {
+	return response.status !== "INPROGRESS";
+}
 
 /** Represents a running or completed command execution in a sandbox */
 export class Command {
-	protected readonly commandResponse: SandboxCommandView;
+	protected readonly commandResponse: ExecView;
 	protected readonly client: BuddyApiClient;
 	protected readonly sandboxId: string;
 	protected readonly commandId: string;
@@ -15,17 +32,17 @@ export class Command {
 		client,
 		sandboxId,
 	}: {
-		commandResponse: SandboxCommandView;
+		commandResponse: ExecView;
 		client: BuddyApiClient;
 		sandboxId: string;
 	}) {
-		if (!commandResponse.id) {
-			throw new Error("Command response must have an id");
+		if (!commandResponse.execution_id) {
+			throw new Error("Command response must have an execution_id");
 		}
 		this.commandResponse = commandResponse;
 		this.client = client;
 		this.sandboxId = sandboxId;
-		this.commandId = commandResponse.id;
+		this.commandId = commandResponse.execution_id;
 	}
 
 	/** The raw command response data from the API */
@@ -34,14 +51,33 @@ export class Command {
 	}
 
 	/**
-	 * Stream logs from the command in real-time
-	 * @returns AsyncGenerator yielding log entries with type and data
+	 * Read the command's log line by line. stdout and stderr arrive
+	 * interleaved in a single log.
+	 * @param follow Keep reading until the command finishes
 	 */
-	logs({ follow }: { follow?: boolean } = {}) {
-		return this.client.streamCommandLogs({
-			path: { command_id: this.commandId, sandbox_id: this.sandboxId },
-			query: { follow },
-		});
+	async *logs({
+		follow = false,
+	}: {
+		follow?: boolean;
+	} = {}): AsyncGenerator<string, void, undefined> {
+		let offset = 0n;
+		let finished = false;
+
+		while (true) {
+			while (true) {
+				const { lines = [], next_offset } = await this.client.getCommandLog({
+					path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
+					query: { offset, limit: BigInt(LOG_PAGE_SIZE) },
+				});
+				yield* lines;
+				offset = next_offset ?? offset + BigInt(lines.length);
+				if (lines.length < LOG_PAGE_SIZE) break;
+			}
+
+			// One more read after the command finishes picks up its last lines
+			if (!follow || finished) return;
+			finished = isFinished(await this.fetchStatus(FOLLOW_WAIT_MS));
+		}
 	}
 
 	/**
@@ -49,7 +85,7 @@ export class Command {
 	 * @returns Command instance with final response data
 	 */
 	async wait(): Promise<Command> {
-		const finalResponse = await this.pollForCommandCompletion();
+		const finalResponse = await this.waitUntilFinished();
 		return new Command({
 			commandResponse: finalResponse,
 			client: this.client,
@@ -59,76 +95,53 @@ export class Command {
 
 	/**
 	 * Get all output from the command (waits for completion)
-	 * @returns Complete output as a string
+	 * @returns stdout and stderr, interleaved as the command wrote them
 	 */
-	async output(stream: "STDOUT" | "STDERR" | "BOTH" = "BOTH") {
+	async output() {
 		let data = "";
-		for await (const log of this.logs({ follow: true })) {
-			if (stream === "BOTH" || log.type === stream) {
-				data += `${log.data ?? ""}\n`;
-			}
+		for await (const line of this.logs({ follow: true })) {
+			data += `${line}\n`;
 		}
 		return data;
 	}
 
-	/**
-	 * Get all stdout output from the command (waits for completion)
-	 * @returns Stdout as a string
-	 */
-	async stdout() {
-		return this.output("STDOUT");
-	}
-
-	/**
-	 * Get all stderr output from the command (waits for completion)
-	 * @returns Stderr as a string
-	 */
-	async stderr() {
-		return this.output("STDERR");
-	}
-
-	/** Terminate the running command */
+	/** Cancel the running command and wait until it has stopped */
 	async kill() {
-		await this.client.terminateCommand({
-			path: {
-				sandbox_id: this.sandboxId,
-				command_id: this.commandId,
-			},
+		await this.client.cancelCommand({
+			path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
 		});
+		await this.waitUntilFinished();
 	}
 
 	/**
-	 * Poll the API until the command reaches a terminal state
+	 * Hold status requests on the API until the command reaches a final state
 	 * @returns Final command response
 	 */
-	protected async pollForCommandCompletion(
-		pollIntervalMs?: number,
-	): Promise<SandboxCommandView> {
-		let finalResponse: SandboxCommandView | undefined;
+	protected async waitUntilFinished(): Promise<ExecView> {
+		while (true) {
+			const response = await this.fetchStatus(WAIT_MS);
+			if (isFinished(response)) return response;
+		}
+	}
 
-		await pollUntil(async () => {
-			const commandResponse = await this.client.getCommandDetails({
-				path: {
-					sandbox_id: this.sandboxId,
-					id: this.commandId,
-				},
-			});
+	/**
+	 * Fetch the command's status, letting the API hold the request up to
+	 * `waitMs` for it to finish. The API skips the hold when it is busy, so an
+	 * unfinished answer that comes back early is padded to keep loops calm.
+	 */
+	protected async fetchStatus(waitMs: number): Promise<ExecView> {
+		const startedAt = Date.now();
+		const response = await this.client.getCommandDetails({
+			path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
+			query: { wait: BigInt(waitMs) },
+		});
 
-			if (
-				commandResponse.status === "SUCCESSFUL" ||
-				commandResponse.status === "FAILED"
-			) {
-				finalResponse = commandResponse;
-				return true;
-			}
-
-			return false;
-		}, resolvePollInterval(pollIntervalMs));
-
-		if (!finalResponse) {
-			throw new Error(`Command ${this.commandId} finished without a response.`);
+		if (!isFinished(response)) {
+			const elapsed = Date.now() - startedAt;
+			const floor = Math.min(waitMs, MIN_POLL_INTERVAL_MS);
+			if (elapsed < floor) await sleep(floor - elapsed);
 		}
 
-		return finalResponse;
+		return response;
 	}
 }
