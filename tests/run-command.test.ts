@@ -280,6 +280,44 @@ describe("Command", () => {
 		warn.mockRestore();
 	});
 
+	it("holds status requests longer while the log stays quiet", async () => {
+		stubSandbox();
+		// A line lands after the second status check, then the command finishes
+		const waits: (string | null)[] = [];
+		server.use(
+			http.get(EXEC_URL, ({ request }) => {
+				waits.push(new URL(request.url).searchParams.get("wait"));
+				return HttpResponse.json(
+					exec(waits.length < 3 ? "INPROGRESS" : "SUCCESSFUL"),
+				);
+			}),
+		);
+		stubLog(["late"], () => (waits.length >= 2 ? 1 : 0));
+
+		const command = await detached();
+		const read: string[] = [];
+		for await (const line of command.logs({ follow: true })) read.push(line);
+
+		expect(read).toEqual(["late"]);
+		expect(waits).toEqual(["1000", "1500", "1000"]);
+	});
+
+	it("does not ask the API again about a finished command", async () => {
+		stubSandbox();
+		server.use(
+			http.get(`${SANDBOX_URL}/execs`, () =>
+				HttpResponse.json([exec("SUCCESSFUL", { exit_code: 0 })]),
+			),
+		);
+
+		// No status handler: a request would fail the test
+		const sandbox = await Sandbox.getById(SANDBOX_ID, { connection });
+		const [command] = await sandbox.listCommands();
+		const finished = await command?.wait();
+
+		expect(finished?.data.exit_code).toBe(0);
+	});
+
 	it("pads status answers the API did not hold", async () => {
 		stubSandbox();
 		const waits = stubStatuses(
@@ -443,4 +481,5 @@ describe("Sandbox.listCommands", () => {
 
 		expect(limit).toBe("5");
 	});
+
 });

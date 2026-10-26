@@ -9,6 +9,12 @@ const WAIT_MS = 25_000;
 /** How long to let the API hold a status request between log reads */
 const FOLLOW_WAIT_MS = 1_000;
 
+/** The longest that hold grows to while the log stays quiet */
+const FOLLOW_MAX_WAIT_MS = 5_000;
+
+/** How much the hold grows after each quiet read */
+const FOLLOW_BACKOFF_FACTOR = 1.5;
+
 /** Shortest gap between status requests the API answers without holding */
 const MIN_POLL_INTERVAL_MS = 1_000;
 
@@ -75,8 +81,10 @@ export class Command {
 		let offset = 0n;
 		let finished = false;
 		let reportedTruncation = false;
+		let holdMs = FOLLOW_WAIT_MS;
 
 		while (true) {
+			let read = 0;
 			while (true) {
 				const {
 					lines = [],
@@ -95,13 +103,18 @@ export class Command {
 					logger.warn(`The log of command ${this.commandId} is truncated`);
 				}
 				yield* lines;
+				read += lines.length;
 				offset = next_offset ?? offset + BigInt(lines.length);
 				if (lines.length < LOG_PAGE_SIZE) break;
 			}
 
 			// One more read after the command finishes picks up its last lines
 			if (!follow || finished) return;
-			finished = isFinished(await this.fetchStatus(FOLLOW_WAIT_MS, signal));
+
+			// Back off while the log stays quiet, and drop back once it moves
+			if (read > 0) holdMs = FOLLOW_WAIT_MS;
+			finished = isFinished(await this.fetchStatus(holdMs, signal));
+			holdMs = Math.min(holdMs * FOLLOW_BACKOFF_FACTOR, FOLLOW_MAX_WAIT_MS);
 		}
 	}
 
@@ -112,7 +125,10 @@ export class Command {
 	 * @returns Command instance with final response data
 	 */
 	async wait({ signal }: { signal?: AbortSignal } = {}): Promise<Command> {
-		const finalResponse = await this.waitUntilFinished(signal);
+		// A final state never changes, so there is nothing to ask the API
+		const finalResponse = isFinished(this.commandResponse)
+			? this.commandResponse
+			: await this.waitUntilFinished(signal);
 		return new Command({
 			commandResponse: finalResponse,
 			client: this.client,
