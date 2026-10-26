@@ -35,7 +35,10 @@ const server = setupServer();
 vi.stubEnv("BUDDY_HTTP2", "0");
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+	server.resetHandlers();
+	vi.restoreAllMocks();
+});
 afterAll(() => server.close());
 
 const exec = (status: string, extra: Record<string, unknown> = {}) => ({
@@ -193,11 +196,9 @@ describe("Sandbox.runCommand", () => {
 
 		await vi.waitFor(() =>
 			expect(warn).toHaveBeenCalledWith(
-				expect.stringContaining(EXEC_ID),
-				expect.anything(),
+				expect.stringMatching(new RegExp(`${EXEC_ID}: [\\s\\S]*gone`)),
 			),
 		);
-		warn.mockRestore();
 	});
 
 	it("reports the concurrency limit without running the command twice", async () => {
@@ -278,7 +279,6 @@ describe("Command", () => {
 		expect(warn).toHaveBeenCalledWith(
 			`The log of command ${EXEC_ID} is truncated`,
 		);
-		warn.mockRestore();
 	});
 
 	it("holds status requests longer while the log stays quiet", async () => {
@@ -403,10 +403,12 @@ describe("Command", () => {
 		await expect(command.kill()).resolves.toBeUndefined();
 
 		expect(timeout).toHaveBeenCalledWith(30_000);
-		timeout.mockRestore();
 	});
 
-	it("gives up waiting when the signal aborts, mid long-poll", async () => {
+	it.each([
+		["an Error", new Error("deadline")],
+		["a plain value", "deadline"],
+	])("gives up waiting on a signal aborted with %s, mid long-poll", async (_, reason) => {
 		stubSandbox();
 		let requests = 0;
 		server.use(
@@ -419,13 +421,22 @@ describe("Command", () => {
 
 		const command = await detached();
 		const controller = new AbortController();
-		const reason = new Error("deadline");
 		setTimeout(() => controller.abort(reason), 50);
 
 		await expect(command.wait({ signal: controller.signal })).rejects.toBe(
 			reason,
 		);
 		expect(requests).toBe(1);
+	});
+
+	it("rejects the stream name the old output() took", async () => {
+		stubSandbox();
+
+		const command = await detached();
+
+		await expect(command.output("STDERR" as never)).rejects.toThrow(
+			"output() takes no stream",
+		);
 	});
 
 	it("stops following the log when the signal aborts", async () => {

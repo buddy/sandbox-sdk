@@ -184,6 +184,8 @@ export class HttpClient {
 			maxTimeout: 10_000,
 			signal,
 			onFailedAttempt: ({ error }) => {
+				// p-retry would turn a non-Error abort reason into a TypeError
+				signal?.throwIfAborted();
 				const status = error instanceof HttpError ? error.status : undefined;
 				if (status === 429) {
 					return;

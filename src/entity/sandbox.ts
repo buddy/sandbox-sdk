@@ -492,9 +492,9 @@ export class Sandbox {
 			if (detached) {
 				// Nobody awaits it, so a failure would crash the process
 				streamingPromise.catch((error: unknown) => {
+					const reason = error instanceof Error ? error.message : String(error);
 					logger.warn(
-						`Stopped streaming output of command ${command.id}`,
-						error,
+						`Stopped streaming output of command ${command.id}: ${reason}`,
 					);
 				});
 				return command;
