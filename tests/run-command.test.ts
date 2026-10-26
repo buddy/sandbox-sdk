@@ -11,6 +11,7 @@ import {
 	vi,
 } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
+import { BuddySDKError, ERROR_CODES } from "@/errors";
 
 const TEST_API_URL = "https://api.test.buddy.works";
 const TEST_WORKSPACE = "test-workspace";
@@ -141,6 +142,34 @@ describe("Sandbox.runCommand", () => {
 
 		expect(command.id).toBe(EXEC_ID);
 		expect(command.data.status).toBe("INPROGRESS");
+	});
+
+	it("reports the concurrency limit without running the command twice", async () => {
+		const message =
+			"Concurrency limit reached: at most 3 parallel executions are allowed for this target";
+		let attempts = 0;
+		server.use(
+			http.get(SANDBOX_URL, () =>
+				HttpResponse.json({ id: SANDBOX_ID, status: "RUNNING" }),
+			),
+			http.post(`${SANDBOX_URL}/execs`, () => {
+				attempts++;
+				return HttpResponse.json({ errors: [{ message }] }, { status: 409 });
+			}),
+		);
+
+		const sandbox = await Sandbox.getById(SANDBOX_ID, { connection });
+		const error = await sandbox
+			.runCommand({ command: "sleep 60", output: null, detached: true })
+			.catch((e: unknown) => e);
+
+		expect(error).toBeInstanceOf(BuddySDKError);
+		expect(error).toMatchObject({
+			code: ERROR_CODES.HTTP_ERROR,
+			statusCode: 409,
+		});
+		expect((error as BuddySDKError).message).toContain(message);
+		expect(attempts).toBe(1);
 	});
 });
 
