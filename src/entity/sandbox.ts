@@ -525,6 +525,16 @@ export class Sandbox {
 	} = {}): Promise<Command[]> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to list commands", async () => {
+			if (
+				!Number.isInteger(limit) ||
+				limit < 1 ||
+				limit > COMMAND_HISTORY_LIMIT
+			) {
+				throw new Error(
+					`limit must be a whole number from 1 to ${COMMAND_HISTORY_LIMIT}, got ${limit}`,
+				);
+			}
+
 			const response = await this.#client.getSandboxCommands({
 				path: { sandbox_id: sandboxId },
 				query: { limit: BigInt(limit) },

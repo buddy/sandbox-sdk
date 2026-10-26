@@ -482,4 +482,13 @@ describe("Sandbox.listCommands", () => {
 		expect(limit).toBe("5");
 	});
 
+	it.each([0, 2.5, 201])("rejects a limit of %s", async (limit) => {
+		stubSandbox();
+
+		const sandbox = await Sandbox.getById(SANDBOX_ID, { connection });
+
+		await expect(sandbox.listCommands({ limit })).rejects.toThrow(
+			"limit must be a whole number from 1 to 200",
+		);
+	});
 });
