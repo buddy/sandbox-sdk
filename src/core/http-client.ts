@@ -37,6 +37,8 @@ export interface RequestConfig {
 	responseType?: "json" | "text";
 	/** Overrides the client-wide timeout for this request */
 	timeoutMs?: number;
+	/** Gives up on the request, and any retry, rejecting with the signal's reason */
+	signal?: AbortSignal;
 }
 
 /** Normalized HTTP response with status, data, and headers */
@@ -170,6 +172,7 @@ export class HttpClient {
 		requestFunction: () => Promise<HttpResponse<T>>,
 		skipRetry = false,
 		idempotent = true,
+		signal?: AbortSignal,
 	): Promise<HttpResponse<T>> {
 		if (skipRetry) {
 			return requestFunction();
@@ -179,6 +182,7 @@ export class HttpClient {
 			retries: 3,
 			minTimeout: 1000,
 			maxTimeout: 10_000,
+			signal,
 			onFailedAttempt: ({ error }) => {
 				const status = error instanceof HttpError ? error.status : undefined;
 				if (status === 429) {
@@ -212,6 +216,7 @@ export class HttpClient {
 			headers: additionalHeaders,
 			responseType = "json",
 			timeoutMs = this.#timeout,
+			signal,
 		} = config ?? {};
 		const fullUrl = this.#buildUrl(url, queryParams);
 		const headers = this.#getHeaders(additionalHeaders);
@@ -238,7 +243,9 @@ export class HttpClient {
 				const fetchOptions: RequestInit = {
 					method,
 					headers,
-					signal: controller.signal,
+					signal: signal
+						? AbortSignal.any([controller.signal, signal])
+						: controller.signal,
 				};
 
 				if (data !== undefined) {
@@ -282,6 +289,8 @@ export class HttpClient {
 				return httpResponse;
 			} catch (error) {
 				clearTimeout(timeoutId);
+				// The caller gave up - report their reason, not a timeout
+				signal?.throwIfAborted();
 				if (error instanceof HttpError) {
 					throw error;
 				}
@@ -295,7 +304,7 @@ export class HttpClient {
 			}
 		};
 
-		return this.#executeWithRetry(makeRequest, skipRetry, idempotent);
+		return this.#executeWithRetry(makeRequest, skipRetry, idempotent, signal);
 	}
 
 	/** Perform a GET request */

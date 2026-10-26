@@ -42,12 +42,14 @@ run access to it; read-only access no longer shows them.
 - `command.id`, and the `ExecView` type behind `command.data`.
 - `listCommands({ limit })`. The API keeps the 200 most recent commands.
 - `failure_reason`, `error_message` and `truncated` on a command's data.
+- `wait()`, `logs()` and `output()` take a `signal` that stops waiting, for a
+  deadline; `kill()` then stops the command itself.
 
 ### Changed
 
 - `wait()` lets the API hold the request until the command finishes instead of
   polling, and `logs({ follow: true })` reads the log page by page.
-- `kill()` resolves once the command has stopped.
+- `kill()` resolves once the command has stopped, or after 30 seconds.
 - Commands are limited to 3 at once per member in one sandbox and 10 per
   workspace across sandboxes and targets (plan-dependent); over a limit, the
   API answers HTTP 409. Each command may be up to 16 KB long and 90 minutes.

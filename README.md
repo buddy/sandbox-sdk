@@ -96,8 +96,23 @@ command wrote them: `logs()` yields its lines and `output()` returns it as one
 string. Use `exec()` when you need the two apart.
 
 `kill()` cancels a running command and resolves once it has stopped, with the
-status `CANCELLED`. `listCommands()` returns the sandbox's command history,
-newest first - the API keeps the 200 most recent.
+status `CANCELLED`, or after 30 seconds if it is slow to stop.
+`listCommands()` returns the sandbox's command history, newest first - the API
+keeps the 200 most recent.
+
+`wait()`, `logs()` and `output()` take an `AbortSignal` that stops waiting,
+which gives a command a deadline:
+
+```typescript
+try {
+    await detached.wait({ signal: AbortSignal.timeout(5 * 60_000) });
+} catch (error) {
+    if (!(error instanceof DOMException && error.name === "TimeoutError")) {
+        throw error;
+    }
+    await detached.kill(); // the signal only stops waiting, not the command
+}
+```
 
 The API runs at most 3 commands at once per member in one sandbox, and 10 per
 workspace across sandboxes and targets (the workspace limit depends on the

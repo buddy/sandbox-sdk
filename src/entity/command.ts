@@ -14,6 +14,9 @@ const MIN_POLL_INTERVAL_MS = 1_000;
 /** Log lines per request (the API's maximum) */
 const LOG_PAGE_SIZE = 1_000;
 
+/** How long kill() waits for the command to stop after cancelling it */
+const KILL_WAIT_MS = 30_000;
+
 /** Anything but INPROGRESS is final, including statuses added later */
 function isFinished(response: ExecView) {
 	return response.status !== "INPROGRESS";
@@ -59,21 +62,27 @@ export class Command {
 	 * Read the command's log line by line. stdout and stderr arrive
 	 * interleaved in a single log.
 	 * @param follow Keep reading until the command finishes
+	 * @param signal Stops reading, rejecting with the signal's reason
 	 */
 	async *logs({
 		follow = false,
+		signal,
 	}: {
 		follow?: boolean;
+		signal?: AbortSignal;
 	} = {}): AsyncGenerator<string, void, undefined> {
 		let offset = 0n;
 		let finished = false;
 
 		while (true) {
 			while (true) {
-				const { lines = [], next_offset } = await this.client.getCommandLog({
-					path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
-					query: { offset, limit: BigInt(LOG_PAGE_SIZE) },
-				});
+				const { lines = [], next_offset } = await this.client.getCommandLog(
+					{
+						path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
+						query: { offset, limit: BigInt(LOG_PAGE_SIZE) },
+					},
+					{ signal },
+				);
 				yield* lines;
 				offset = next_offset ?? offset + BigInt(lines.length);
 				if (lines.length < LOG_PAGE_SIZE) break;
@@ -81,16 +90,18 @@ export class Command {
 
 			// One more read after the command finishes picks up its last lines
 			if (!follow || finished) return;
-			finished = isFinished(await this.fetchStatus(FOLLOW_WAIT_MS));
+			finished = isFinished(await this.fetchStatus(FOLLOW_WAIT_MS, signal));
 		}
 	}
 
 	/**
 	 * Wait for the command to finish execution
+	 * @param signal Stops waiting, rejecting with the signal's reason; the
+	 * command keeps running, so call kill() to stop it
 	 * @returns Command instance with final response data
 	 */
-	async wait(): Promise<Command> {
-		const finalResponse = await this.waitUntilFinished();
+	async wait({ signal }: { signal?: AbortSignal } = {}): Promise<Command> {
+		const finalResponse = await this.waitUntilFinished(signal);
 		return new Command({
 			commandResponse: finalResponse,
 			client: this.client,
@@ -100,31 +111,41 @@ export class Command {
 
 	/**
 	 * Get all output from the command (waits for completion)
+	 * @param signal Stops waiting, rejecting with the signal's reason
 	 * @returns stdout and stderr, interleaved as the command wrote them
 	 */
-	async output() {
+	async output({ signal }: { signal?: AbortSignal } = {}) {
 		let data = "";
-		for await (const line of this.logs({ follow: true })) {
+		for await (const line of this.logs({ follow: true, signal })) {
 			data += `${line}\n`;
 		}
 		return data;
 	}
 
-	/** Cancel the running command and wait until it has stopped */
+	/**
+	 * Cancel the running command and wait until it has stopped, for at most
+	 * 30 seconds. The API keeps stopping it after that.
+	 */
 	async kill() {
 		await this.client.cancelCommand({
 			path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
 		});
-		await this.waitUntilFinished();
+
+		const deadline = AbortSignal.timeout(KILL_WAIT_MS);
+		try {
+			await this.waitUntilFinished(deadline);
+		} catch (error) {
+			if (!deadline.aborted) throw error;
+		}
 	}
 
 	/**
 	 * Hold status requests on the API until the command reaches a final state
 	 * @returns Final command response
 	 */
-	protected async waitUntilFinished(): Promise<ExecView> {
+	protected async waitUntilFinished(signal?: AbortSignal): Promise<ExecView> {
 		while (true) {
-			const response = await this.fetchStatus(WAIT_MS);
+			const response = await this.fetchStatus(WAIT_MS, signal);
 			if (isFinished(response)) return response;
 		}
 	}
@@ -134,17 +155,23 @@ export class Command {
 	 * `waitMs` for it to finish. The API skips the hold when it is busy, so an
 	 * unfinished answer that comes back early is padded to keep loops calm.
 	 */
-	protected async fetchStatus(waitMs: number): Promise<ExecView> {
+	protected async fetchStatus(
+		waitMs: number,
+		signal?: AbortSignal,
+	): Promise<ExecView> {
 		const startedAt = Date.now();
-		const response = await this.client.getCommandDetails({
-			path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
-			query: { wait: BigInt(waitMs) },
-		});
+		const response = await this.client.getCommandDetails(
+			{
+				path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
+				query: { wait: BigInt(waitMs) },
+			},
+			{ signal },
+		);
 
 		if (!isFinished(response)) {
 			const elapsed = Date.now() - startedAt;
 			const floor = Math.min(waitMs, MIN_POLL_INTERVAL_MS);
-			if (elapsed < floor) await sleep(floor - elapsed);
+			if (elapsed < floor) await sleep(floor - elapsed, signal);
 		}
 
 		return response;

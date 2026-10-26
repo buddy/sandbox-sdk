@@ -1,5 +1,5 @@
 import { Writable } from "node:stream";
-import { HttpResponse, http } from "msw";
+import { delay, HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import {
 	afterAll,
@@ -99,6 +99,16 @@ const collect = () => {
 		},
 	});
 	return { stream, text: () => text };
+};
+
+/** A signal that aborts shortly, like a deadline that has run out */
+const abortSoon = () => {
+	const controller = new AbortController();
+	setTimeout(
+		() => controller.abort(new DOMException("Timed out", "TimeoutError")),
+		50,
+	);
+	return controller.signal;
 };
 
 describe("Sandbox.runCommand", () => {
@@ -243,6 +253,69 @@ describe("Command", () => {
 
 		expect(cancelled).toBe(true);
 		expect(finished.data.status).toBe("CANCELLED");
+	});
+
+	it("stops waiting for a command that does not stop after kill()", async () => {
+		stubSandbox();
+		server.use(
+			http.delete(EXEC_URL, () => new HttpResponse(null, { status: 204 })),
+			http.get(EXEC_URL, () => HttpResponse.json(exec("INPROGRESS"))),
+		);
+		// Stand in for the 30s deadline with a short one
+		const timeout = vi
+			.spyOn(AbortSignal, "timeout")
+			.mockImplementation(() => abortSoon());
+
+		const command = await detached();
+		await expect(command.kill()).resolves.toBeUndefined();
+
+		expect(timeout).toHaveBeenCalledWith(30_000);
+		timeout.mockRestore();
+	});
+
+	it("gives up waiting when the signal aborts, mid long-poll", async () => {
+		stubSandbox();
+		let requests = 0;
+		server.use(
+			http.get(EXEC_URL, async () => {
+				requests++;
+				await delay("infinite");
+				return HttpResponse.json(exec("INPROGRESS"));
+			}),
+		);
+
+		const command = await detached();
+		const controller = new AbortController();
+		const reason = new Error("deadline");
+		setTimeout(() => controller.abort(reason), 50);
+
+		await expect(command.wait({ signal: controller.signal })).rejects.toBe(
+			reason,
+		);
+		expect(requests).toBe(1);
+	});
+
+	it("stops following the log when the signal aborts", async () => {
+		stubSandbox();
+		stubStatuses(exec("INPROGRESS"));
+		stubLog(["one"], () => 1);
+
+		const command = await detached();
+		const controller = new AbortController();
+		const read: string[] = [];
+
+		await expect(
+			(async () => {
+				for await (const line of command.logs({
+					follow: true,
+					signal: controller.signal,
+				})) {
+					read.push(line);
+					controller.abort();
+				}
+			})(),
+		).rejects.toMatchObject({ name: "AbortError" });
+		expect(read).toEqual(["one"]);
 	});
 });
 

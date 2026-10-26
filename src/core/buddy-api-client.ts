@@ -233,6 +233,7 @@ export class BuddyApiClient extends HttpClient {
 		skipRetry,
 		idempotent,
 		timeoutMs,
+		signal,
 	}: {
 		method: "GET" | "POST" | "DELETE" | "PATCH";
 		url: DataUrl<D>;
@@ -246,6 +247,8 @@ export class BuddyApiClient extends HttpClient {
 		idempotent?: boolean;
 		/** See `RequestConfig.timeoutMs`; a blocking exec outlives the default. */
 		timeoutMs?: number;
+		/** See `RequestConfig.signal` */
+		signal?: AbortSignal;
 	}): Promise<Response> {
 		const pathResult = await pathSchema.safeParseAsync({
 			workspace_domain: this.workspace,
@@ -287,6 +290,7 @@ export class BuddyApiClient extends HttpClient {
 			skipRetry,
 			idempotent,
 			timeoutMs,
+			signal,
 		};
 
 		let request: Promise<HttpResponse>;
@@ -556,6 +560,7 @@ export class BuddyApiClient extends HttpClient {
 	 */
 	async getCommandDetails<const Data extends GetSandboxExecData>(
 		data: ClientData<Data>,
+		options: { signal?: AbortSignal } = {},
 	) {
 		return this.#requestWithValidation<Data, GetSandboxExecResponse>({
 			method: "GET",
@@ -567,12 +572,14 @@ export class BuddyApiClient extends HttpClient {
 				getSandboxExecResponseTransformer,
 			),
 			timeoutMs: WAIT_TIMEOUT_MS,
+			signal: options.signal,
 		});
 	}
 
 	/** Get a slice of a command execution's log */
 	async getCommandLog<const Data extends GetSandboxExecLogData>(
 		data: ClientData<Data>,
+		options: { signal?: AbortSignal } = {},
 	) {
 		return this.#requestWithValidation<Data, GetSandboxExecLogResponse>({
 			method: "GET",
@@ -583,6 +590,7 @@ export class BuddyApiClient extends HttpClient {
 			responseSchema: zGetSandboxExecLogResponse.transform(
 				getSandboxExecLogResponseTransformer,
 			),
+			signal: options.signal,
 		});
 	}
 
