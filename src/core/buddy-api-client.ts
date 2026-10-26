@@ -554,10 +554,7 @@ export class BuddyApiClient extends HttpClient {
 		});
 	}
 
-	/**
-	 * Get a command execution. With `wait`, the API holds the request until
-	 * the command finishes or that many milliseconds pass.
-	 */
+	/** Get a command execution, held by the API for up to `wait` ms until it finishes */
 	async getCommandDetails<const Data extends GetSandboxExecData>(
 		data: ClientData<Data>,
 		options: { signal?: AbortSignal } = {},
@@ -594,10 +591,7 @@ export class BuddyApiClient extends HttpClient {
 		});
 	}
 
-	/**
-	 * Cancel a running command in a sandbox. Returns once the cancellation is
-	 * signalled, not once the command has stopped.
-	 */
+	/** Cancel a running command in a sandbox, without waiting for it to stop */
 	async cancelCommand<const Data extends CancelSandboxExecData>(
 		data: ClientData<Data>,
 	) {

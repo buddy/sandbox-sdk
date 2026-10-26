@@ -106,10 +106,7 @@ export interface ExecOptions extends ExecuteSandboxCommandRequest {
  * Options for running a command in the sandbox
  */
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
-	/**
-	 * Stream to write the output to, stdout and stderr interleaved
-	 * (default: process.stdout, null to disable)
-	 */
+	/** Stream for stdout and stderr, interleaved (default: process.stdout, null to disable) */
 	output?: Writable | null;
 	/** Whether to run the command in detached mode (non-blocking) */
 	detached?: boolean;
@@ -459,7 +456,7 @@ export class Sandbox {
 	async runCommand(options: RunCommandOptions): Promise<Command> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to run command", async () => {
-			// Without types, these would be dropped and the output would go to stdout
+			// Untyped callers would otherwise have them dropped and output on stdout
 			if ("stdout" in options || "stderr" in options) {
 				throw new Error(
 					"runCommand() takes `output` in place of `stdout` and `stderr`",
@@ -493,7 +490,7 @@ export class Sandbox {
 				: Promise.resolve();
 
 			if (detached) {
-				// Nobody awaits the background stream, so report its failure instead
+				// Nobody awaits it, so a failure would crash the process
 				streamingPromise.catch((error: unknown) => {
 					logger.warn(
 						`Stopped streaming output of command ${command.id}`,
@@ -503,15 +500,13 @@ export class Sandbox {
 				return command;
 			}
 
-			// Streaming ends once the command has finished, so wait() answers at once
 			await streamingPromise;
 			return command.wait();
 		});
 	}
 
 	/**
-	 * List command executions in this sandbox (history), newest first. The API
-	 * keeps only the 200 most recent.
+	 * List command executions in this sandbox (history), newest first.
 	 *
 	 * Returns one `Command` instance per past execution. Useful for inspecting
 	 * previous runs, fetching their logs, or killing still-running detached
@@ -520,7 +515,7 @@ export class Sandbox {
 	async listCommands({
 		limit = COMMAND_HISTORY_LIMIT,
 	}: {
-		/** How many of the newest executions to return (default and maximum: 200) */
+		/** Default and maximum: 200, all the API keeps */
 		limit?: number;
 	} = {}): Promise<Command[]> {
 		const sandboxId = this.initializedId;
