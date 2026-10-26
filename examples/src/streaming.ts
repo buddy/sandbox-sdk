@@ -35,19 +35,20 @@ try {
 	});
 
 	log("\n=== Example 2: Custom log formatting ===");
-	log("Manually iterate over logs to add custom prefixes:\n");
+	log("Manually iterate over logs to number the lines:");
+	log("(stdout and stderr arrive interleaved in a single log)\n");
 
 	const command = await sandbox.runCommand({
 		command:
 			'echo "stdout message" && echo "stderr message" >&2 && echo "another stdout"',
 		detached: true,
-		stdout: null,
-		stderr: null,
+		output: null,
 	});
 
-	for await (const entry of command.logs({ follow: true })) {
-		const prefix = entry.type === "STDOUT" ? "[OUT]" : "[ERR]";
-		process.stdout.write(`${prefix} ${entry.data}\n`);
+	let lineNumber = 0;
+	for await (const line of command.logs({ follow: true })) {
+		lineNumber++;
+		process.stdout.write(`[${lineNumber}] ${line}\n`);
 	}
 
 	await command.wait();

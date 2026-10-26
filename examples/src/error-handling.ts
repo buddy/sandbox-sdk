@@ -42,17 +42,17 @@ try {
 
 	// Example 2: Capture stderr for error details
 	log("\n=== Example 2: Capture stderr ===");
+	log(
+		"exec() keeps stderr apart from stdout (runCommand() logs both together)",
+	);
 	log("Running: cat /file/that/does/not/exist\n");
 
-	const result2 = await sandbox.runCommand({
+	const result2 = await sandbox.exec({
 		command: "cat /file/that/does/not/exist",
-		stdout: null,
-		stderr: null,
 	});
 
-	if (result2.data.exit_code !== 0) {
-		const errorOutput = await result2.stderr();
-		log(`Command failed: ${errorOutput.trim()}`);
+	if (result2.exit_code !== 0) {
+		log(`Command failed: ${result2.stderr?.trim()}`);
 	}
 
 	// Example 3: Throw on failure (wrapper pattern)
@@ -65,12 +65,11 @@ try {
 	): Promise<Awaited<ReturnType<Sandbox["runCommand"]>>> {
 		const result = await sandbox.runCommand({
 			command,
-			stdout: null,
-			stderr: null,
+			output: null,
 		});
 		if (result.data.exit_code !== 0) {
-			const stderr = await result.stderr();
-			throw new Error(`Command "${command}" failed: ${stderr.trim()}`);
+			const output = await result.output();
+			throw new Error(`Command "${command}" failed: ${output.trim()}`);
 		}
 		return result;
 	}
@@ -87,8 +86,7 @@ try {
 
 	const grepResult = await sandbox.runCommand({
 		command: "echo 'hello world' | grep 'nonexistent'",
-		stdout: null,
-		stderr: null,
+		output: null,
 	});
 
 	// grep returns 1 when no matches - this is expected, not an error

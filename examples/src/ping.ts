@@ -44,16 +44,14 @@ try {
 				"echo 'Starting slow task...' && sleep 3 && echo 'Slow task done!'",
 			runtime: "BASH",
 			detached: true,
-			stdout: null,
-			stderr: null,
+			output: null,
 		}),
 		sandbox.runCommand({
 			command:
 				"echo 'Starting fast task...' && sleep 1 && echo 'Fast task done!'",
 			runtime: "BASH",
 			detached: true,
-			stdout: null,
-			stderr: null,
+			output: null,
 		}),
 	]);
 
@@ -78,8 +76,7 @@ try {
 		command: "echo 'Quick task' && sleep 2 && echo 'Done!'",
 		runtime: "BASH",
 		detached: true,
-		stdout: null,
-		stderr: null,
+		output: null,
 	});
 
 	log("Command running on server. Doing other work locally...");

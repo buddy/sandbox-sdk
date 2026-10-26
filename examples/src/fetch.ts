@@ -36,11 +36,10 @@ try {
 	log("Listing the cloned directory:");
 	const ls = await sandbox.runCommand({
 		command: "ls -la /workspace/hello-world",
-		stdout: null,
-		stderr: null,
+		output: null,
 	});
 	const finished = await ls.wait();
-	const output = await finished.stdout();
+	const output = await finished.output();
 	log(output);
 } finally {
 	if (sandbox) {
