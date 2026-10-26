@@ -136,7 +136,8 @@ describe("Sandbox.runCommand", () => {
 
 		expect(output.text()).toBe("one\ntwo\n");
 		expect(offsets).toEqual([0, 1]);
-		expect(waits).toEqual(["1000", "25000"]);
+		// The status that ended the stream is reused, not asked for again
+		expect(waits).toEqual(["1000"]);
 		expect(command.data.status).toBe("SUCCESSFUL");
 		expect(command.data.exit_code).toBe(0);
 	});

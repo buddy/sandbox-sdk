@@ -35,6 +35,8 @@ export class Command {
 	protected readonly client: BuddyApiClient;
 	protected readonly sandboxId: string;
 	protected readonly commandId: string;
+	/** The final state once seen; it never changes, so it is never asked for again */
+	protected finalResponse: ExecView | undefined;
 
 	/** Create a new Command instance from an API response */
 	constructor({
@@ -53,6 +55,7 @@ export class Command {
 		this.client = client;
 		this.sandboxId = sandboxId;
 		this.commandId = commandResponse.execution_id;
+		if (isFinished(commandResponse)) this.finalResponse = commandResponse;
 	}
 
 	/** The execution ID of the command */
@@ -125,10 +128,8 @@ export class Command {
 	 * @returns Command instance with final response data
 	 */
 	async wait({ signal }: { signal?: AbortSignal } = {}): Promise<Command> {
-		// A final state never changes, so there is nothing to ask the API
-		const finalResponse = isFinished(this.commandResponse)
-			? this.commandResponse
-			: await this.waitUntilFinished(signal);
+		const finalResponse =
+			this.finalResponse ?? (await this.waitUntilFinished(signal));
 		return new Command({
 			commandResponse: finalResponse,
 			client: this.client,
@@ -195,7 +196,9 @@ export class Command {
 			{ signal },
 		);
 
-		if (!isFinished(response)) {
+		if (isFinished(response)) {
+			this.finalResponse = response;
+		} else {
 			const elapsed = Date.now() - startedAt;
 			const floor = Math.min(waitMs, MIN_POLL_INTERVAL_MS);
 			if (elapsed < floor) await sleep(floor - elapsed, signal);
