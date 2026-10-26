@@ -503,12 +503,17 @@ export class Sandbox {
 	 * previous runs, fetching their logs, or killing still-running detached
 	 * commands.
 	 */
-	async listCommands(): Promise<Command[]> {
+	async listCommands({
+		limit = COMMAND_HISTORY_LIMIT,
+	}: {
+		/** How many of the newest executions to return (default and maximum: 200) */
+		limit?: number;
+	} = {}): Promise<Command[]> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to list commands", async () => {
 			const response = await this.#client.getSandboxCommands({
 				path: { sandbox_id: sandboxId },
-				query: { limit: BigInt(COMMAND_HISTORY_LIMIT) },
+				query: { limit: BigInt(limit) },
 			});
 			return response.map(
 				(commandResponse) =>

@@ -139,7 +139,7 @@ describe("Sandbox.runCommand", () => {
 			detached: true,
 		});
 
-		expect(command.data.execution_id).toBe(EXEC_ID);
+		expect(command.id).toBe(EXEC_ID);
 		expect(command.data.status).toBe("INPROGRESS");
 	});
 });
@@ -235,9 +235,22 @@ describe("Sandbox.listCommands", () => {
 		const commands = await sandbox.listCommands();
 
 		expect(limit).toBe("200");
-		expect(commands.map((c) => c.data.execution_id)).toEqual([
-			EXEC_ID,
-			"exec-older",
-		]);
+		expect(commands.map((c) => c.id)).toEqual([EXEC_ID, "exec-older"]);
+	});
+
+	it("passes a smaller limit through", async () => {
+		stubSandbox();
+		let limit: string | null = null;
+		server.use(
+			http.get(`${SANDBOX_URL}/execs`, ({ request }) => {
+				limit = new URL(request.url).searchParams.get("limit");
+				return HttpResponse.json([exec("SUCCESSFUL")]);
+			}),
+		);
+
+		const sandbox = await Sandbox.getById(SANDBOX_ID, { connection });
+		await sandbox.listCommands({ limit: 5 });
+
+		expect(limit).toBe("5");
 	});
 });

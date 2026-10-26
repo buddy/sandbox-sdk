@@ -45,6 +45,11 @@ export class Command {
 		this.commandId = commandResponse.execution_id;
 	}
 
+	/** The execution ID of the command */
+	get id() {
+		return this.commandId;
+	}
+
 	/** The raw command response data from the API */
 	get data() {
 		return this.commandResponse;
