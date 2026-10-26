@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.1
+## 0.3.0
 
 Sandbox commands run through the API's new execs. The API drops the old
 command endpoints, so in 0.2.0 and earlier `runCommand()`, `listCommands()`
