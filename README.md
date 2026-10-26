@@ -117,7 +117,9 @@ try {
 The API runs at most 3 commands at once per member in one sandbox, and 10 per
 workspace across sandboxes and targets (the workspace limit depends on the
 plan). A command over either limit is rejected with HTTP 409, as is one that
-would exceed the 100 the API node runs at once.
+would exceed the 100 the API node runs at once; `runCommand()` then throws a
+`BuddySDKError` with the code `CONCURRENCY_LIMIT`, so you can wait for a running
+command to finish and try again.
 
 A command may be up to 16 KB long and is stopped after 90 minutes, so run
 servers and other long-lived processes as [apps](#apps). Its log is capped at

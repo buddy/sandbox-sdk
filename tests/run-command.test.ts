@@ -222,7 +222,7 @@ describe("Sandbox.runCommand", () => {
 
 		expect(error).toBeInstanceOf(BuddySDKError);
 		expect(error).toMatchObject({
-			code: ERROR_CODES.HTTP_ERROR,
+			code: ERROR_CODES.CONCURRENCY_LIMIT,
 			statusCode: 409,
 		});
 		expect((error as BuddySDKError).message).toContain(message);

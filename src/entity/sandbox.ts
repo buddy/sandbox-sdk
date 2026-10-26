@@ -19,7 +19,7 @@ import { HttpError } from "@/core/http-client";
 import { Command } from "@/entity/command";
 import { FileSystem } from "@/entity/filesystem";
 import { Snapshot } from "@/entity/snapshot";
-import { withErrorHandler } from "@/errors";
+import { ERROR_CODES, fromHttpError, withErrorHandler } from "@/errors";
 import { type ConnectionConfig, createClient } from "@/utils/client";
 import logger from "@/utils/logger";
 import { pollUntil, resolvePollInterval } from "@/utils/poll";
@@ -470,10 +470,22 @@ export class Sandbox {
 
 			logger.debug(`Executing command: $ ${commandRequest.command}`);
 
-			const commandResponse = await this.#client.executeCommand({
-				body: commandRequest,
-				path: { sandbox_id: sandboxId },
-			});
+			const commandResponse = await this.#client
+				.executeCommand({
+					body: commandRequest,
+					path: { sandbox_id: sandboxId },
+				})
+				.catch((error: unknown) => {
+					// Only the concurrency limits answer 409 here, and callers wait out those
+					if (error instanceof HttpError && error.status === 409) {
+						throw fromHttpError(
+							"Failed to run command",
+							error,
+							ERROR_CODES.CONCURRENCY_LIMIT,
+						);
+					}
+					throw error;
+				});
 
 			const command = new Command({
 				commandResponse,

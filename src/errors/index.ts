@@ -1,10 +1,13 @@
 import { prettifyError, ZodError } from "zod";
 import { HttpError } from "@/core/http-client";
 
-// Only 3 error codes - use statusCode for HTTP granularity
+// Few error codes - use statusCode for HTTP granularity
 export const ERROR_CODES = {
 	/** HTTP errors - use statusCode field to distinguish (401, 403, 404, 500, etc.) */
 	HTTP_ERROR: "HTTP_ERROR",
+
+	/** Too many commands running at once to start another (HTTP 409); retry once one finishes */
+	CONCURRENCY_LIMIT: "CONCURRENCY_LIMIT",
 
 	/** Zod validation errors from user input */
 	VALIDATION_ERROR: "VALIDATION_ERROR",
@@ -66,7 +69,11 @@ export class BuddySDKError extends Error {
 }
 
 // Helper to convert HttpError to BuddySDKError
-function fromHttpError(operation: string, httpError: HttpError): BuddySDKError {
+export function fromHttpError(
+	operation: string,
+	httpError: HttpError,
+	code: ErrorCode = ERROR_CODES.HTTP_ERROR,
+): BuddySDKError {
 	const statusText = httpError.status ? ` (HTTP ${httpError.status})` : "";
 	const errorDetails =
 		httpError.errors && httpError.errors.length > 0
@@ -80,7 +87,7 @@ function fromHttpError(operation: string, httpError: HttpError): BuddySDKError {
 			: httpError.message;
 
 	return new BuddySDKError(`${operation}${statusText}: ${errorDetails}`, {
-		code: ERROR_CODES.HTTP_ERROR,
+		code,
 		statusCode: httpError.status,
 		details: httpError.errors,
 	});

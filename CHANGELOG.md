@@ -56,6 +56,8 @@ run access to it; read-only access no longer shows them.
 - `failure_reason`, `error_message` and `truncated` on a command's data.
 - `wait()`, `logs()` and `output()` take a `signal` that stops waiting, for a
   deadline; `kill()` then stops the command itself.
+- The `CONCURRENCY_LIMIT` error code, which `runCommand()` throws when too many
+  commands are running to start another.
 
 ### Changed
 
@@ -66,7 +68,7 @@ run access to it; read-only access no longer shows them.
   short at 10 MiB.
 - Commands are limited to 3 at once per member in one sandbox and 10 per
   workspace across sandboxes and targets (plan-dependent); over a limit, the
-  API answers HTTP 409. Each command may be up to 16 KB long and 90 minutes.
+  API answers HTTP 409 (`CONCURRENCY_LIMIT`). Each command may be up to 16 KB long and 90 minutes.
 - A variable without a `type` is sent as `type: "VAR"`, the default the API
   applies anyway.
 
