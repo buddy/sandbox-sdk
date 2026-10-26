@@ -251,6 +251,35 @@ describe("Command", () => {
 		expect(offsets).toEqual([0, 1000]);
 	});
 
+	it("warns once when the API truncated the log", async () => {
+		stubSandbox();
+		// Two pages, both flagged
+		const lines = Array.from({ length: 1001 }, (_, i) => `line ${i}`);
+		server.use(
+			http.get(`${EXEC_URL}/log`, ({ request }) => {
+				const offset = Number(new URL(request.url).searchParams.get("offset"));
+				const slice = lines.slice(offset, offset + 1000);
+				return HttpResponse.json({
+					lines: slice,
+					next_offset: offset + slice.length,
+					truncated: true,
+				});
+			}),
+		);
+		const warn = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+
+		const command = await detached();
+		const read: string[] = [];
+		for await (const line of command.logs()) read.push(line);
+
+		expect(read).toEqual(lines);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(
+			`The log of command ${EXEC_ID} is truncated`,
+		);
+		warn.mockRestore();
+	});
+
 	it("pads status answers the API did not hold", async () => {
 		stubSandbox();
 		const waits = stubStatuses(

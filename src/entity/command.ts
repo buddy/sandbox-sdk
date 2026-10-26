@@ -1,5 +1,6 @@
 import type { ExecView } from "@/api/openapi/types.gen";
 import type { BuddyApiClient } from "@/core/buddy-api-client";
+import logger from "@/utils/logger";
 import { sleep } from "@/utils/poll";
 
 /** How long to let the API hold a status request while waiting (its maximum) */
@@ -73,16 +74,26 @@ export class Command {
 	} = {}): AsyncGenerator<string, void, undefined> {
 		let offset = 0n;
 		let finished = false;
+		let reportedTruncation = false;
 
 		while (true) {
 			while (true) {
-				const { lines = [], next_offset } = await this.client.getCommandLog(
+				const {
+					lines = [],
+					next_offset,
+					truncated,
+				} = await this.client.getCommandLog(
 					{
 						path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
 						query: { offset, limit: BigInt(LOG_PAGE_SIZE) },
 					},
 					{ signal },
 				);
+				// The API keeps at most 10 MiB of a log, so the rest is gone
+				if (truncated && !reportedTruncation) {
+					reportedTruncation = true;
+					logger.warn(`The log of command ${this.commandId} is truncated`);
+				}
 				yield* lines;
 				offset = next_offset ?? offset + BigInt(lines.length);
 				if (lines.length < LOG_PAGE_SIZE) break;
