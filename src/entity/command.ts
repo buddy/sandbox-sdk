@@ -17,9 +17,9 @@ const LOG_PAGE_SIZE = 1_000;
 /** How long kill() waits for the command to stop after cancelling it */
 const KILL_WAIT_MS = 30_000;
 
-/** Anything but INPROGRESS is final, including statuses added later */
+/** Any status but INPROGRESS is final, including statuses added later */
 function isFinished(response: ExecView) {
-	return response.status !== "INPROGRESS";
+	return response.status !== undefined && response.status !== "INPROGRESS";
 }
 
 /** Represents a running or completed command execution in a sandbox */

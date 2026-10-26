@@ -25,6 +25,9 @@ lines, `stdout()` and `stderr()` are gone, and `runCommand()` takes a single
 + const { stderr } = await sandbox.exec({ command }); // kept apart, up to 60s
 ```
 
+`runCommand()` throws when it still gets `stdout` or `stderr`, rather than
+ignoring them and writing the output to `process.stdout`.
+
 `command.data` is the API's execution view:
 
 - `id` is now `execution_id`, also available as `command.id`,

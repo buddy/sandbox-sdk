@@ -12,6 +12,7 @@ import {
 } from "vitest";
 import { Sandbox } from "@/entity/sandbox";
 import { BuddySDKError, ERROR_CODES } from "@/errors";
+import logger from "@/utils/logger";
 
 const TEST_API_URL = "https://api.test.buddy.works";
 const TEST_WORKSPACE = "test-workspace";
@@ -154,6 +155,50 @@ describe("Sandbox.runCommand", () => {
 		expect(command.data.status).toBe("INPROGRESS");
 	});
 
+	it("rejects the stdout and stderr options it no longer takes", async () => {
+		stubSandbox();
+		let started = false;
+		server.use(
+			http.post(`${SANDBOX_URL}/execs`, () => {
+				started = true;
+				return HttpResponse.json(exec("INPROGRESS"));
+			}),
+		);
+
+		const sandbox = await Sandbox.getById(SANDBOX_ID, { connection });
+		const legacy = { command: "env", stdout: null } as never;
+
+		await expect(sandbox.runCommand(legacy)).rejects.toThrow(
+			"`output` in place of `stdout` and `stderr`",
+		);
+		expect(started).toBe(false);
+	});
+
+	it("reports a failed background stream instead of crashing", async () => {
+		stubSandbox();
+		server.use(
+			http.get(`${EXEC_URL}/log`, () =>
+				HttpResponse.json({ errors: [{ message: "gone" }] }, { status: 404 }),
+			),
+		);
+		const warn = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+
+		const sandbox = await Sandbox.getById(SANDBOX_ID, { connection });
+		await sandbox.runCommand({
+			command: "echo one",
+			output: collect().stream,
+			detached: true,
+		});
+
+		await vi.waitFor(() =>
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining(EXEC_ID),
+				expect.anything(),
+			),
+		);
+		warn.mockRestore();
+	});
+
 	it("reports the concurrency limit without running the command twice", async () => {
 		const message =
 			"Concurrency limit reached: at most 3 parallel executions are allowed for this target";
@@ -222,6 +267,20 @@ describe("Command", () => {
 		expect(waits).toEqual(["25000", "25000", "25000"]);
 		expect(finished.data.status).toBe("FAILED");
 		expect(finished.data.exit_code).toBe(3);
+	});
+
+	it("keeps waiting while the status is missing", async () => {
+		stubSandbox();
+		const waits = stubStatuses(
+			{ execution_id: EXEC_ID },
+			exec("SUCCESSFUL", { exit_code: 0 }),
+		);
+
+		const command = await detached();
+		const finished = await command.wait();
+
+		expect(waits).toHaveLength(2);
+		expect(finished.data.exit_code).toBe(0);
 	});
 
 	it("treats any status but INPROGRESS as final", async () => {

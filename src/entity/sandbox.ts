@@ -459,6 +459,13 @@ export class Sandbox {
 	async runCommand(options: RunCommandOptions): Promise<Command> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to run command", async () => {
+			// Without types, these would be dropped and the output would go to stdout
+			if ("stdout" in options || "stderr" in options) {
+				throw new Error(
+					"runCommand() takes `output` in place of `stdout` and `stderr`",
+				);
+			}
+
 			const { output, detached, ...commandRequest } = options;
 
 			// undefined = use default, null = disable, Writable = use that stream
@@ -486,6 +493,13 @@ export class Sandbox {
 				: Promise.resolve();
 
 			if (detached) {
+				// Nobody awaits the background stream, so report its failure instead
+				streamingPromise.catch((error: unknown) => {
+					logger.warn(
+						`Stopped streaming output of command ${command.id}`,
+						error,
+					);
+				});
 				return command;
 			}
 
