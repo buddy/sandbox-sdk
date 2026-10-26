@@ -303,7 +303,7 @@ describe("Command", () => {
 		expect(waits).toEqual(["1000", "1500", "1000"]);
 	});
 
-	it("does not ask the API again about a finished command", async () => {
+	it("does not ask about, or cancel, a command that has finished", async () => {
 		stubSandbox();
 		server.use(
 			http.get(`${SANDBOX_URL}/execs`, () =>
@@ -314,9 +314,15 @@ describe("Command", () => {
 		// No status handler: a request would fail the test
 		const sandbox = await Sandbox.getById(SANDBOX_ID, { connection });
 		const [command] = await sandbox.listCommands();
-		const finished = await command?.wait();
+		if (!command) throw new Error("expected a command");
+		stubLog(["done"], () => 1);
 
-		expect(finished?.data.exit_code).toBe(0);
+		const finished = await command.wait();
+		const output = await command.output();
+		await command.kill();
+
+		expect(finished.data.exit_code).toBe(0);
+		expect(output).toBe("done\n");
 	});
 
 	it("pads status answers the API did not hold", async () => {

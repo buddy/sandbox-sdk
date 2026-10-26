@@ -75,7 +75,7 @@ export class Command {
 		signal?: AbortSignal;
 	} = {}): AsyncGenerator<string, void, undefined> {
 		let offset = 0n;
-		let finished = false;
+		let finished = this.finalResponse !== undefined;
 		let reportedTruncation = false;
 		let holdMs = FOLLOW_WAIT_MS;
 
@@ -134,6 +134,7 @@ export class Command {
 
 	/** Cancel the command and wait up to 30s for it to stop */
 	async kill() {
+		if (this.finalResponse) return;
 		await this.client.cancelCommand({
 			path: { sandbox_id: this.sandboxId, exec_id: this.commandId },
 		});
