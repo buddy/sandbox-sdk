@@ -1,6 +1,6 @@
 {
 	"name": "@buddy-works/sandbox-sdk",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"type": "module",
 	"description": "TypeScript SDK for managing sandboxes through the Buddy API",
 	"main": "./dist/index.cjs",
