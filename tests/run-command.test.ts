@@ -385,6 +385,7 @@ describe("Command", () => {
 		const finished = await command.wait();
 
 		expect(cancelled).toBe(true);
+		expect(command.data.status).toBe("CANCELLED");
 		expect(finished.data.status).toBe("CANCELLED");
 	});
 
@@ -403,6 +404,7 @@ describe("Command", () => {
 		await expect(command.kill()).resolves.toBeUndefined();
 
 		expect(timeout).toHaveBeenCalledWith(30_000);
+		expect(command.data.status).toBe("INPROGRESS");
 	});
 
 	it.each([
@@ -429,12 +431,15 @@ describe("Command", () => {
 		expect(requests).toBe(1);
 	});
 
-	it("rejects the stream name the old output() took", async () => {
+	it.each([
+		["the stream name the old output() took", "STDERR"],
+		["null", null],
+	])("rejects %s as output() options", async (_, options) => {
 		stubSandbox();
 
 		const command = await detached();
 
-		await expect(command.output("STDERR" as never)).rejects.toThrow(
+		await expect(command.output(options as never)).rejects.toThrow(
 			"output() takes no stream",
 		);
 	});

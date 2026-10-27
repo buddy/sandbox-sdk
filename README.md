@@ -91,12 +91,17 @@ for await (const line of detached.logs({ follow: true })) {
 const finished = await detached.wait(); // SUCCESSFUL, FAILED or CANCELLED
 ```
 
+A detached command still streams to `process.stdout` by default, which keeps
+the Node process alive until the command ends - pass `output: null` to let it
+exit sooner.
+
 The log of a command holds stdout and stderr interleaved, in the order the
 command wrote them: `logs()` yields its lines and `output()` returns it as one
 string. Use `exec()` when you need the two apart.
 
 `kill()` cancels a running command and resolves once it has stopped, with the
-status `CANCELLED`, or after 30 seconds if it is slow to stop.
+status `CANCELLED` in `data`, or after 30 seconds if it is slow to stop - then
+`data.status` is still `INPROGRESS`.
 `listCommands()` returns the sandbox's command history, newest first - the API
 keeps the 200 most recent.
 

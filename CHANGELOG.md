@@ -64,6 +64,8 @@ run access to it; read-only access no longer shows them.
 - `wait()` lets the API hold the request until the command finishes instead of
   polling, and `logs({ follow: true })` reads the log page by page.
 - `kill()` resolves once the command has stopped, or after 30 seconds.
+- `command.data` shows the command's final state once `wait()`, `logs()`,
+  `output()` or `kill()` has seen it.
 - `logs()` and `output()` warn through the SDK logger when the API cut the log
   short at 10 MiB.
 - Commands are limited to 3 at once per member in one sandbox and 10 per

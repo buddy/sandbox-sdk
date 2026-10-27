@@ -106,7 +106,7 @@ export interface ExecOptions extends ExecuteSandboxCommandRequest {
  * Options for running a command in the sandbox
  */
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
-	/** Stream for stdout and stderr, interleaved (default: process.stdout, null to disable) */
+	/** Stream for stdout and stderr, interleaved (default: process.stdout, null to disable); detached, it streams until the command ends */
 	output?: Writable | null;
 	/** Whether to run the command in detached mode (non-blocking) */
 	detached?: boolean;

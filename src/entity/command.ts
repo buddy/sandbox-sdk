@@ -61,9 +61,9 @@ export class Command {
 		return this.commandId;
 	}
 
-	/** The raw command response data from the API */
+	/** The raw command response data from the API, the final state once seen */
 	get data() {
-		return this.commandResponse;
+		return this.finalResponse ?? this.commandResponse;
 	}
 
 	/** Read the log line by line, stdout and stderr interleaved; `follow` reads until the command finishes */
@@ -126,7 +126,7 @@ export class Command {
 	/** Get all output once the command finishes, stdout and stderr interleaved */
 	async output(options: { signal?: AbortSignal } = {}) {
 		// Untyped callers of the old output("STDERR") would silently get both streams
-		if (typeof options !== "object") {
+		if (options === null || typeof options !== "object") {
 			throw new Error(
 				"output() takes no stream: stdout and stderr arrive interleaved",
 			);
