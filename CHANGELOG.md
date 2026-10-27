@@ -69,8 +69,9 @@ run access to it; read-only access no longer shows them.
 - `logs()` and `output()` warn through the SDK logger when the API cut the log
   short at 10 MiB.
 - Commands are limited to 3 at once per member in one sandbox and 10 per
-  workspace across sandboxes and targets (plan-dependent); over a limit, the
-  API answers HTTP 409 (`CONCURRENCY_LIMIT`). Each command may be up to 16 KB long and 90 minutes.
+  workspace across sandboxes and targets; over a limit, the API answers
+  HTTP 409 (`CONCURRENCY_LIMIT`). Each command may be up to 16 KB long and
+  90 minutes.
 
 ## 0.2.0
 
