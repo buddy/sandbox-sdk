@@ -73,15 +73,65 @@ Use `runCommand()` for anything longer than a minute, to follow the output as
 it arrives, or to leave a command running after the call returns:
 
 ```typescript
-// streams to process.stdout as it runs
+// streams to process.stdout as it runs, resolves once it finishes
 const command = await sandbox.runCommand({ command: "npm test" });
+console.log(command.data.status, command.data.exit_code);
 
 // returns immediately, leaving the command running
 const detached = await sandbox.runCommand({
-    command: "npm run dev",
+    command: "npm run build",
     detached: true,
+    output: null,
 });
+
+for await (const line of detached.logs({ follow: true })) {
+    console.log(line);
+}
+
+const finished = await detached.wait(); // SUCCESSFUL, FAILED or CANCELLED
 ```
+
+A detached command still streams to `process.stdout` by default, which keeps
+the Node process alive until the command ends - pass `output: null` to let it
+exit sooner.
+
+The log of a command holds stdout and stderr interleaved, in the order the
+command wrote them: `logs()` yields its lines and `output()` returns it as one
+string. Use `exec()` when you need the two apart.
+
+`kill()` cancels a running command and resolves once it has stopped, with the
+status `CANCELLED` in `data`, or after 30 seconds if it is slow to stop - then
+`data.status` is still `INPROGRESS`.
+`listCommands()` returns the sandbox's command history, newest first - the API
+keeps the 200 most recent.
+
+`wait()`, `logs()` and `output()` take an `AbortSignal` that stops waiting,
+which gives a command a deadline:
+
+```typescript
+try {
+    await detached.wait({ signal: AbortSignal.timeout(5 * 60_000) });
+} catch (error) {
+    if (!(error instanceof DOMException && error.name === "TimeoutError")) {
+        throw error;
+    }
+    await detached.kill(); // the signal only stops waiting, not the command
+}
+```
+
+The API runs at most 3 commands at once per member in one sandbox, and 10 per
+workspace across sandboxes and targets. A command over either limit is
+rejected with HTTP 409, as is one that
+would exceed the 100 the API node runs at once; `runCommand()` then throws a
+`BuddySDKError` with the code `CONCURRENCY_LIMIT`, so you can wait for a running
+command to finish and try again.
+
+A command may be up to 16 KB long and is stopped after 90 minutes, so run
+servers and other long-lived processes as [apps](#apps). Its log is capped at
+10 MiB, past which `data.truncated` is set.
+
+Starting and cancelling commands needs the `SANDBOX_USE` token scope, which
+`SANDBOX_WRITE` includes.
 
 ## Waiting for readiness
 

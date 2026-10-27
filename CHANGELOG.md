@@ -1,5 +1,78 @@
 # Changelog
 
+## 0.3.0
+
+Sandbox commands run through the API's new execs. The API drops the old
+command endpoints, so in 0.2.0 and earlier `runCommand()`, `listCommands()`
+and everything on `Command` stop working once that API change is live -
+upgrade to keep running commands. `exec()` is not affected.
+
+### Breaking
+
+A command's log no longer tells stdout and stderr apart. `logs()` yields plain
+lines, `stdout()` and `stderr()` are gone, and `runCommand()` takes a single
+`output` stream:
+
+```diff
+- await sandbox.runCommand({ command, stdout: process.stdout, stderr: process.stderr });
++ await sandbox.runCommand({ command, output: process.stdout });
+
+- for await (const { type, data } of command.logs({ follow: true })) {}
++ for await (const line of command.logs({ follow: true })) {}
+
+- const errors = await command.stderr();
++ const everything = await command.output(); // stdout and stderr interleaved
++ const { stderr } = await sandbox.exec({ command }); // kept apart, up to 60s
+```
+
+`runCommand()` throws when it still gets `stdout` or `stderr`, rather than
+ignoring them and writing the output to `process.stdout`.
+
+`command.data` is the API's execution view:
+
+- `id` is now `execution_id`, also available as `command.id`,
+- `start_date`, `finish_date` and `logs_url` are now `started_at`,
+  `finished_at` and `log_url`,
+- `status` can be `CANCELLED`, which is what `kill()` ends with instead of
+  `FAILED` with exit code 143.
+
+Code that calls the API through `BuddyApiClient` directly changes too:
+
+- `terminateCommand()` is now `cancelCommand()`, and `streamCommandLogs()` is
+  now `getCommandLog()`, which returns one slice of the log (`lines`,
+  `next_offset`, `truncated`) instead of a stream,
+- the command methods take `exec_id` instead of `id` or `command_id`, and
+  `getCommandDetails()` takes a `wait` query,
+- `getSandboxCommands()` returns an array instead of `{ commands }`.
+
+Starting and cancelling a command needs the `SANDBOX_USE` token scope, which
+`SANDBOX_WRITE` includes. Reading a sandbox's command history and logs needs
+run access to it; read-only access no longer shows them.
+
+### Added
+
+- `command.id`, and the `ExecView` type behind `command.data`.
+- `listCommands({ limit })`. The API keeps the 200 most recent commands.
+- `failure_reason`, `error_message` and `truncated` on a command's data.
+- `wait()`, `logs()` and `output()` take a `signal` that stops waiting, for a
+  deadline; `kill()` then stops the command itself.
+- The `CONCURRENCY_LIMIT` error code, which `runCommand()` throws when too many
+  commands are running to start another.
+
+### Changed
+
+- `wait()` lets the API hold the request until the command finishes instead of
+  polling, and `logs({ follow: true })` reads the log page by page.
+- `kill()` resolves once the command has stopped, or after 30 seconds.
+- `command.data` shows the command's final state once `wait()`, `logs()`,
+  `output()` or `kill()` has seen it.
+- `logs()` and `output()` warn through the SDK logger when the API cut the log
+  short at 10 MiB.
+- Commands are limited to 3 at once per member in one sandbox and 10 per
+  workspace across sandboxes and targets; over a limit, the API answers
+  HTTP 409 (`CONCURRENCY_LIMIT`). Each command may be up to 16 KB long and
+  90 minutes.
+
 ## 0.2.0
 
 Sandbox apps have names now: you start, stop and read logs for an app by a name

@@ -120,11 +120,10 @@ describe("Sandbox", () => {
 		it("should run a command and get output", async () => {
 			const command = await sandbox.runCommand({
 				command: "echo 'hello world'",
-				stdout: null,
-				stderr: null,
+				output: null,
 			});
 
-			expect(command.data.id).toBeDefined();
+			expect(command.data.execution_id).toBeDefined();
 
 			const finished = await command.wait();
 			expect(finished.data.status).toBe("SUCCESSFUL");
@@ -134,13 +133,12 @@ describe("Sandbox", () => {
 		it("should run a detached command", async () => {
 			const command = await sandbox.runCommand({
 				command: "sleep 1 && echo 'done'",
-				stdout: null,
-				stderr: null,
+				output: null,
 				detached: true,
 			});
 
 			// Detached should return immediately with INPROGRESS status
-			expect(command.data.id).toBeDefined();
+			expect(command.data.execution_id).toBeDefined();
 			expect(command.data.status).toBe("INPROGRESS");
 
 			// Wait for completion
@@ -148,55 +146,21 @@ describe("Sandbox", () => {
 			expect(finished.data.status).toBe("SUCCESSFUL");
 		});
 
-		it("should capture stdout", async () => {
-			const command = await sandbox.runCommand({
-				command: "echo 'test output'",
-				stdout: null,
-				stderr: null,
-			});
-
-			const output = await command.stdout();
-			expect(output).toContain("test output");
-		});
-
-		it("should capture stderr", async () => {
-			const command = await sandbox.runCommand({
-				command: "echo 'error message' >&2",
-				stdout: null,
-				stderr: null,
-			});
-
-			const output = await command.stderr();
-			expect(output).toContain("error message");
-		});
-
-		it("should capture both stdout and stderr with output()", async () => {
+		it("should capture stdout and stderr with output()", async () => {
 			const command = await sandbox.runCommand({
 				command: "echo 'stdout' && echo 'stderr' >&2",
-				stdout: null,
-				stderr: null,
+				output: null,
 			});
 
-			const bothOutput = await command.output("BOTH");
-			expect(bothOutput).toContain("stdout");
-			expect(bothOutput).toContain("stderr");
-
-			// Create new command for stdout-only test
-			const cmd2 = await sandbox.runCommand({
-				command: "echo 'out' && echo 'err' >&2",
-				stdout: null,
-				stderr: null,
-			});
-			const stdoutOnly = await cmd2.output("STDOUT");
-			expect(stdoutOnly).toContain("out");
-			expect(stdoutOnly).not.toContain("err");
+			const output = await command.output();
+			expect(output).toContain("stdout");
+			expect(output).toContain("stderr");
 		});
 
 		it("should handle failed commands", async () => {
 			const command = await sandbox.runCommand({
 				command: "exit 1",
-				stdout: null,
-				stderr: null,
+				output: null,
 			});
 
 			const finished = await command.wait();
@@ -207,8 +171,7 @@ describe("Sandbox", () => {
 		it("should handle different exit codes", async () => {
 			const command = await sandbox.runCommand({
 				command: "exit 42",
-				stdout: null,
-				stderr: null,
+				output: null,
 			});
 
 			const finished = await command.wait();
@@ -218,24 +181,22 @@ describe("Sandbox", () => {
 		it("should stream logs", async () => {
 			const command = await sandbox.runCommand({
 				command: "echo 'line1' && echo 'line2'",
-				stdout: null,
-				stderr: null,
+				output: null,
 			});
 
 			const logs: string[] = [];
-			for await (const log of command.logs({ follow: true })) {
-				if (log.data) logs.push(log.data);
+			for await (const line of command.logs({ follow: true })) {
+				logs.push(line);
 			}
 
-			expect(logs.some((l) => l.includes("line1"))).toBe(true);
-			expect(logs.some((l) => l.includes("line2"))).toBe(true);
+			expect(logs).toContain("line1");
+			expect(logs).toContain("line2");
 		});
 
 		it("should kill a running command", async () => {
 			const command = await sandbox.runCommand({
 				command: "sleep 60",
-				stdout: null,
-				stderr: null,
+				output: null,
 				detached: true,
 			});
 
@@ -243,21 +204,17 @@ describe("Sandbox", () => {
 
 			await command.kill();
 
-			// Wait a bit for the kill to take effect
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-
 			const finished = await command.wait();
-			expect(finished.data.status).toBe("FAILED");
+			expect(finished.data.status).toBe("CANCELLED");
 		});
 
 		it("should access command data properties", async () => {
 			const command = await sandbox.runCommand({
 				command: "echo 'test'",
-				stdout: null,
-				stderr: null,
+				output: null,
 			});
 
-			expect(command.data.id).toBeDefined();
+			expect(command.data.execution_id).toBeDefined();
 			expect(command.data.status).toBeDefined();
 		});
 
@@ -265,8 +222,7 @@ describe("Sandbox", () => {
 			const marker = `echo list-commands-marker-${Date.now()}`;
 			const command = await sandbox.runCommand({
 				command: marker,
-				stdout: null,
-				stderr: null,
+				output: null,
 			});
 			await command.wait();
 

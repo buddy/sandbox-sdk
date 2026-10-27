@@ -178,11 +178,15 @@ export type UpdateIntegrationRequest = {
 	 */
 	webhook_address?: string;
 	/**
+	 * The URL of the MCP server exposed by the integration (absolute http or https URL)
+	 */
+	mcp_server_url?: string;
+	/**
 	 * The Slack user ID
 	 */
 	slack_user_id?: string;
 	/**
-	 * The New Relic region. Can be one of `US` or `EU` (type NEW_RELIC)
+	 * The integration region. New Relic: `US` or `EU` (type NEW_RELIC). Buddy: `US`, `EU` or `AS`; empty means the current Buddy instance (type BUDDY)
 	 */
 	region?: string;
 	/**
@@ -207,7 +211,7 @@ export type UpdateIntegrationRequest = {
 	allowed_pipelines?: Array<PipelineIdView>;
 	permissions?: IntegrationPermissionsView;
 	/**
-	 * The authentication method used by the integration
+	 * The authentication method used by the integration. Required when the type has several authentication methods, optional when it has one. `DEFAULT` is deprecated: it is still accepted and mapped to `ACCESS_KEYS` (AMAZON), `SERVICE_ACCOUNT_JSON` (GOOGLE_SERVICE_ACCOUNT) or `SERVICE_PRINCIPAL` (AZURE_CLOUD)
 	 */
 	auth_type?:
 		| "OAUTH"
@@ -216,10 +220,22 @@ export type UpdateIntegrationRequest = {
 		| "APP"
 		| "APP_SPRYKER"
 		| "TOKEN_APP_EXTENSION"
-		| "DEFAULT"
 		| "OIDC"
 		| "TRUSTED"
-		| "APP_RW";
+		| "APP_RW"
+		| "USERNAME_PASSWORD"
+		| "ACCESS_KEYS"
+		| "SERVICE_ACCOUNT_JSON"
+		| "KEY_ID_APPLICATION_KEY"
+		| "USERNAME_TOKEN"
+		| "ACCESS_KEY_TOKEN"
+		| "CLIENT_CREDENTIALS"
+		| "API_KEY_SECRET"
+		| "CLIENT_SERVER_TOKENS"
+		| "NONE"
+		| "SERVICE_PRINCIPAL"
+		| "OAUTH_LOGIN"
+		| "BUDDY_OAUTH";
 	/**
 	 * The target URL for webhook-based integrations
 	 */
@@ -1487,9 +1503,10 @@ export type IntegrationView = {
 		| "OPENCODE"
 		| "CLICKUP"
 		| "GROK"
-		| "TYPESAFE";
+		| "TYPESAFE"
+		| "BUDDY";
 	/**
-	 * The authentication method used by the integration
+	 * The authentication method used by the integration. Required when the type has several authentication methods, optional when it has one. `DEFAULT` is deprecated: it is still accepted and mapped to `ACCESS_KEYS` (AMAZON), `SERVICE_ACCOUNT_JSON` (GOOGLE_SERVICE_ACCOUNT) or `SERVICE_PRINCIPAL` (AZURE_CLOUD)
 	 */
 	auth_type?:
 		| "OAUTH"
@@ -1498,10 +1515,22 @@ export type IntegrationView = {
 		| "APP"
 		| "APP_SPRYKER"
 		| "TOKEN_APP_EXTENSION"
-		| "DEFAULT"
 		| "OIDC"
 		| "TRUSTED"
-		| "APP_RW";
+		| "APP_RW"
+		| "USERNAME_PASSWORD"
+		| "ACCESS_KEYS"
+		| "SERVICE_ACCOUNT_JSON"
+		| "KEY_ID_APPLICATION_KEY"
+		| "USERNAME_TOKEN"
+		| "ACCESS_KEY_TOKEN"
+		| "CLIENT_CREDENTIALS"
+		| "API_KEY_SECRET"
+		| "CLIENT_SERVER_TOKENS"
+		| "NONE"
+		| "SERVICE_PRINCIPAL"
+		| "OAUTH_LOGIN"
+		| "BUDDY_OAUTH";
 	/**
 	 * The scope of the integration
 	 */
@@ -1526,6 +1555,10 @@ export type IntegrationView = {
 	 * The webhook URL for receiving notifications
 	 */
 	webhook_address?: string;
+	/**
+	 * The URL of the MCP server exposed by the integration (absolute http or https URL)
+	 */
+	mcp_server_url?: string;
 	/**
 	 * The Sentry organization slug; when set, a webhook trigger is registered for this organization (type SENTRY)
 	 */
@@ -1638,6 +1671,36 @@ export type IdsView = {
 	 * The hash ID of the integration
 	 */
 	integration_id?: string;
+};
+
+/**
+ * The MCP operation to run on the integration's MCP server. Required with type MCP
+ */
+export type McpExecRequest = {
+	/**
+	 * The MCP operation: `LIST_TOOLS` lists the name and description of each server tool, `GET_TOOL` returns one tool's full definition with its schemas, `CALL_TOOL` invokes a tool
+	 */
+	operation: "LIST_TOOLS" | "GET_TOOL" | "CALL_TOOL";
+	/**
+	 * The tool name. Required for `GET_TOOL` and `CALL_TOOL`, not allowed for `LIST_TOOLS`
+	 */
+	tool?: string;
+	/**
+	 * The tool arguments as a JSON object. Allowed only for `CALL_TOOL`
+	 */
+	arguments?: {
+		[key: string]: {
+			[key: string]: unknown;
+		};
+	};
+};
+
+export type IntegrationExecRequest = {
+	/**
+	 * The type of the execution; it selects the payload. MCP runs the `mcp` operation on the MCP server of the integration
+	 */
+	type: "COMMAND" | "MCP";
+	mcp?: McpExecRequest;
 };
 
 export type AddWorkspaceMemberRequest = {
@@ -1773,11 +1836,15 @@ export type AddIntegrationRequest = {
 	 */
 	webhook_address?: string;
 	/**
+	 * The URL of the MCP server exposed by the integration (absolute http or https URL)
+	 */
+	mcp_server_url?: string;
+	/**
 	 * The Slack user ID
 	 */
 	slack_user_id?: string;
 	/**
-	 * The New Relic region. Can be one of `US` or `EU` (type NEW_RELIC)
+	 * The integration region. New Relic: `US` or `EU` (type NEW_RELIC). Buddy: `US`, `EU` or `AS`; empty means the current Buddy instance (type BUDDY)
 	 */
 	region?: string;
 	/**
@@ -1802,7 +1869,7 @@ export type AddIntegrationRequest = {
 	allowed_pipelines?: Array<PipelineIdView>;
 	permissions?: IntegrationPermissionsView;
 	/**
-	 * The authentication method used by the integration
+	 * The authentication method used by the integration. Required when the type has several authentication methods, optional when it has one. `DEFAULT` is deprecated: it is still accepted and mapped to `ACCESS_KEYS` (AMAZON), `SERVICE_ACCOUNT_JSON` (GOOGLE_SERVICE_ACCOUNT) or `SERVICE_PRINCIPAL` (AZURE_CLOUD)
 	 */
 	auth_type?:
 		| "OAUTH"
@@ -1811,10 +1878,22 @@ export type AddIntegrationRequest = {
 		| "APP"
 		| "APP_SPRYKER"
 		| "TOKEN_APP_EXTENSION"
-		| "DEFAULT"
 		| "OIDC"
 		| "TRUSTED"
-		| "APP_RW";
+		| "APP_RW"
+		| "USERNAME_PASSWORD"
+		| "ACCESS_KEYS"
+		| "SERVICE_ACCOUNT_JSON"
+		| "KEY_ID_APPLICATION_KEY"
+		| "USERNAME_TOKEN"
+		| "ACCESS_KEY_TOKEN"
+		| "CLIENT_CREDENTIALS"
+		| "API_KEY_SECRET"
+		| "CLIENT_SERVER_TOKENS"
+		| "NONE"
+		| "SERVICE_PRINCIPAL"
+		| "OAUTH_LOGIN"
+		| "BUDDY_OAUTH";
 	/**
 	 * The target URL for webhook-based integrations
 	 */
@@ -1914,7 +1993,8 @@ export type AddIntegrationRequest = {
 		| "OPENCODE"
 		| "CLICKUP"
 		| "GROK"
-		| "TYPESAFE";
+		| "TYPESAFE"
+		| "BUDDY";
 	/**
 	 * The scope of the integration
 	 */
@@ -2056,9 +2136,10 @@ export type IntegrationIdView = {
 		| "OPENCODE"
 		| "CLICKUP"
 		| "GROK"
-		| "TYPESAFE";
+		| "TYPESAFE"
+		| "BUDDY";
 	/**
-	 * The authentication method used by the integration
+	 * The authentication method used by the integration. Required when the type has several authentication methods, optional when it has one. `DEFAULT` is deprecated: it is still accepted and mapped to `ACCESS_KEYS` (AMAZON), `SERVICE_ACCOUNT_JSON` (GOOGLE_SERVICE_ACCOUNT) or `SERVICE_PRINCIPAL` (AZURE_CLOUD)
 	 */
 	auth_type?:
 		| "OAUTH"
@@ -2067,10 +2148,22 @@ export type IntegrationIdView = {
 		| "APP"
 		| "APP_SPRYKER"
 		| "TOKEN_APP_EXTENSION"
-		| "DEFAULT"
 		| "OIDC"
 		| "TRUSTED"
-		| "APP_RW";
+		| "APP_RW"
+		| "USERNAME_PASSWORD"
+		| "ACCESS_KEYS"
+		| "SERVICE_ACCOUNT_JSON"
+		| "KEY_ID_APPLICATION_KEY"
+		| "USERNAME_TOKEN"
+		| "ACCESS_KEY_TOKEN"
+		| "CLIENT_CREDENTIALS"
+		| "API_KEY_SECRET"
+		| "CLIENT_SERVER_TOKENS"
+		| "NONE"
+		| "SERVICE_PRINCIPAL"
+		| "OAUTH_LOGIN"
+		| "BUDDY_OAUTH";
 	/**
 	 * The host URL for custom integrations
 	 */
@@ -2215,7 +2308,7 @@ export type ProjectView = {
 	 */
 	fetch_submodules_env_key?: string;
 	/**
-	 * Enables/disables pull requests in the project. Available only for projects synchronized with GitHub or GitHub Enterprise repository
+	 * Enables/disables pull requests in the project. Available only for projects synchronized with GitHub, GitHub Enterprise, GitLab or GitLab Enterprise repository
 	 */
 	allow_pull_requests?: boolean;
 	/**
@@ -2288,6 +2381,25 @@ export type UpdateSandboxRequest = {
 	variables?: Array<AddVariableInObjectRequest>;
 	permissions?: PermissionsView;
 	/**
+	 * Pipelines access level for this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	pipelines_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * List of pipelines allowed to use this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	allowed_pipelines?: Array<AllowedPipelineView>;
+	/**
 	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
 	 */
 	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
@@ -2320,7 +2432,7 @@ export type AddVariableInObjectRequest = {
 	 */
 	key: string;
 	/**
-	 * The value of the variable
+	 * The value of the variable. Masked to bare `!encrypted` without manage rights; returned decrypted only for a variable of an environment with `allow_decrypted_values` enabled, read with the `MASKED_VARIABLE_VALUE_DECRYPTED` scope; sending the value back unchanged leaves the stored one intact
 	 */
 	value?: string;
 	/**
@@ -2332,7 +2444,7 @@ export type AddVariableInObjectRequest = {
 	 */
 	run_only_settable?: boolean;
 	/**
-	 * If set to `true` the variable value will be encrypted and hidden
+	 * If set to `true` the variable value will be encrypted and hidden. Unsetting it without a new `value` clears the value
 	 */
 	encrypted?: boolean;
 	/**
@@ -2356,11 +2468,11 @@ export type AddVariableInObjectRequest = {
 	 */
 	file_place?: "NONE" | "CONTAINER";
 	/**
-	 * Password for certificates
+	 * Password for certificates. Masked like `value`
 	 */
 	password?: string;
 	/**
-	 * Passphrase for encrypted SSH keys
+	 * Passphrase for encrypted SSH keys. Masked like `value`
 	 */
 	passphrase?: string;
 	/**
@@ -2566,6 +2678,10 @@ export type TunnelView = {
 
 export type SandboxFetchView = {
 	/**
+	 * The auto-generated ID of the fetch
+	 */
+	id?: string;
+	/**
 	 * The type of the fetch item: PROJECT_REPO, PUBLIC_REPO, or ARTIFACT
 	 */
 	type?: "PROJECT_REPO" | "PUBLIC_REPO" | "ARTIFACT";
@@ -2578,9 +2694,37 @@ export type SandboxFetchView = {
 	 */
 	ref?: string;
 	/**
-	 * The target path where the item will be cloned/downloaded. Defaults to the app directory
+	 * The target directory where the item is cloned/downloaded. It identifies the fetch, so two entries cannot share it. Defaults to the app directory
 	 */
 	path?: string;
+	/**
+	 * The path inside the artifact to fetch instead of its whole content (for ARTIFACT type)
+	 */
+	source_path?: string;
+	/**
+	 * The revision currently checked out in the sandbox (for repository fetches)
+	 */
+	current_revision?: string;
+	/**
+	 * How many commits the fetched revision is behind the configured ref, null when it cannot be measured
+	 */
+	behind?: number;
+	/**
+	 * Whether the fetched artifact version differs from the current one, null when it cannot be measured
+	 */
+	outdated?: boolean;
+	/**
+	 * When the source was last fetched into the sandbox, null when it has not been fetched yet
+	 */
+	fetched_date?: Date;
+	/**
+	 * State of this entry: FETCHING, FETCHED, ERROR after a failed run, STALE when it needs a refetch: it was changed, added while the sandbox was not running, or its fetch was interrupted. Only Refetch brings a STALE entry up to date
+	 */
+	status?: "FETCHING" | "FETCHED" | "ERROR" | "STALE";
+	/**
+	 * Why the last fetch failed, null unless the status is ERROR
+	 */
+	error_message?: string;
 	/**
 	 * The command to run after fetching
 	 */
@@ -2624,6 +2768,45 @@ export type SandboxesView = {
 	 */
 	readonly html_url?: string;
 	sandboxes?: Array<SandboxIdView>;
+};
+
+export type SandboxFetchesView = {
+	/**
+	 * API endpoint to GET this object
+	 */
+	readonly url?: string;
+	/**
+	 * Web URL to view this object in Buddy.works
+	 */
+	readonly html_url?: string;
+	fetches?: Array<SandboxFetchView>;
+};
+
+export type ExecLogSliceView = {
+	/**
+	 * API endpoint to GET this object
+	 */
+	readonly url?: string;
+	/**
+	 * Web URL to view this object in Buddy.works
+	 */
+	readonly html_url?: string;
+	/**
+	 * The ID of the execution
+	 */
+	execution_id?: string;
+	/**
+	 * The log lines of the execution output slice
+	 */
+	lines?: Array<string>;
+	/**
+	 * Line offset to pass as `offset` to fetch the next slice of the log
+	 */
+	next_offset?: bigint;
+	/**
+	 * Indicates if the execution log was truncated
+	 */
+	truncated?: boolean;
 };
 
 /**
@@ -2672,72 +2855,6 @@ export type SandboxContentItem = {
 	 * The size of the file in bytes
 	 */
 	size?: bigint;
-};
-
-export type SandboxCommandsView = {
-	/**
-	 * API endpoint to GET this object
-	 */
-	readonly url?: string;
-	/**
-	 * Web URL to view this object in Buddy.works
-	 */
-	readonly html_url?: string;
-	commands?: Array<SandboxCommandView>;
-};
-
-export type SandboxCommandView = {
-	/**
-	 * API endpoint to GET this object
-	 */
-	readonly url?: string;
-	/**
-	 * Web URL to view this object in Buddy.works
-	 */
-	readonly html_url?: string;
-	/**
-	 * The ID of the command
-	 */
-	id?: string;
-	/**
-	 * Command to execute in the sandbox
-	 */
-	command?: string;
-	/**
-	 * Runtime environment for command execution (default: `BASH`)
-	 */
-	runtime?: "BASH" | "JAVASCRIPT" | "TYPESCRIPT" | "PYTHON";
-	/**
-	 * Command execution status
-	 */
-	status?: "INPROGRESS" | "SUCCESSFUL" | "FAILED";
-	/**
-	 * Command exit code
-	 */
-	exit_code?: number;
-	/**
-	 * Command execution start date
-	 */
-	start_date?: Date;
-	/**
-	 * Command execution finish date
-	 */
-	finish_date?: Date;
-	/**
-	 * API endpoint URL to retrieve logs for this command
-	 */
-	logs_url?: string;
-};
-
-export type SandboxCommandLog = {
-	/**
-	 * The type of command output stream
-	 */
-	type?: "STDOUT" | "STDERR";
-	/**
-	 * The command execution logs.
-	 */
-	data?: string;
 };
 
 export type SandboxAppLogsView = {
@@ -2803,6 +2920,117 @@ export type ShortSnapshotView = {
 	 * Snapshot creation date
 	 */
 	create_date?: Date;
+};
+
+export type ExecView = {
+	/**
+	 * API endpoint to GET this object
+	 */
+	readonly url?: string;
+	/**
+	 * Web URL to view this object in Buddy.works
+	 */
+	readonly html_url?: string;
+	/**
+	 * The ID of the execution
+	 */
+	execution_id?: string;
+	/**
+	 * The ID of the target
+	 */
+	target_id?: string;
+	/**
+	 * The type of the target
+	 */
+	target_type?:
+		| "FTP"
+		| "SSH"
+		| "MATCH"
+		| "MATCH_ID"
+		| "VULTR"
+		| "DIGITAL_OCEAN"
+		| "UPCLOUD"
+		| "GIT"
+		| "ARTIFACT_VERSION"
+		| "GKE"
+		| "EKS"
+		| "AKS"
+		| "DOKS"
+		| "K8S_CLUSTER"
+		| "EC2"
+		| "AGENT"
+		| "SANDBOX"
+		| "MYSQL"
+		| "PROJECT_REPO"
+		| "POSTGRESQL"
+		| "MONGO"
+		| "MSSQL"
+		| "RDS_MSSQL"
+		| "CLICKHOUSE"
+		| "RDS_MYSQL"
+		| "RDS_POSTGRESQL";
+	/**
+	 * The hash ID of the integration the execution ran on (MCP executions)
+	 */
+	integration?: string;
+	/**
+	 * The ID of the sandbox the command ran in (sandbox executions)
+	 */
+	sandbox?: string;
+	/**
+	 * The runtime the command ran with (sandbox executions)
+	 */
+	runtime?: "BASH" | "JAVASCRIPT" | "TYPESCRIPT" | "PYTHON";
+	/**
+	 * The type of the execution: COMMAND (a command in the target's language) or MCP (an operation on the integration's MCP server)
+	 */
+	type?: "COMMAND" | "MCP";
+	invoker?: MemberView;
+	cancelled_by?: MemberView;
+	/**
+	 * The ID of the proxy target used to tunnel the connection
+	 */
+	proxy_target_id?: string;
+	/**
+	 * The executed command; for an MCP execution the operation as canonical JSON
+	 */
+	command?: string;
+	/**
+	 * The date and time when the execution started
+	 */
+	started_at?: Date;
+	/**
+	 * The date and time when the execution finished
+	 */
+	finished_at?: Date;
+	/**
+	 * The status of the execution. One of: INPROGRESS, SUCCESSFUL, FAILED, CANCELLED
+	 */
+	status?: string;
+	/**
+	 * Platform-level reason a FAILED execution failed (absent for an ordinary non-zero exit): TIMEOUT (hard time cap reached), SPAWN_FAILED (execution could not be started), BASTION_FAILED (SSH bastion tunnel failed)
+	 */
+	failure_reason?: string;
+	/**
+	 * The exit code of the executed command
+	 */
+	exit_code?: number;
+	/**
+	 * The size of the execution output in bytes
+	 */
+	bytes_out?: bigint;
+	/**
+	 * Indicates if the execution output was truncated
+	 */
+	truncated?: boolean;
+	/**
+	 * The error message if the execution failed
+	 */
+	error_message?: string;
+	/**
+	 * The URL to fetch the execution log
+	 */
+	log_url?: string;
 };
 
 export type ExecuteSandboxCommandRequest = {
@@ -2957,6 +3185,26 @@ export type CreateNewSandboxRequest = {
 	timeout?: number;
 	permissions?: PermissionsView;
 	/**
+	 * Pipelines access level for this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	pipelines_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * List of pipelines allowed to use this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	allowed_pipelines?: Array<AllowedPipelineView>;
+	environment?: ShortEnvironmentView;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -3028,6 +3276,7 @@ export type CreateFromSnapshotRequest = {
 	 * The environment variables of the sandbox
 	 */
 	variables?: Array<AddVariableInObjectRequest>;
+	environment?: ShortEnvironmentView;
 };
 
 export type CloneSandboxRequest = {
@@ -3043,6 +3292,7 @@ export type CloneSandboxRequest = {
 	 * A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).
 	 */
 	identifier?: string;
+	environment?: ShortEnvironmentView;
 };
 
 export type SandboxResponse = {
@@ -3149,6 +3399,25 @@ export type SandboxResponse = {
 	environment?: ShortEnvironmentView;
 	permissions?: PermissionsView;
 	/**
+	 * Pipelines access level for this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	pipelines_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * List of pipelines allowed to use this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	allowed_pipelines?: Array<AllowedPipelineView>;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -3179,7 +3448,7 @@ export type EnvironmentVariableView = {
 	 */
 	key?: string;
 	/**
-	 * The value of the variable
+	 * The value of the variable. Masked to bare `!encrypted` without manage rights; returned decrypted only for a variable of an environment with `allow_decrypted_values` enabled, read with the `MASKED_VARIABLE_VALUE_DECRYPTED` scope; sending the value back unchanged leaves the stored one intact
 	 */
 	value?: string;
 	/**
@@ -3195,7 +3464,7 @@ export type EnvironmentVariableView = {
 		| "GPG_KEY"
 		| "P12";
 	/**
-	 * If set to `true` the variable value will be encrypted and hidden
+	 * If set to `true` the variable value will be encrypted and hidden. Unsetting it without a new `value` clears the value
 	 */
 	encrypted?: boolean;
 	/**
@@ -3243,11 +3512,11 @@ export type EnvironmentVariableView = {
 	 */
 	checksum?: string;
 	/**
-	 * Password for certificates
+	 * Password for certificates. Masked like `value`
 	 */
 	password?: string;
 	/**
-	 * Passphrase for encrypted SSH keys
+	 * Passphrase for encrypted SSH keys. Masked like `value`
 	 */
 	passphrase?: string;
 	/**
@@ -3935,9 +4204,10 @@ export type IntegrationViewWritable = {
 		| "OPENCODE"
 		| "CLICKUP"
 		| "GROK"
-		| "TYPESAFE";
+		| "TYPESAFE"
+		| "BUDDY";
 	/**
-	 * The authentication method used by the integration
+	 * The authentication method used by the integration. Required when the type has several authentication methods, optional when it has one. `DEFAULT` is deprecated: it is still accepted and mapped to `ACCESS_KEYS` (AMAZON), `SERVICE_ACCOUNT_JSON` (GOOGLE_SERVICE_ACCOUNT) or `SERVICE_PRINCIPAL` (AZURE_CLOUD)
 	 */
 	auth_type?:
 		| "OAUTH"
@@ -3946,10 +4216,22 @@ export type IntegrationViewWritable = {
 		| "APP"
 		| "APP_SPRYKER"
 		| "TOKEN_APP_EXTENSION"
-		| "DEFAULT"
 		| "OIDC"
 		| "TRUSTED"
-		| "APP_RW";
+		| "APP_RW"
+		| "USERNAME_PASSWORD"
+		| "ACCESS_KEYS"
+		| "SERVICE_ACCOUNT_JSON"
+		| "KEY_ID_APPLICATION_KEY"
+		| "USERNAME_TOKEN"
+		| "ACCESS_KEY_TOKEN"
+		| "CLIENT_CREDENTIALS"
+		| "API_KEY_SECRET"
+		| "CLIENT_SERVER_TOKENS"
+		| "NONE"
+		| "SERVICE_PRINCIPAL"
+		| "OAUTH_LOGIN"
+		| "BUDDY_OAUTH";
 	/**
 	 * The scope of the integration
 	 */
@@ -3974,6 +4256,10 @@ export type IntegrationViewWritable = {
 	 * The webhook URL for receiving notifications
 	 */
 	webhook_address?: string;
+	/**
+	 * The URL of the MCP server exposed by the integration (absolute http or https URL)
+	 */
+	mcp_server_url?: string;
 	/**
 	 * The Sentry organization slug; when set, a webhook trigger is registered for this organization (type SENTRY)
 	 */
@@ -4191,9 +4477,10 @@ export type IntegrationIdViewWritable = {
 		| "OPENCODE"
 		| "CLICKUP"
 		| "GROK"
-		| "TYPESAFE";
+		| "TYPESAFE"
+		| "BUDDY";
 	/**
-	 * The authentication method used by the integration
+	 * The authentication method used by the integration. Required when the type has several authentication methods, optional when it has one. `DEFAULT` is deprecated: it is still accepted and mapped to `ACCESS_KEYS` (AMAZON), `SERVICE_ACCOUNT_JSON` (GOOGLE_SERVICE_ACCOUNT) or `SERVICE_PRINCIPAL` (AZURE_CLOUD)
 	 */
 	auth_type?:
 		| "OAUTH"
@@ -4202,10 +4489,22 @@ export type IntegrationIdViewWritable = {
 		| "APP"
 		| "APP_SPRYKER"
 		| "TOKEN_APP_EXTENSION"
-		| "DEFAULT"
 		| "OIDC"
 		| "TRUSTED"
-		| "APP_RW";
+		| "APP_RW"
+		| "USERNAME_PASSWORD"
+		| "ACCESS_KEYS"
+		| "SERVICE_ACCOUNT_JSON"
+		| "KEY_ID_APPLICATION_KEY"
+		| "USERNAME_TOKEN"
+		| "ACCESS_KEY_TOKEN"
+		| "CLIENT_CREDENTIALS"
+		| "API_KEY_SECRET"
+		| "CLIENT_SERVER_TOKENS"
+		| "NONE"
+		| "SERVICE_PRINCIPAL"
+		| "OAUTH_LOGIN"
+		| "BUDDY_OAUTH";
 	/**
 	 * The host URL for custom integrations
 	 */
@@ -4334,7 +4633,7 @@ export type ProjectViewWritable = {
 	 */
 	fetch_submodules_env_key?: string;
 	/**
-	 * Enables/disables pull requests in the project. Available only for projects synchronized with GitHub or GitHub Enterprise repository
+	 * Enables/disables pull requests in the project. Available only for projects synchronized with GitHub, GitHub Enterprise, GitLab or GitLab Enterprise repository
 	 */
 	allow_pull_requests?: boolean;
 	/**
@@ -4407,6 +4706,25 @@ export type UpdateSandboxRequestWritable = {
 	variables?: Array<AddVariableInObjectRequestWritable>;
 	permissions?: PermissionsView;
 	/**
+	 * Pipelines access level for this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	pipelines_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * List of pipelines allowed to use this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	allowed_pipelines?: Array<AllowedPipelineView>;
+	/**
 	 * The scope of the sandbox: PROJECT, ENVIRONMENT, or WORKSPACE
 	 */
 	scope?: "PROJECT" | "ENVIRONMENT" | "WORKSPACE";
@@ -4431,7 +4749,7 @@ export type AddVariableInObjectRequestWritable = {
 	 */
 	key: string;
 	/**
-	 * The value of the variable
+	 * The value of the variable. Masked to bare `!encrypted` without manage rights; returned decrypted only for a variable of an environment with `allow_decrypted_values` enabled, read with the `MASKED_VARIABLE_VALUE_DECRYPTED` scope; sending the value back unchanged leaves the stored one intact
 	 */
 	value?: string;
 	/**
@@ -4443,7 +4761,7 @@ export type AddVariableInObjectRequestWritable = {
 	 */
 	run_only_settable?: boolean;
 	/**
-	 * If set to `true` the variable value will be encrypted and hidden
+	 * If set to `true` the variable value will be encrypted and hidden. Unsetting it without a new `value` clears the value
 	 */
 	encrypted?: boolean;
 	/**
@@ -4467,11 +4785,11 @@ export type AddVariableInObjectRequestWritable = {
 	 */
 	file_place?: "NONE" | "CONTAINER";
 	/**
-	 * Password for certificates
+	 * Password for certificates. Masked like `value`
 	 */
 	password?: string;
 	/**
-	 * Passphrase for encrypted SSH keys
+	 * Passphrase for encrypted SSH keys. Masked like `value`
 	 */
 	passphrase?: string;
 	/**
@@ -4675,6 +4993,29 @@ export type SandboxesViewWritable = {
 	sandboxes?: Array<SandboxIdViewWritable>;
 };
 
+export type SandboxFetchesViewWritable = {
+	fetches?: Array<SandboxFetchView>;
+};
+
+export type ExecLogSliceViewWritable = {
+	/**
+	 * The ID of the execution
+	 */
+	execution_id?: string;
+	/**
+	 * The log lines of the execution output slice
+	 */
+	lines?: Array<string>;
+	/**
+	 * Line offset to pass as `offset` to fetch the next slice of the log
+	 */
+	next_offset?: bigint;
+	/**
+	 * Indicates if the execution log was truncated
+	 */
+	truncated?: boolean;
+};
+
 /**
  * Sandbox content listing
  */
@@ -4705,45 +5046,6 @@ export type SandboxContentItemWritable = {
 	 * The size of the file in bytes
 	 */
 	size?: bigint;
-};
-
-export type SandboxCommandsViewWritable = {
-	commands?: Array<SandboxCommandViewWritable>;
-};
-
-export type SandboxCommandViewWritable = {
-	/**
-	 * The ID of the command
-	 */
-	id?: string;
-	/**
-	 * Command to execute in the sandbox
-	 */
-	command?: string;
-	/**
-	 * Runtime environment for command execution (default: `BASH`)
-	 */
-	runtime?: "BASH" | "JAVASCRIPT" | "TYPESCRIPT" | "PYTHON";
-	/**
-	 * Command execution status
-	 */
-	status?: "INPROGRESS" | "SUCCESSFUL" | "FAILED";
-	/**
-	 * Command exit code
-	 */
-	exit_code?: number;
-	/**
-	 * Command execution start date
-	 */
-	start_date?: Date;
-	/**
-	 * Command execution finish date
-	 */
-	finish_date?: Date;
-	/**
-	 * API endpoint URL to retrieve logs for this command
-	 */
-	logs_url?: string;
 };
 
 export type SandboxAppLogsViewWritable = {
@@ -4785,6 +5087,109 @@ export type ShortSnapshotViewWritable = {
 	 * Snapshot creation date
 	 */
 	create_date?: Date;
+};
+
+export type ExecViewWritable = {
+	/**
+	 * The ID of the execution
+	 */
+	execution_id?: string;
+	/**
+	 * The ID of the target
+	 */
+	target_id?: string;
+	/**
+	 * The type of the target
+	 */
+	target_type?:
+		| "FTP"
+		| "SSH"
+		| "MATCH"
+		| "MATCH_ID"
+		| "VULTR"
+		| "DIGITAL_OCEAN"
+		| "UPCLOUD"
+		| "GIT"
+		| "ARTIFACT_VERSION"
+		| "GKE"
+		| "EKS"
+		| "AKS"
+		| "DOKS"
+		| "K8S_CLUSTER"
+		| "EC2"
+		| "AGENT"
+		| "SANDBOX"
+		| "MYSQL"
+		| "PROJECT_REPO"
+		| "POSTGRESQL"
+		| "MONGO"
+		| "MSSQL"
+		| "RDS_MSSQL"
+		| "CLICKHOUSE"
+		| "RDS_MYSQL"
+		| "RDS_POSTGRESQL";
+	/**
+	 * The hash ID of the integration the execution ran on (MCP executions)
+	 */
+	integration?: string;
+	/**
+	 * The ID of the sandbox the command ran in (sandbox executions)
+	 */
+	sandbox?: string;
+	/**
+	 * The runtime the command ran with (sandbox executions)
+	 */
+	runtime?: "BASH" | "JAVASCRIPT" | "TYPESCRIPT" | "PYTHON";
+	/**
+	 * The type of the execution: COMMAND (a command in the target's language) or MCP (an operation on the integration's MCP server)
+	 */
+	type?: "COMMAND" | "MCP";
+	invoker?: MemberViewWritable;
+	cancelled_by?: MemberViewWritable;
+	/**
+	 * The ID of the proxy target used to tunnel the connection
+	 */
+	proxy_target_id?: string;
+	/**
+	 * The executed command; for an MCP execution the operation as canonical JSON
+	 */
+	command?: string;
+	/**
+	 * The date and time when the execution started
+	 */
+	started_at?: Date;
+	/**
+	 * The date and time when the execution finished
+	 */
+	finished_at?: Date;
+	/**
+	 * The status of the execution. One of: INPROGRESS, SUCCESSFUL, FAILED, CANCELLED
+	 */
+	status?: string;
+	/**
+	 * Platform-level reason a FAILED execution failed (absent for an ordinary non-zero exit): TIMEOUT (hard time cap reached), SPAWN_FAILED (execution could not be started), BASTION_FAILED (SSH bastion tunnel failed)
+	 */
+	failure_reason?: string;
+	/**
+	 * The exit code of the executed command
+	 */
+	exit_code?: number;
+	/**
+	 * The size of the execution output in bytes
+	 */
+	bytes_out?: bigint;
+	/**
+	 * Indicates if the execution output was truncated
+	 */
+	truncated?: boolean;
+	/**
+	 * The error message if the execution failed
+	 */
+	error_message?: string;
+	/**
+	 * The URL to fetch the execution log
+	 */
+	log_url?: string;
 };
 
 export type SnapshotViewWritable = {
@@ -4882,6 +5287,26 @@ export type CreateNewSandboxRequestWritable = {
 	timeout?: number;
 	permissions?: PermissionsView;
 	/**
+	 * Pipelines access level for this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	pipelines_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * List of pipelines allowed to use this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	allowed_pipelines?: Array<AllowedPipelineView>;
+	environment?: ShortEnvironmentViewWritable;
+	/**
 	 * Note for this resource
 	 */
 	note?: string;
@@ -4953,6 +5378,23 @@ export type CreateFromSnapshotRequestWritable = {
 	 * The environment variables of the sandbox
 	 */
 	variables?: Array<AddVariableInObjectRequestWritable>;
+	environment?: ShortEnvironmentViewWritable;
+};
+
+export type CloneSandboxRequestWritable = {
+	/**
+	 * The ID of the sandbox to clone
+	 */
+	source_sandbox_id: string;
+	/**
+	 * The name of the sandbox
+	 */
+	name: string;
+	/**
+	 * A human-readable ID. Alphanumeric characters, underscores, and hyphens (hyphens cannot appear at the start or end).
+	 */
+	identifier?: string;
+	environment?: ShortEnvironmentViewWritable;
 };
 
 export type SandboxResponseWritable = {
@@ -5050,6 +5492,25 @@ export type SandboxResponseWritable = {
 	project?: ProjectViewWritable;
 	environment?: ShortEnvironmentViewWritable;
 	permissions?: PermissionsView;
+	/**
+	 * Pipelines access level for this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	pipelines_access_level?:
+		| "DENIED"
+		| "READ_ONLY"
+		| "USE_ONLY"
+		| "BLIND"
+		| "RUN_ONLY"
+		| "READ_WRITE"
+		| "MANAGE"
+		| "DEFAULT"
+		| "ALLOWED"
+		| "STAGE"
+		| "COMMIT";
+	/**
+	 * List of pipelines allowed to use this sandbox. Not available for sandboxes in scope `ENVIRONMENT`
+	 */
+	allowed_pipelines?: Array<AllowedPipelineView>;
 	/**
 	 * Note for this resource
 	 */
@@ -5173,7 +5634,7 @@ export type GetIdentifiersData = {
 		 */
 		artifact_version?: string;
 		/**
-		 * The human-readable ID or the ID of the sandbox. The human-readable ID is resolved first. Resolved against the given environment or project, then the workspace.
+		 * The human-readable ID or the ID of the sandbox. The human-readable ID is resolved first. Resolved only within the given scope: the environment, the project, or the workspace when neither is given.
 		 */
 		sandbox?: string;
 		/**
@@ -5353,6 +5814,201 @@ export type UpdateIntegrationResponses = {
 
 export type UpdateIntegrationResponse =
 	UpdateIntegrationResponses[keyof UpdateIntegrationResponses];
+
+export type ListIntegrationExecsData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The hash ID of the integration
+		 */
+		hash_id: string;
+	};
+	query?: {
+		/**
+		 * Maximum number of executions to return (most recent first). Default: 50, max: 200.
+		 */
+		limit?: bigint;
+	};
+	url: "/workspaces/{workspace_domain}/integrations/{hash_id}/execs";
+};
+
+export type ListIntegrationExecsErrors = {
+	/**
+	 * Integration not found or not usable by the authorized user
+	 */
+	404: unknown;
+};
+
+export type ListIntegrationExecsResponses = {
+	200: Array<ExecView>;
+};
+
+export type ListIntegrationExecsResponse =
+	ListIntegrationExecsResponses[keyof ListIntegrationExecsResponses];
+
+export type ExecuteIntegrationData = {
+	body: IntegrationExecRequest;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The hash ID of the integration
+		 */
+		hash_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/integrations/{hash_id}/execs";
+};
+
+export type ExecuteIntegrationErrors = {
+	/**
+	 * Validation failed (e.g. `type` missing or not supported by the integration, an invalid `mcp` operation)
+	 */
+	400: unknown;
+	/**
+	 * Integration not found or not usable by the authorized user
+	 */
+	404: unknown;
+	/**
+	 * Another execution against the same target by the same user is currently running
+	 */
+	409: unknown;
+};
+
+export type ExecuteIntegrationResponses = {
+	/**
+	 * Execution accepted and started; row carries `status: RUNNING` until poll endpoints flip to terminal
+	 */
+	200: ExecView;
+};
+
+export type ExecuteIntegrationResponse =
+	ExecuteIntegrationResponses[keyof ExecuteIntegrationResponses];
+
+export type CancelIntegrationExecData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The hash ID of the integration
+		 */
+		hash_id: string;
+		/**
+		 * Execution ID returned by the execute endpoint
+		 */
+		exec_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/integrations/{hash_id}/execs/{exec_id}";
+};
+
+export type CancelIntegrationExecErrors = {
+	/**
+	 * Execution not found
+	 */
+	404: unknown;
+};
+
+export type CancelIntegrationExecResponses = {
+	/**
+	 * Execution cancellation signaled (or already in terminal state)
+	 */
+	204: void;
+};
+
+export type CancelIntegrationExecResponse =
+	CancelIntegrationExecResponses[keyof CancelIntegrationExecResponses];
+
+export type GetIntegrationExecData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The hash ID of the integration
+		 */
+		hash_id: string;
+		/**
+		 * Execution ID returned by the execute endpoint
+		 */
+		exec_id: string;
+	};
+	query?: {
+		/**
+		 * Long-poll budget in ms. Omit to use the server default: the request is held until the execution reaches a terminal status, returning the current status once the budget elapses. Send 0 to return immediately. Clamped server-side.
+		 */
+		wait?: bigint;
+	};
+	url: "/workspaces/{workspace_domain}/integrations/{hash_id}/execs/{exec_id}";
+};
+
+export type GetIntegrationExecErrors = {
+	/**
+	 * Execution not found
+	 */
+	404: unknown;
+};
+
+export type GetIntegrationExecResponses = {
+	200: ExecView;
+};
+
+export type GetIntegrationExecResponse =
+	GetIntegrationExecResponses[keyof GetIntegrationExecResponses];
+
+export type GetIntegrationExecLogData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The hash ID of the integration
+		 */
+		hash_id: string;
+		/**
+		 * Execution ID returned by the execute endpoint
+		 */
+		exec_id: string;
+	};
+	query?: {
+		/**
+		 * Line offset into the execution log to start reading from (number of leading lines to skip). Default: 0
+		 */
+		offset?: bigint;
+		/**
+		 * Maximum number of log lines to return. Default: 1000
+		 */
+		limit?: bigint;
+	};
+	url: "/workspaces/{workspace_domain}/integrations/{hash_id}/execs/{exec_id}/log";
+};
+
+export type GetIntegrationExecLogErrors = {
+	/**
+	 * Execution not found
+	 */
+	404: unknown;
+};
+
+export type GetIntegrationExecLogResponses = {
+	200: ExecLogSliceView;
+};
+
+export type GetIntegrationExecLogResponse =
+	GetIntegrationExecLogResponses[keyof GetIntegrationExecLogResponses];
 
 export type GetWorkspaceMembersData = {
 	body?: never;
@@ -5559,7 +6215,7 @@ export type GetSandboxesResponse =
 
 export type AddSandboxData = {
 	body:
-		| CloneSandboxRequest
+		| CloneSandboxRequestWritable
 		| CreateFromSnapshotRequestWritable
 		| CreateNewSandboxRequestWritable;
 	path: {
@@ -5573,6 +6229,10 @@ export type AddSandboxData = {
 		 * The human-readable ID of the project to filter sandboxes
 		 */
 		project_name?: string;
+		/**
+		 * The ID of the environment to filter sandboxes
+		 */
+		environment_id?: string;
 	};
 	url: "/workspaces/{workspace_domain}/sandboxes";
 };
@@ -5739,152 +6399,6 @@ export type StopSandboxAppResponses = {
 
 export type StopSandboxAppResponse =
 	StopSandboxAppResponses[keyof StopSandboxAppResponses];
-
-export type GetSandboxCommandsData = {
-	body?: never;
-	path: {
-		/**
-		 * The human-readable ID of the workspace
-		 */
-		workspace_domain: string;
-		/**
-		 * The ID of the sandbox
-		 */
-		sandbox_id: string;
-	};
-	query?: {
-		/**
-		 * Returns only commands older than the command with this ID. Pass the ID of the last command from the previous page to fetch the next one.
-		 */
-		cursor?: string;
-		/**
-		 * Maximum number of commands to return (most recent first). Default: 50, max: 200.
-		 */
-		limit?: bigint;
-	};
-	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands";
-};
-
-export type GetSandboxCommandsResponses = {
-	200: SandboxCommandsView;
-};
-
-export type GetSandboxCommandsResponse =
-	GetSandboxCommandsResponses[keyof GetSandboxCommandsResponses];
-
-export type ExecuteSandboxCommandData = {
-	body: ExecuteSandboxCommandRequest;
-	path: {
-		/**
-		 * The human-readable ID of the workspace
-		 */
-		workspace_domain: string;
-		/**
-		 * The ID of the sandbox
-		 */
-		sandbox_id: string;
-	};
-	query?: {
-		/**
-		 * If true, the command runs synchronously and the response carries its output and exit code. The command is not saved in the sandbox command history, produces no logs to stream and cannot be terminated. Commands that do not finish within 60 seconds fail - use the default mode for those.
-		 */
-		fast?: boolean;
-	};
-	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands";
-};
-
-export type ExecuteSandboxCommandResponses = {
-	200: SandboxCommandView | SandboxCommandResultView;
-};
-
-export type ExecuteSandboxCommandResponse =
-	ExecuteSandboxCommandResponses[keyof ExecuteSandboxCommandResponses];
-
-export type GetSandboxCommandData = {
-	body?: never;
-	path: {
-		/**
-		 * The human-readable ID of the workspace
-		 */
-		workspace_domain: string;
-		/**
-		 * The ID of the sandbox
-		 */
-		sandbox_id: string;
-		/**
-		 * The ID of the command
-		 */
-		id: string;
-	};
-	query?: never;
-	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{id}";
-};
-
-export type GetSandboxCommandResponses = {
-	200: SandboxCommandView;
-};
-
-export type GetSandboxCommandResponse =
-	GetSandboxCommandResponses[keyof GetSandboxCommandResponses];
-
-export type GetSandboxCommandLogsData = {
-	body?: never;
-	path: {
-		/**
-		 * The human-readable ID of the workspace
-		 */
-		workspace_domain: string;
-		/**
-		 * The ID of the sandbox
-		 */
-		sandbox_id: string;
-		/**
-		 * The ID of the command
-		 */
-		command_id: string;
-	};
-	query?: {
-		/**
-		 * If true, streams logs until the command completes
-		 */
-		follow?: boolean;
-	};
-	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/logs";
-};
-
-export type GetSandboxCommandLogsResponses = {
-	200: SandboxCommandLog;
-};
-
-export type GetSandboxCommandLogsResponse =
-	GetSandboxCommandLogsResponses[keyof GetSandboxCommandLogsResponses];
-
-export type TerminateSandboxCommandData = {
-	body?: never;
-	path: {
-		/**
-		 * The human-readable ID of the workspace
-		 */
-		workspace_domain: string;
-		/**
-		 * The ID of the sandbox
-		 */
-		sandbox_id: string;
-		/**
-		 * The ID of the command
-		 */
-		command_id: string;
-	};
-	query?: never;
-	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/commands/{command_id}/terminate";
-};
-
-export type TerminateSandboxCommandResponses = {
-	200: SandboxCommandView;
-};
-
-export type TerminateSandboxCommandResponse =
-	TerminateSandboxCommandResponses[keyof TerminateSandboxCommandResponses];
 
 export type DeleteSandboxFileData = {
 	body?: never;
@@ -6073,6 +6587,328 @@ export type ExecSandboxCommandResponses = {
 
 export type ExecSandboxCommandResponse =
 	ExecSandboxCommandResponses[keyof ExecSandboxCommandResponses];
+
+export type ListSandboxExecsData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+	};
+	query?: {
+		/**
+		 * Maximum number of executions to return (most recent first). Default: 50, max: 200.
+		 */
+		limit?: bigint;
+	};
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs";
+};
+
+export type ListSandboxExecsErrors = {
+	/**
+	 * Sandbox not found or not usable by the authorized user
+	 */
+	404: unknown;
+};
+
+export type ListSandboxExecsResponses = {
+	200: Array<ExecView>;
+};
+
+export type ListSandboxExecsResponse =
+	ListSandboxExecsResponses[keyof ListSandboxExecsResponses];
+
+export type ExecuteSandboxData = {
+	body: ExecuteSandboxCommandRequest;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs";
+};
+
+export type ExecuteSandboxErrors = {
+	/**
+	 * Validation failed (e.g. `command` missing)
+	 */
+	400: unknown;
+	/**
+	 * Sandbox not found or not usable by the authorized user
+	 */
+	404: unknown;
+	/**
+	 * Another execution against the same target by the same user is currently running
+	 */
+	409: unknown;
+};
+
+export type ExecuteSandboxResponses = {
+	/**
+	 * Execution accepted and started; row carries `status: RUNNING` until poll endpoints flip to terminal
+	 */
+	200: ExecView;
+};
+
+export type ExecuteSandboxResponse =
+	ExecuteSandboxResponses[keyof ExecuteSandboxResponses];
+
+export type CancelSandboxExecData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+		/**
+		 * Execution ID returned by the execute endpoint
+		 */
+		exec_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs/{exec_id}";
+};
+
+export type CancelSandboxExecErrors = {
+	/**
+	 * Execution not found
+	 */
+	404: unknown;
+};
+
+export type CancelSandboxExecResponses = {
+	/**
+	 * Execution cancellation signaled (or already in terminal state)
+	 */
+	204: void;
+};
+
+export type CancelSandboxExecResponse =
+	CancelSandboxExecResponses[keyof CancelSandboxExecResponses];
+
+export type GetSandboxExecData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+		/**
+		 * Execution ID returned by the execute endpoint
+		 */
+		exec_id: string;
+	};
+	query?: {
+		/**
+		 * Long-poll budget in ms. Omit to use the server default: the request is held until the execution reaches a terminal status, returning the current status once the budget elapses. Send 0 to return immediately. Clamped server-side.
+		 */
+		wait?: bigint;
+	};
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs/{exec_id}";
+};
+
+export type GetSandboxExecErrors = {
+	/**
+	 * Execution not found
+	 */
+	404: unknown;
+};
+
+export type GetSandboxExecResponses = {
+	200: ExecView;
+};
+
+export type GetSandboxExecResponse =
+	GetSandboxExecResponses[keyof GetSandboxExecResponses];
+
+export type GetSandboxExecLogData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+		/**
+		 * Execution ID returned by the execute endpoint
+		 */
+		exec_id: string;
+	};
+	query?: {
+		/**
+		 * Line offset into the execution log to start reading from (number of leading lines to skip). Default: 0
+		 */
+		offset?: bigint;
+		/**
+		 * Maximum number of log lines to return. Default: 1000
+		 */
+		limit?: bigint;
+	};
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/execs/{exec_id}/log";
+};
+
+export type GetSandboxExecLogErrors = {
+	/**
+	 * Execution not found
+	 */
+	404: unknown;
+};
+
+export type GetSandboxExecLogResponses = {
+	200: ExecLogSliceView;
+};
+
+export type GetSandboxExecLogResponse =
+	GetSandboxExecLogResponses[keyof GetSandboxExecLogResponses];
+
+export type GetSandboxFetchesData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/fetches";
+};
+
+export type GetSandboxFetchesResponses = {
+	200: SandboxFetchesView;
+};
+
+export type GetSandboxFetchesResponse =
+	GetSandboxFetchesResponses[keyof GetSandboxFetchesResponses];
+
+export type AddSandboxFetchData = {
+	body: SandboxFetchView;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/fetches";
+};
+
+export type AddSandboxFetchResponses = {
+	200: SandboxFetchView;
+};
+
+export type AddSandboxFetchResponse =
+	AddSandboxFetchResponses[keyof AddSandboxFetchResponses];
+
+export type DeleteSandboxFetchData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+		/**
+		 * The ID of the fetch
+		 */
+		fetch_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/fetches/{fetch_id}";
+};
+
+export type DeleteSandboxFetchResponses = {
+	/**
+	 * default response
+	 */
+	default: unknown;
+};
+
+export type GetSandboxFetchData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+		/**
+		 * The ID of the fetch
+		 */
+		fetch_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/fetches/{fetch_id}";
+};
+
+export type GetSandboxFetchResponses = {
+	200: SandboxFetchView;
+};
+
+export type GetSandboxFetchResponse =
+	GetSandboxFetchResponses[keyof GetSandboxFetchResponses];
+
+export type RefetchSandboxFetchData = {
+	body?: never;
+	path: {
+		/**
+		 * The human-readable ID of the workspace
+		 */
+		workspace_domain: string;
+		/**
+		 * The ID of the sandbox
+		 */
+		sandbox_id: string;
+		/**
+		 * The ID of the fetch
+		 */
+		fetch_id: string;
+	};
+	query?: never;
+	url: "/workspaces/{workspace_domain}/sandboxes/{sandbox_id}/fetches/{fetch_id}/refetch";
+};
+
+export type RefetchSandboxFetchResponses = {
+	200: SandboxFetchView;
+};
+
+export type RefetchSandboxFetchResponse =
+	RefetchSandboxFetchResponses[keyof RefetchSandboxFetchResponses];
 
 export type RecreateSandboxData = {
 	body?: never;

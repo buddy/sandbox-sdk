@@ -19,7 +19,7 @@ import { HttpError } from "@/core/http-client";
 import { Command } from "@/entity/command";
 import { FileSystem } from "@/entity/filesystem";
 import { Snapshot } from "@/entity/snapshot";
-import { withErrorHandler } from "@/errors";
+import { ERROR_CODES, fromHttpError, withErrorHandler } from "@/errors";
 import { type ConnectionConfig, createClient } from "@/utils/client";
 import logger from "@/utils/logger";
 import { pollUntil, resolvePollInterval } from "@/utils/poll";
@@ -27,6 +27,9 @@ import { pollUntil, resolvePollInterval } from "@/utils/poll";
 export type { ConnectionConfig };
 
 const CREATE_MAX_INTERVAL_MS = 500;
+
+/** The API keeps the 200 newest executions per sandbox and lists at most that many */
+const COMMAND_HISTORY_LIMIT = 200;
 
 /** An app's human-readable `identifier` or its auto-generated `id` */
 export type SandboxAppRef = NonNullable<
@@ -103,10 +106,8 @@ export interface ExecOptions extends ExecuteSandboxCommandRequest {
  * Options for running a command in the sandbox
  */
 interface RunCommandOptions extends ExecuteSandboxCommandRequest {
-	/** Stream to write stdout to (default: process.stdout, null to disable) */
-	stdout?: Writable | null;
-	/** Stream to write stderr to (default: process.stderr, null to disable) */
-	stderr?: Writable | null;
+	/** Stream for stdout and stderr, interleaved (default: process.stdout, null to disable); detached, it streams until the command ends */
+	output?: Writable | null;
 	/** Whether to run the command in detached mode (non-blocking) */
 	detached?: boolean;
 }
@@ -455,18 +456,36 @@ export class Sandbox {
 	async runCommand(options: RunCommandOptions): Promise<Command> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to run command", async () => {
-			const { stdout, stderr, detached, ...commandRequest } = options;
+			// Untyped callers would otherwise have them dropped and output on stdout
+			if ("stdout" in options || "stderr" in options) {
+				throw new Error(
+					"runCommand() takes `output` in place of `stdout` and `stderr`",
+				);
+			}
+
+			const { output, detached, ...commandRequest } = options;
 
 			// undefined = use default, null = disable, Writable = use that stream
-			const outputStdout = stdout === null ? null : (stdout ?? process.stdout);
-			const outputStderr = stderr === null ? null : (stderr ?? process.stderr);
+			const outputStream = output === null ? null : (output ?? process.stdout);
 
 			logger.debug(`Executing command: $ ${commandRequest.command}`);
 
-			const commandResponse = await this.#client.executeCommand({
-				body: commandRequest,
-				path: { sandbox_id: sandboxId },
-			});
+			const commandResponse = await this.#client
+				.executeCommand({
+					body: commandRequest,
+					path: { sandbox_id: sandboxId },
+				})
+				.catch((error: unknown) => {
+					// Only the concurrency limits answer 409 here, and callers wait out those
+					if (error instanceof HttpError && error.status === 409) {
+						throw fromHttpError(
+							"Failed to run command",
+							error,
+							ERROR_CODES.CONCURRENCY_LIMIT,
+						);
+					}
+					throw error;
+				});
 
 			const command = new Command({
 				commandResponse,
@@ -474,48 +493,60 @@ export class Sandbox {
 				sandboxId,
 			});
 
-			const streamingPromise =
-				outputStdout || outputStderr
-					? (async () => {
-							for await (const log of command.logs({ follow: true })) {
-								const output = `${log.data ?? ""}\n`;
-
-								if (log.type === "STDOUT" && outputStdout) {
-									outputStdout.write(output);
-								} else if (log.type === "STDERR" && outputStderr) {
-									outputStderr.write(output);
-								}
-							}
-						})()
-					: Promise.resolve();
+			const streamingPromise = outputStream
+				? (async () => {
+						for await (const line of command.logs({ follow: true })) {
+							outputStream.write(`${line}\n`);
+						}
+					})()
+				: Promise.resolve();
 
 			if (detached) {
+				// Nobody awaits it, so a failure would crash the process
+				streamingPromise.catch((error: unknown) => {
+					const reason = error instanceof Error ? error.message : String(error);
+					logger.warn(
+						`Stopped streaming output of command ${command.id}: ${reason}`,
+					);
+				});
 				return command;
 			}
 
-			// Wait for both streaming and command completion
-			const [finishedCommand] = await Promise.all([
-				command.wait(),
-				streamingPromise,
-			]);
-			return finishedCommand;
+			await streamingPromise;
+			return command.wait();
 		});
 	}
 
 	/**
-	 * List all command executions in this sandbox (history).
+	 * List command executions in this sandbox (history), newest first.
 	 *
 	 * Returns one `Command` instance per past execution. Useful for inspecting
 	 * previous runs, fetching their logs, or killing still-running detached
 	 * commands.
 	 */
-	async listCommands(): Promise<Command[]> {
+	async listCommands({
+		limit = COMMAND_HISTORY_LIMIT,
+	}: {
+		/** Default and maximum: 200, all the API keeps */
+		limit?: number;
+	} = {}): Promise<Command[]> {
 		const sandboxId = this.initializedId;
 		return withErrorHandler("Failed to list commands", async () => {
+			if (
+				!Number.isInteger(limit) ||
+				limit < 1 ||
+				limit > COMMAND_HISTORY_LIMIT
+			) {
+				throw new Error(
+					`limit must be a whole number from 1 to ${COMMAND_HISTORY_LIMIT}, got ${limit}`,
+				);
+			}
+
 			const response = await this.#client.getSandboxCommands({
 				path: { sandbox_id: sandboxId },
+				query: { limit: BigInt(limit) },
 			});
-			return (response?.commands ?? []).map(
+			return response.map(
 				(commandResponse) =>
 					new Command({
 						commandResponse,

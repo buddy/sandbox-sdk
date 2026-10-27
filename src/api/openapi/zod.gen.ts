@@ -180,6 +180,7 @@ export const zUpdateIntegrationRequest = z.object({
 	application_key: z.string().optional(),
 	host_url: z.string().optional(),
 	webhook_address: z.string().optional(),
+	mcp_server_url: z.string().optional(),
 	slack_user_id: z.string().optional(),
 	region: z.string().optional(),
 	organization: z.string().optional(),
@@ -196,10 +197,22 @@ export const zUpdateIntegrationRequest = z.object({
 			"APP",
 			"APP_SPRYKER",
 			"TOKEN_APP_EXTENSION",
-			"DEFAULT",
 			"OIDC",
 			"TRUSTED",
 			"APP_RW",
+			"USERNAME_PASSWORD",
+			"ACCESS_KEYS",
+			"SERVICE_ACCOUNT_JSON",
+			"KEY_ID_APPLICATION_KEY",
+			"USERNAME_TOKEN",
+			"ACCESS_KEY_TOKEN",
+			"CLIENT_CREDENTIALS",
+			"API_KEY_SECRET",
+			"CLIENT_SERVER_TOKENS",
+			"NONE",
+			"SERVICE_PRINCIPAL",
+			"OAUTH_LOGIN",
+			"BUDDY_OAUTH",
 		])
 		.optional(),
 	target_url: z.string().optional(),
@@ -588,6 +601,20 @@ export const zIdsView = z.object({
 	integration_id: z.string().optional(),
 });
 
+/**
+ * The MCP operation to run on the integration's MCP server. Required with type MCP
+ */
+export const zMcpExecRequest = z.object({
+	operation: z.enum(["LIST_TOOLS", "GET_TOOL", "CALL_TOOL"]),
+	tool: z.string().optional(),
+	arguments: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+});
+
+export const zIntegrationExecRequest = z.object({
+	type: z.enum(["COMMAND", "MCP"]),
+	mcp: zMcpExecRequest.optional(),
+});
+
 export const zAddWorkspaceMemberRequest = z.object({
 	admin: z.boolean().optional(),
 	auto_assign_to_new_projects: z.boolean().optional(),
@@ -632,6 +659,7 @@ export const zAddIntegrationRequest = z.object({
 	application_key: z.string().optional(),
 	host_url: z.string().optional(),
 	webhook_address: z.string().optional(),
+	mcp_server_url: z.string().optional(),
 	slack_user_id: z.string().optional(),
 	region: z.string().optional(),
 	organization: z.string().optional(),
@@ -648,10 +676,22 @@ export const zAddIntegrationRequest = z.object({
 			"APP",
 			"APP_SPRYKER",
 			"TOKEN_APP_EXTENSION",
-			"DEFAULT",
 			"OIDC",
 			"TRUSTED",
 			"APP_RW",
+			"USERNAME_PASSWORD",
+			"ACCESS_KEYS",
+			"SERVICE_ACCOUNT_JSON",
+			"KEY_ID_APPLICATION_KEY",
+			"USERNAME_TOKEN",
+			"ACCESS_KEY_TOKEN",
+			"CLIENT_CREDENTIALS",
+			"API_KEY_SECRET",
+			"CLIENT_SERVER_TOKENS",
+			"NONE",
+			"SERVICE_PRINCIPAL",
+			"OAUTH_LOGIN",
+			"BUDDY_OAUTH",
 		])
 		.optional(),
 	target_url: z.string().optional(),
@@ -724,6 +764,7 @@ export const zAddIntegrationRequest = z.object({
 		"CLICKUP",
 		"GROK",
 		"TYPESAFE",
+		"BUDDY",
 	]),
 	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"]),
 	project_name: z.string().optional(),
@@ -816,6 +857,7 @@ export const zIntegrationIdView = z.object({
 			"CLICKUP",
 			"GROK",
 			"TYPESAFE",
+			"BUDDY",
 		])
 		.optional(),
 	auth_type: z
@@ -826,10 +868,22 @@ export const zIntegrationIdView = z.object({
 			"APP",
 			"APP_SPRYKER",
 			"TOKEN_APP_EXTENSION",
-			"DEFAULT",
 			"OIDC",
 			"TRUSTED",
 			"APP_RW",
+			"USERNAME_PASSWORD",
+			"ACCESS_KEYS",
+			"SERVICE_ACCOUNT_JSON",
+			"KEY_ID_APPLICATION_KEY",
+			"USERNAME_TOKEN",
+			"ACCESS_KEY_TOKEN",
+			"CLIENT_CREDENTIALS",
+			"API_KEY_SECRET",
+			"CLIENT_SERVER_TOKENS",
+			"NONE",
+			"SERVICE_PRINCIPAL",
+			"OAUTH_LOGIN",
+			"BUDDY_OAUTH",
 		])
 		.optional(),
 	host_url: z.string().optional(),
@@ -970,7 +1024,8 @@ export const zAddVariableInObjectRequest = z.object({
 			"GPG_KEY",
 			"P12",
 		])
-		.optional(),
+		.optional()
+		.default("VAR"),
 });
 
 /**
@@ -1043,10 +1098,26 @@ export const zTunnelView = z.object({
 });
 
 export const zSandboxFetchView = z.object({
+	id: z.string().optional(),
 	type: z.enum(["PROJECT_REPO", "PUBLIC_REPO", "ARTIFACT"]).optional(),
 	repository: z.string().optional(),
 	ref: z.string().optional(),
 	path: z.string().optional(),
+	source_path: z.string().optional(),
+	current_revision: z.string().optional(),
+	behind: z
+		.int()
+		.min(-2147483648, {
+			error: "Invalid value: Expected int32 to be >= -2147483648",
+		})
+		.max(2147483647, {
+			error: "Invalid value: Expected int32 to be <= 2147483647",
+		})
+		.optional(),
+	outdated: z.boolean().optional(),
+	fetched_date: z.iso.datetime().optional(),
+	status: z.enum(["FETCHING", "FETCHED", "ERROR", "STALE"]).optional(),
+	error_message: z.string().optional(),
 	build_command: z.string().optional(),
 	artifact: z.string().optional(),
 });
@@ -1096,6 +1167,22 @@ export const zUpdateSandboxRequest = z.object({
 	endpoints: z.array(zTunnelView).optional(),
 	variables: z.array(zAddVariableInObjectRequest).optional(),
 	permissions: zPermissionsView.optional(),
+	pipelines_access_level: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+	allowed_pipelines: z.array(zAllowedPipelineView).optional(),
 	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
 	project: zShortProjectView.optional(),
 	environment: zShortEnvironmentView.optional(),
@@ -1107,6 +1194,29 @@ export const zSandboxesView = z.object({
 	url: z.string().readonly().optional(),
 	html_url: z.string().readonly().optional(),
 	sandboxes: z.array(zSandboxIdView).optional(),
+});
+
+export const zSandboxFetchesView = z.object({
+	url: z.string().readonly().optional(),
+	html_url: z.string().readonly().optional(),
+	fetches: z.array(zSandboxFetchView).optional(),
+});
+
+export const zExecLogSliceView = z.object({
+	url: z.string().readonly().optional(),
+	html_url: z.string().readonly().optional(),
+	execution_id: z.string().optional(),
+	lines: z.array(z.string()).optional(),
+	next_offset: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+	truncated: z.boolean().optional(),
 });
 
 /**
@@ -1138,38 +1248,6 @@ export const zSandboxContentView = z.object({
 	contents: z.array(zSandboxContentItem).optional(),
 });
 
-export const zSandboxCommandView = z.object({
-	url: z.string().readonly().optional(),
-	html_url: z.string().readonly().optional(),
-	id: z.string().optional(),
-	command: z.string().optional(),
-	runtime: z.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"]).optional(),
-	status: z.enum(["INPROGRESS", "SUCCESSFUL", "FAILED"]).optional(),
-	exit_code: z
-		.int()
-		.min(-2147483648, {
-			error: "Invalid value: Expected int32 to be >= -2147483648",
-		})
-		.max(2147483647, {
-			error: "Invalid value: Expected int32 to be <= 2147483647",
-		})
-		.optional(),
-	start_date: z.iso.datetime().optional(),
-	finish_date: z.iso.datetime().optional(),
-	logs_url: z.string().optional(),
-});
-
-export const zSandboxCommandsView = z.object({
-	url: z.string().readonly().optional(),
-	html_url: z.string().readonly().optional(),
-	commands: z.array(zSandboxCommandView).optional(),
-});
-
-export const zSandboxCommandLog = z.object({
-	type: z.enum(["STDOUT", "STDERR"]).optional(),
-	data: z.string().optional(),
-});
-
 export const zSandboxAppLogsView = z.object({
 	url: z.string().readonly().optional(),
 	html_url: z.string().readonly().optional(),
@@ -1199,6 +1277,76 @@ export const zSnapshotsView = z.object({
 	url: z.string().readonly().optional(),
 	html_url: z.string().readonly().optional(),
 	snapshots: z.array(zShortSnapshotView).optional(),
+});
+
+export const zExecView = z.object({
+	url: z.string().readonly().optional(),
+	html_url: z.string().readonly().optional(),
+	execution_id: z.string().optional(),
+	target_id: z.string().optional(),
+	target_type: z
+		.enum([
+			"FTP",
+			"SSH",
+			"MATCH",
+			"MATCH_ID",
+			"VULTR",
+			"DIGITAL_OCEAN",
+			"UPCLOUD",
+			"GIT",
+			"ARTIFACT_VERSION",
+			"GKE",
+			"EKS",
+			"AKS",
+			"DOKS",
+			"K8S_CLUSTER",
+			"EC2",
+			"AGENT",
+			"SANDBOX",
+			"MYSQL",
+			"PROJECT_REPO",
+			"POSTGRESQL",
+			"MONGO",
+			"MSSQL",
+			"RDS_MSSQL",
+			"CLICKHOUSE",
+			"RDS_MYSQL",
+			"RDS_POSTGRESQL",
+		])
+		.optional(),
+	integration: z.string().optional(),
+	sandbox: z.string().optional(),
+	runtime: z.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"]).optional(),
+	type: z.enum(["COMMAND", "MCP"]).optional(),
+	invoker: zMemberView.optional(),
+	cancelled_by: zMemberView.optional(),
+	proxy_target_id: z.string().optional(),
+	command: z.string().optional(),
+	started_at: z.iso.datetime().optional(),
+	finished_at: z.iso.datetime().optional(),
+	status: z.string().optional(),
+	failure_reason: z.string().optional(),
+	exit_code: z
+		.int()
+		.min(-2147483648, {
+			error: "Invalid value: Expected int32 to be >= -2147483648",
+		})
+		.max(2147483647, {
+			error: "Invalid value: Expected int32 to be <= 2147483647",
+		})
+		.optional(),
+	bytes_out: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+	truncated: z.boolean().optional(),
+	error_message: z.string().optional(),
+	log_url: z.string().optional(),
 });
 
 export const zExecuteSandboxCommandRequest = z.object({
@@ -1289,6 +1437,23 @@ export const zCreateNewSandboxRequest = z.object({
 		})
 		.optional(),
 	permissions: zPermissionsView.optional(),
+	pipelines_access_level: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+	allowed_pipelines: z.array(zAllowedPipelineView).optional(),
+	environment: zShortEnvironmentView.optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
 });
@@ -1330,12 +1495,14 @@ export const zCreateFromSnapshotRequest = z.object({
 	tags: z.array(z.string()).optional(),
 	endpoints: z.array(zTunnelView).optional(),
 	variables: z.array(zAddVariableInObjectRequest).optional(),
+	environment: zShortEnvironmentView.optional(),
 });
 
 export const zCloneSandboxRequest = z.object({
 	source_sandbox_id: z.string(),
 	name: z.string(),
 	identifier: z.string().optional(),
+	environment: zShortEnvironmentView.optional(),
 });
 
 /**
@@ -1443,6 +1610,22 @@ export const zSandboxResponse = z.object({
 	project: zProjectView.optional(),
 	environment: zShortEnvironmentView.optional(),
 	permissions: zPermissionsView.optional(),
+	pipelines_access_level: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+	allowed_pipelines: z.array(zAllowedPipelineView).optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
 	create_date: z.iso.datetime().optional(),
@@ -1688,6 +1871,7 @@ export const zIntegrationIdViewWritable = z.object({
 			"CLICKUP",
 			"GROK",
 			"TYPESAFE",
+			"BUDDY",
 		])
 		.optional(),
 	auth_type: z
@@ -1698,10 +1882,22 @@ export const zIntegrationIdViewWritable = z.object({
 			"APP",
 			"APP_SPRYKER",
 			"TOKEN_APP_EXTENSION",
-			"DEFAULT",
 			"OIDC",
 			"TRUSTED",
 			"APP_RW",
+			"USERNAME_PASSWORD",
+			"ACCESS_KEYS",
+			"SERVICE_ACCOUNT_JSON",
+			"KEY_ID_APPLICATION_KEY",
+			"USERNAME_TOKEN",
+			"ACCESS_KEY_TOKEN",
+			"CLIENT_CREDENTIALS",
+			"API_KEY_SECRET",
+			"CLIENT_SERVER_TOKENS",
+			"NONE",
+			"SERVICE_PRINCIPAL",
+			"OAUTH_LOGIN",
+			"BUDDY_OAUTH",
 		])
 		.optional(),
 	host_url: z.string().optional(),
@@ -1836,7 +2032,8 @@ export const zAddVariableInObjectRequestWritable = z.object({
 			"GPG_KEY",
 			"P12",
 		])
-		.optional(),
+		.optional()
+		.default("VAR"),
 });
 
 /**
@@ -1944,6 +2141,22 @@ export const zUpdateSandboxRequestWritable = z.object({
 	endpoints: z.array(zTunnelViewWritable).optional(),
 	variables: z.array(zAddVariableInObjectRequestWritable).optional(),
 	permissions: zPermissionsView.optional(),
+	pipelines_access_level: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+	allowed_pipelines: z.array(zAllowedPipelineView).optional(),
 	scope: z.enum(["PROJECT", "ENVIRONMENT", "WORKSPACE"]).optional(),
 	project: zShortProjectViewWritable.optional(),
 	environment: zShortEnvironmentViewWritable.optional(),
@@ -1953,6 +2166,25 @@ export const zUpdateSandboxRequestWritable = z.object({
 
 export const zSandboxesViewWritable = z.object({
 	sandboxes: z.array(zSandboxIdViewWritable).optional(),
+});
+
+export const zSandboxFetchesViewWritable = z.object({
+	fetches: z.array(zSandboxFetchView).optional(),
+});
+
+export const zExecLogSliceViewWritable = z.object({
+	execution_id: z.string().optional(),
+	lines: z.array(z.string()).optional(),
+	next_offset: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+	truncated: z.boolean().optional(),
 });
 
 /**
@@ -1980,29 +2212,6 @@ export const zSandboxContentViewWritable = z.object({
 	contents: z.array(zSandboxContentItemWritable).optional(),
 });
 
-export const zSandboxCommandViewWritable = z.object({
-	id: z.string().optional(),
-	command: z.string().optional(),
-	runtime: z.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"]).optional(),
-	status: z.enum(["INPROGRESS", "SUCCESSFUL", "FAILED"]).optional(),
-	exit_code: z
-		.int()
-		.min(-2147483648, {
-			error: "Invalid value: Expected int32 to be >= -2147483648",
-		})
-		.max(2147483647, {
-			error: "Invalid value: Expected int32 to be <= 2147483647",
-		})
-		.optional(),
-	start_date: z.iso.datetime().optional(),
-	finish_date: z.iso.datetime().optional(),
-	logs_url: z.string().optional(),
-});
-
-export const zSandboxCommandsViewWritable = z.object({
-	commands: z.array(zSandboxCommandViewWritable).optional(),
-});
-
 export const zSandboxAppLogsViewWritable = z.object({
 	cursor: z.string().optional(),
 	logs: z.array(z.string()).optional(),
@@ -2026,6 +2235,74 @@ export const zShortSnapshotViewWritable = z.object({
 
 export const zSnapshotsViewWritable = z.object({
 	snapshots: z.array(zShortSnapshotViewWritable).optional(),
+});
+
+export const zExecViewWritable = z.object({
+	execution_id: z.string().optional(),
+	target_id: z.string().optional(),
+	target_type: z
+		.enum([
+			"FTP",
+			"SSH",
+			"MATCH",
+			"MATCH_ID",
+			"VULTR",
+			"DIGITAL_OCEAN",
+			"UPCLOUD",
+			"GIT",
+			"ARTIFACT_VERSION",
+			"GKE",
+			"EKS",
+			"AKS",
+			"DOKS",
+			"K8S_CLUSTER",
+			"EC2",
+			"AGENT",
+			"SANDBOX",
+			"MYSQL",
+			"PROJECT_REPO",
+			"POSTGRESQL",
+			"MONGO",
+			"MSSQL",
+			"RDS_MSSQL",
+			"CLICKHOUSE",
+			"RDS_MYSQL",
+			"RDS_POSTGRESQL",
+		])
+		.optional(),
+	integration: z.string().optional(),
+	sandbox: z.string().optional(),
+	runtime: z.enum(["BASH", "JAVASCRIPT", "TYPESCRIPT", "PYTHON"]).optional(),
+	type: z.enum(["COMMAND", "MCP"]).optional(),
+	invoker: zMemberViewWritable.optional(),
+	cancelled_by: zMemberViewWritable.optional(),
+	proxy_target_id: z.string().optional(),
+	command: z.string().optional(),
+	started_at: z.iso.datetime().optional(),
+	finished_at: z.iso.datetime().optional(),
+	status: z.string().optional(),
+	failure_reason: z.string().optional(),
+	exit_code: z
+		.int()
+		.min(-2147483648, {
+			error: "Invalid value: Expected int32 to be >= -2147483648",
+		})
+		.max(2147483647, {
+			error: "Invalid value: Expected int32 to be <= 2147483647",
+		})
+		.optional(),
+	bytes_out: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+	truncated: z.boolean().optional(),
+	error_message: z.string().optional(),
+	log_url: z.string().optional(),
 });
 
 export const zSnapshotViewWritable = z.object({
@@ -2087,6 +2364,23 @@ export const zCreateNewSandboxRequestWritable = z.object({
 		})
 		.optional(),
 	permissions: zPermissionsView.optional(),
+	pipelines_access_level: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+	allowed_pipelines: z.array(zAllowedPipelineView).optional(),
+	environment: zShortEnvironmentViewWritable.optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
 });
@@ -2128,6 +2422,14 @@ export const zCreateFromSnapshotRequestWritable = z.object({
 	tags: z.array(z.string()).optional(),
 	endpoints: z.array(zTunnelViewWritable).optional(),
 	variables: z.array(zAddVariableInObjectRequestWritable).optional(),
+	environment: zShortEnvironmentViewWritable.optional(),
+});
+
+export const zCloneSandboxRequestWritable = z.object({
+	source_sandbox_id: z.string(),
+	name: z.string(),
+	identifier: z.string().optional(),
+	environment: zShortEnvironmentViewWritable.optional(),
 });
 
 export const zSandboxResponseWritable = z.object({
@@ -2186,6 +2488,22 @@ export const zSandboxResponseWritable = z.object({
 	project: zProjectViewWritable.optional(),
 	environment: zShortEnvironmentViewWritable.optional(),
 	permissions: zPermissionsView.optional(),
+	pipelines_access_level: z
+		.enum([
+			"DENIED",
+			"READ_ONLY",
+			"USE_ONLY",
+			"BLIND",
+			"RUN_ONLY",
+			"READ_WRITE",
+			"MANAGE",
+			"DEFAULT",
+			"ALLOWED",
+			"STAGE",
+			"COMMIT",
+		])
+		.optional(),
+	allowed_pipelines: z.array(zAllowedPipelineView).optional(),
 	note: z.string().optional(),
 	agent_note: z.string().optional(),
 	create_date: z.iso.datetime().optional(),
@@ -2473,6 +2791,7 @@ export const zIntegrationView = z.object({
 			"CLICKUP",
 			"GROK",
 			"TYPESAFE",
+			"BUDDY",
 		])
 		.optional(),
 	auth_type: z
@@ -2483,10 +2802,22 @@ export const zIntegrationView = z.object({
 			"APP",
 			"APP_SPRYKER",
 			"TOKEN_APP_EXTENSION",
-			"DEFAULT",
 			"OIDC",
 			"TRUSTED",
 			"APP_RW",
+			"USERNAME_PASSWORD",
+			"ACCESS_KEYS",
+			"SERVICE_ACCOUNT_JSON",
+			"KEY_ID_APPLICATION_KEY",
+			"USERNAME_TOKEN",
+			"ACCESS_KEY_TOKEN",
+			"CLIENT_CREDENTIALS",
+			"API_KEY_SECRET",
+			"CLIENT_SERVER_TOKENS",
+			"NONE",
+			"SERVICE_PRINCIPAL",
+			"OAUTH_LOGIN",
+			"BUDDY_OAUTH",
 		])
 		.optional(),
 	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"]).optional(),
@@ -2495,6 +2826,7 @@ export const zIntegrationView = z.object({
 	google_project: z.string().optional(),
 	host_url: z.string().optional(),
 	webhook_address: z.string().optional(),
+	mcp_server_url: z.string().optional(),
 	organization: z.string().optional(),
 	audience: z.string().optional(),
 	atop_url: z.string().optional(),
@@ -2777,6 +3109,7 @@ export const zIntegrationViewWritable = z.object({
 			"CLICKUP",
 			"GROK",
 			"TYPESAFE",
+			"BUDDY",
 		])
 		.optional(),
 	auth_type: z
@@ -2787,10 +3120,22 @@ export const zIntegrationViewWritable = z.object({
 			"APP",
 			"APP_SPRYKER",
 			"TOKEN_APP_EXTENSION",
-			"DEFAULT",
 			"OIDC",
 			"TRUSTED",
 			"APP_RW",
+			"USERNAME_PASSWORD",
+			"ACCESS_KEYS",
+			"SERVICE_ACCOUNT_JSON",
+			"KEY_ID_APPLICATION_KEY",
+			"USERNAME_TOKEN",
+			"ACCESS_KEY_TOKEN",
+			"CLIENT_CREDENTIALS",
+			"API_KEY_SECRET",
+			"CLIENT_SERVER_TOKENS",
+			"NONE",
+			"SERVICE_PRINCIPAL",
+			"OAUTH_LOGIN",
+			"BUDDY_OAUTH",
 		])
 		.optional(),
 	scope: z.enum(["WORKSPACE", "PROJECT", "ENVIRONMENT"]).optional(),
@@ -2799,6 +3144,7 @@ export const zIntegrationViewWritable = z.object({
 	google_project: z.string().optional(),
 	host_url: z.string().optional(),
 	webhook_address: z.string().optional(),
+	mcp_server_url: z.string().optional(),
 	organization: z.string().optional(),
 	audience: z.string().optional(),
 	atop_url: z.string().optional(),
@@ -2862,6 +3208,97 @@ export const zDeleteIntegrationPath = z.object({
  * Integration deleted successfully
  */
 export const zDeleteIntegrationResponse = z.void();
+
+export const zListIntegrationExecsPath = z.object({
+	workspace_domain: z.string(),
+	hash_id: z.string(),
+});
+
+export const zListIntegrationExecsQuery = z.object({
+	limit: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+});
+
+export const zListIntegrationExecsResponse = z.array(zExecView);
+
+export const zExecuteIntegrationBody = zIntegrationExecRequest;
+
+export const zExecuteIntegrationPath = z.object({
+	workspace_domain: z.string(),
+	hash_id: z.string(),
+});
+
+/**
+ * Execution accepted and started; row carries `status: RUNNING` until poll endpoints flip to terminal
+ */
+export const zExecuteIntegrationResponse = zExecView;
+
+export const zCancelIntegrationExecPath = z.object({
+	workspace_domain: z.string(),
+	hash_id: z.string(),
+	exec_id: z.string(),
+});
+
+/**
+ * Execution cancellation signaled (or already in terminal state)
+ */
+export const zCancelIntegrationExecResponse = z.void();
+
+export const zGetIntegrationExecPath = z.object({
+	workspace_domain: z.string(),
+	hash_id: z.string(),
+	exec_id: z.string(),
+});
+
+export const zGetIntegrationExecQuery = z.object({
+	wait: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+});
+
+export const zGetIntegrationExecResponse = zExecView;
+
+export const zGetIntegrationExecLogPath = z.object({
+	workspace_domain: z.string(),
+	hash_id: z.string(),
+	exec_id: z.string(),
+});
+
+export const zGetIntegrationExecLogQuery = z.object({
+	offset: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+	limit: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+});
+
+export const zGetIntegrationExecLogResponse = zExecLogSliceView;
 
 export const zGetWorkspaceMembersPath = z.object({
 	workspace_domain: z.string(),
@@ -2998,7 +3435,7 @@ export const zGetSandboxesQuery = z.object({
 export const zGetSandboxesResponse = zSandboxesView;
 
 export const zAddSandboxBody = z.union([
-	zCloneSandboxRequest,
+	zCloneSandboxRequestWritable,
 	zCreateFromSnapshotRequestWritable,
 	zCreateNewSandboxRequestWritable,
 ]);
@@ -3009,6 +3446,7 @@ export const zAddSandboxPath = z.object({
 
 export const zAddSandboxQuery = z.object({
 	project_name: z.string().optional(),
+	environment_id: z.string().optional(),
 });
 
 export const zAddSandboxResponse = zSandboxResponse;
@@ -3066,70 +3504,6 @@ export const zStopSandboxAppPath = z.object({
 });
 
 export const zStopSandboxAppResponse = zSandboxResponse;
-
-export const zGetSandboxCommandsPath = z.object({
-	workspace_domain: z.string(),
-	sandbox_id: z.string(),
-});
-
-export const zGetSandboxCommandsQuery = z.object({
-	cursor: z.string().optional(),
-	limit: z.coerce
-		.bigint()
-		.min(BigInt("-9223372036854775808"), {
-			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
-		})
-		.max(BigInt("9223372036854775807"), {
-			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
-		})
-		.optional(),
-});
-
-export const zGetSandboxCommandsResponse = zSandboxCommandsView;
-
-export const zExecuteSandboxCommandBody = zExecuteSandboxCommandRequest;
-
-export const zExecuteSandboxCommandPath = z.object({
-	workspace_domain: z.string(),
-	sandbox_id: z.string(),
-});
-
-export const zExecuteSandboxCommandQuery = z.object({
-	fast: z.boolean().optional(),
-});
-
-export const zExecuteSandboxCommandResponse = z.union([
-	zSandboxCommandView,
-	zSandboxCommandResultView,
-]);
-
-export const zGetSandboxCommandPath = z.object({
-	workspace_domain: z.string(),
-	sandbox_id: z.string(),
-	id: z.string(),
-});
-
-export const zGetSandboxCommandResponse = zSandboxCommandView;
-
-export const zGetSandboxCommandLogsPath = z.object({
-	workspace_domain: z.string(),
-	sandbox_id: z.string(),
-	command_id: z.string(),
-});
-
-export const zGetSandboxCommandLogsQuery = z.object({
-	follow: z.boolean().optional(),
-});
-
-export const zGetSandboxCommandLogsResponse = zSandboxCommandLog;
-
-export const zTerminateSandboxCommandPath = z.object({
-	workspace_domain: z.string(),
-	sandbox_id: z.string(),
-	command_id: z.string(),
-});
-
-export const zTerminateSandboxCommandResponse = zSandboxCommandView;
 
 export const zDeleteSandboxFilePath = z.object({
 	workspace_domain: z.string(),
@@ -3203,6 +3577,135 @@ export const zExecSandboxCommandPath = z.object({
 });
 
 export const zExecSandboxCommandResponse = zSandboxCommandResultView;
+
+export const zListSandboxExecsPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+});
+
+export const zListSandboxExecsQuery = z.object({
+	limit: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+});
+
+export const zListSandboxExecsResponse = z.array(zExecView);
+
+export const zExecuteSandboxBody = zExecuteSandboxCommandRequest;
+
+export const zExecuteSandboxPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+});
+
+/**
+ * Execution accepted and started; row carries `status: RUNNING` until poll endpoints flip to terminal
+ */
+export const zExecuteSandboxResponse = zExecView;
+
+export const zCancelSandboxExecPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+	exec_id: z.string(),
+});
+
+/**
+ * Execution cancellation signaled (or already in terminal state)
+ */
+export const zCancelSandboxExecResponse = z.void();
+
+export const zGetSandboxExecPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+	exec_id: z.string(),
+});
+
+export const zGetSandboxExecQuery = z.object({
+	wait: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+});
+
+export const zGetSandboxExecResponse = zExecView;
+
+export const zGetSandboxExecLogPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+	exec_id: z.string(),
+});
+
+export const zGetSandboxExecLogQuery = z.object({
+	offset: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+	limit: z.coerce
+		.bigint()
+		.min(BigInt("-9223372036854775808"), {
+			error: "Invalid value: Expected int64 to be >= -9223372036854775808",
+		})
+		.max(BigInt("9223372036854775807"), {
+			error: "Invalid value: Expected int64 to be <= 9223372036854775807",
+		})
+		.optional(),
+});
+
+export const zGetSandboxExecLogResponse = zExecLogSliceView;
+
+export const zGetSandboxFetchesPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+});
+
+export const zGetSandboxFetchesResponse = zSandboxFetchesView;
+
+export const zAddSandboxFetchBody = zSandboxFetchView;
+
+export const zAddSandboxFetchPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+});
+
+export const zAddSandboxFetchResponse = zSandboxFetchView;
+
+export const zDeleteSandboxFetchPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+	fetch_id: z.string(),
+});
+
+export const zGetSandboxFetchPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+	fetch_id: z.string(),
+});
+
+export const zGetSandboxFetchResponse = zSandboxFetchView;
+
+export const zRefetchSandboxFetchPath = z.object({
+	workspace_domain: z.string(),
+	sandbox_id: z.string(),
+	fetch_id: z.string(),
+});
+
+export const zRefetchSandboxFetchResponse = zSandboxFetchView;
 
 export const zRecreateSandboxPath = z.object({
 	workspace_domain: z.string(),

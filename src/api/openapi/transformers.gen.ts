@@ -3,27 +3,36 @@
 import type {
 	AddIntegrationResponse,
 	AddSandboxByYamlResponse,
+	AddSandboxFetchResponse,
 	AddSandboxResponse,
 	AddSandboxSnapshotResponse,
 	CreateSandboxDirectoryResponse,
+	ExecuteIntegrationResponse,
+	ExecuteSandboxResponse,
+	GetIntegrationExecLogResponse,
+	GetIntegrationExecResponse,
 	GetIntegrationResponse,
 	GetIntegrationsResponse,
 	GetProjectSnapshotsResponse,
-	GetSandboxCommandResponse,
-	GetSandboxCommandsResponse,
 	GetSandboxContentResponse,
+	GetSandboxExecLogResponse,
+	GetSandboxExecResponse,
+	GetSandboxFetchesResponse,
+	GetSandboxFetchResponse,
 	GetSandboxResponse,
 	GetSandboxSnapshotResponse,
 	GetSandboxSnapshotsResponse,
 	GetWorkspaceMemberProjectsResponse,
 	GetWorkspaceResponse,
+	ListIntegrationExecsResponse,
+	ListSandboxExecsResponse,
 	RecreateSandboxResponse,
+	RefetchSandboxFetchResponse,
 	RestartSandboxResponse,
 	StartSandboxAppResponse,
 	StartSandboxResponse,
 	StopSandboxAppResponse,
 	StopSandboxResponse,
-	TerminateSandboxCommandResponse,
 	UpdateIntegrationResponse,
 	UpdateSandboxByYamlResponse,
 	UpdateSandboxResponse,
@@ -134,6 +143,54 @@ export const updateIntegrationResponseTransformer = async (
 	return data;
 };
 
+const execViewSchemaResponseTransformer = (data: any) => {
+	if (data.started_at) {
+		data.started_at = new Date(data.started_at);
+	}
+	if (data.finished_at) {
+		data.finished_at = new Date(data.finished_at);
+	}
+	if (data.bytes_out) {
+		data.bytes_out = BigInt(data.bytes_out.toString());
+	}
+	return data;
+};
+
+export const listIntegrationExecsResponseTransformer = async (
+	data: any,
+): Promise<ListIntegrationExecsResponse> => {
+	data = data.map((item: any) => execViewSchemaResponseTransformer(item));
+	return data;
+};
+
+export const executeIntegrationResponseTransformer = async (
+	data: any,
+): Promise<ExecuteIntegrationResponse> => {
+	data = execViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const getIntegrationExecResponseTransformer = async (
+	data: any,
+): Promise<GetIntegrationExecResponse> => {
+	data = execViewSchemaResponseTransformer(data);
+	return data;
+};
+
+const execLogSliceViewSchemaResponseTransformer = (data: any) => {
+	if (data.next_offset) {
+		data.next_offset = BigInt(data.next_offset.toString());
+	}
+	return data;
+};
+
+export const getIntegrationExecLogResponseTransformer = async (
+	data: any,
+): Promise<GetIntegrationExecLogResponse> => {
+	data = execLogSliceViewSchemaResponseTransformer(data);
+	return data;
+};
+
 const projectsViewSchemaResponseTransformer = (data: any) => {
 	if (data.projects) {
 		data.projects = data.projects.map((item: any) =>
@@ -150,6 +207,13 @@ export const getWorkspaceMemberProjectsResponseTransformer = async (
 	return data;
 };
 
+const sandboxFetchViewSchemaResponseTransformer = (data: any) => {
+	if (data.fetched_date) {
+		data.fetched_date = new Date(data.fetched_date);
+	}
+	return data;
+};
+
 const projectViewSchemaResponseTransformer = (data: any) => {
 	if (data.create_date) {
 		data.create_date = new Date(data.create_date);
@@ -158,6 +222,11 @@ const projectViewSchemaResponseTransformer = (data: any) => {
 };
 
 const sandboxResponseSchemaResponseTransformer = (data: any) => {
+	if (data.fetch) {
+		data.fetch = data.fetch.map((item: any) =>
+			sandboxFetchViewSchemaResponseTransformer(item),
+		);
+	}
 	if (data.project) {
 		data.project = projectViewSchemaResponseTransformer(data.project);
 	}
@@ -202,46 +271,6 @@ export const stopSandboxAppResponseTransformer = async (
 	return data;
 };
 
-const sandboxCommandViewSchemaResponseTransformer = (data: any) => {
-	if (data.start_date) {
-		data.start_date = new Date(data.start_date);
-	}
-	if (data.finish_date) {
-		data.finish_date = new Date(data.finish_date);
-	}
-	return data;
-};
-
-const sandboxCommandsViewSchemaResponseTransformer = (data: any) => {
-	if (data.commands) {
-		data.commands = data.commands.map((item: any) =>
-			sandboxCommandViewSchemaResponseTransformer(item),
-		);
-	}
-	return data;
-};
-
-export const getSandboxCommandsResponseTransformer = async (
-	data: any,
-): Promise<GetSandboxCommandsResponse> => {
-	data = sandboxCommandsViewSchemaResponseTransformer(data);
-	return data;
-};
-
-export const getSandboxCommandResponseTransformer = async (
-	data: any,
-): Promise<GetSandboxCommandResponse> => {
-	data = sandboxCommandViewSchemaResponseTransformer(data);
-	return data;
-};
-
-export const terminateSandboxCommandResponseTransformer = async (
-	data: any,
-): Promise<TerminateSandboxCommandResponse> => {
-	data = sandboxCommandViewSchemaResponseTransformer(data);
-	return data;
-};
-
 const sandboxContentItemSchemaResponseTransformer = (data: any) => {
 	if (data.size) {
 		data.size = BigInt(data.size.toString());
@@ -276,6 +305,71 @@ export const uploadSandboxFileResponseTransformer = async (
 	data: any,
 ): Promise<UploadSandboxFileResponse> => {
 	data = sandboxContentItemSchemaResponseTransformer(data);
+	return data;
+};
+
+export const listSandboxExecsResponseTransformer = async (
+	data: any,
+): Promise<ListSandboxExecsResponse> => {
+	data = data.map((item: any) => execViewSchemaResponseTransformer(item));
+	return data;
+};
+
+export const executeSandboxResponseTransformer = async (
+	data: any,
+): Promise<ExecuteSandboxResponse> => {
+	data = execViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const getSandboxExecResponseTransformer = async (
+	data: any,
+): Promise<GetSandboxExecResponse> => {
+	data = execViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const getSandboxExecLogResponseTransformer = async (
+	data: any,
+): Promise<GetSandboxExecLogResponse> => {
+	data = execLogSliceViewSchemaResponseTransformer(data);
+	return data;
+};
+
+const sandboxFetchesViewSchemaResponseTransformer = (data: any) => {
+	if (data.fetches) {
+		data.fetches = data.fetches.map((item: any) =>
+			sandboxFetchViewSchemaResponseTransformer(item),
+		);
+	}
+	return data;
+};
+
+export const getSandboxFetchesResponseTransformer = async (
+	data: any,
+): Promise<GetSandboxFetchesResponse> => {
+	data = sandboxFetchesViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const addSandboxFetchResponseTransformer = async (
+	data: any,
+): Promise<AddSandboxFetchResponse> => {
+	data = sandboxFetchViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const getSandboxFetchResponseTransformer = async (
+	data: any,
+): Promise<GetSandboxFetchResponse> => {
+	data = sandboxFetchViewSchemaResponseTransformer(data);
+	return data;
+};
+
+export const refetchSandboxFetchResponseTransformer = async (
+	data: any,
+): Promise<RefetchSandboxFetchResponse> => {
+	data = sandboxFetchViewSchemaResponseTransformer(data);
 	return data;
 };
 

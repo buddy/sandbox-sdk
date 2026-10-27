@@ -296,8 +296,9 @@ describe("BuddyApiClient", () => {
 				},
 			});
 
+			// The spec fills a missing type with its default
 			expect(receivedBody?.["variables"]).toEqual([
-				{ key: "GREETING", value: "hello" },
+				{ key: "GREETING", value: "hello", type: "VAR" },
 			]);
 		});
 	});
@@ -344,11 +345,11 @@ describe("BuddyApiClient", () => {
 		it("should execute command in sandbox", async () => {
 			server.use(
 				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands`,
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/execs`,
 					async ({ request }) => {
 						const body = (await request.json()) as Record<string, unknown>;
 						return HttpResponse.json({
-							id: "command-123",
+							execution_id: "exec-123",
 							command: body["command"],
 							status: "INPROGRESS",
 						});
@@ -362,8 +363,8 @@ describe("BuddyApiClient", () => {
 				body: { command: "echo hello" },
 			});
 
-			expect(response?.id).toBe("command-123");
-			expect(response?.status).toBe("INPROGRESS");
+			expect(response.execution_id).toBe("exec-123");
+			expect(response.status).toBe("INPROGRESS");
 		});
 	});
 
@@ -624,79 +625,106 @@ describe("BuddyApiClient", () => {
 	});
 
 	describe("command operations", () => {
-		it("should get command details", async () => {
+		const EXEC_URL = `${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/execs/exec-123`;
+
+		it("should get command details, passing the wait budget", async () => {
+			let wait: string | null = null;
 			server.use(
-				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands/cmd-123`,
-					() => {
-						return HttpResponse.json({
-							id: "cmd-123",
-							command: "echo hello",
-							status: "SUCCESSFUL",
-							exit_code: 0,
-						});
-					},
-				),
+				http.get(EXEC_URL, ({ request }) => {
+					wait = new URL(request.url).searchParams.get("wait");
+					return HttpResponse.json({
+						execution_id: "exec-123",
+						command: "echo hello",
+						status: "SUCCESSFUL",
+						exit_code: 0,
+					});
+				}),
 			);
 
 			const client = createClient();
 			const response = await client.getCommandDetails({
-				path: { sandbox_id: "sandbox-id", id: "cmd-123" },
+				path: { sandbox_id: "sandbox-id", exec_id: "exec-123" },
+				query: { wait: 5000n },
 			});
 
-			expect(response?.status).toBe("SUCCESSFUL");
-			expect(response?.exit_code).toBe(0);
+			expect(wait).toBe("5000");
+			expect(response.status).toBe("SUCCESSFUL");
+			expect(response.exit_code).toBe(0);
 		});
 
-		it("should terminate command", async () => {
+		it("should read a slice of the log", async () => {
+			let params: URLSearchParams | undefined;
 			server.use(
-				http.post(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands/cmd-123/terminate`,
-					() => {
-						return HttpResponse.json({});
-					},
-				),
+				http.get(`${EXEC_URL}/log`, ({ request }) => {
+					params = new URL(request.url).searchParams;
+					return HttpResponse.json({
+						execution_id: "exec-123",
+						lines: ["one", "two"],
+						next_offset: 12,
+						truncated: false,
+					});
+				}),
+			);
+
+			const client = createClient();
+			const response = await client.getCommandLog({
+				path: { sandbox_id: "sandbox-id", exec_id: "exec-123" },
+				query: { offset: 10n, limit: 2n },
+			});
+
+			expect(params?.get("offset")).toBe("10");
+			expect(params?.get("limit")).toBe("2");
+			expect(response.lines).toEqual(["one", "two"]);
+			expect(response.next_offset).toBe(12n);
+		});
+
+		it("should cancel command", async () => {
+			server.use(
+				http.delete(EXEC_URL, () => new HttpResponse(null, { status: 204 })),
 			);
 
 			const client = createClient();
 			await expect(
-				client.terminateCommand({
-					path: { sandbox_id: "sandbox-id", command_id: "cmd-123" },
+				client.cancelCommand({
+					path: { sandbox_id: "sandbox-id", exec_id: "exec-123" },
 				}),
-			).resolves.not.toThrow();
+			).resolves.toBeUndefined();
 		});
 
 		it("should list commands in a sandbox", async () => {
+			let limit: string | null = null;
 			server.use(
 				http.get(
-					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/commands`,
-					() =>
-						HttpResponse.json({
-							commands: [
-								{
-									id: "cmd-a",
-									command: "echo first",
-									status: "SUCCESSFUL",
-									exit_code: 0,
-								},
-								{
-									id: "cmd-b",
-									command: "sleep 60",
-									status: "INPROGRESS",
-								},
-							],
-						}),
+					`${TEST_API_URL}/workspaces/${TEST_WORKSPACE}/sandboxes/sandbox-id/execs`,
+					({ request }) => {
+						limit = new URL(request.url).searchParams.get("limit");
+						return HttpResponse.json([
+							{
+								execution_id: "exec-a",
+								command: "echo first",
+								status: "SUCCESSFUL",
+								exit_code: 0,
+							},
+							{
+								execution_id: "exec-b",
+								command: "sleep 60",
+								status: "INPROGRESS",
+							},
+						]);
+					},
 				),
 			);
 
 			const client = createClient();
 			const response = await client.getSandboxCommands({
 				path: { sandbox_id: "sandbox-id" },
+				query: { limit: 200n },
 			});
 
-			expect(response?.commands).toHaveLength(2);
-			expect(response?.commands?.[0]?.id).toBe("cmd-a");
-			expect(response?.commands?.[1]?.status).toBe("INPROGRESS");
+			expect(limit).toBe("200");
+			expect(response).toHaveLength(2);
+			expect(response[0]?.execution_id).toBe("exec-a");
+			expect(response[1]?.status).toBe("INPROGRESS");
 		});
 	});
 
@@ -950,62 +978,6 @@ describe("BuddyApiClient", () => {
 			expect(new TextDecoder().decode(result.data)).toBe("file-bytes");
 			expect(calls).toHaveLength(1);
 			expect(calls[0]?.init.method).toBe("GET");
-		});
-
-		it("should stream command logs through the transport", async () => {
-			const { client, calls } = createRecordingClient(
-				() =>
-					new Response(
-						'{"type":"STDOUT","data":"one"}\n{"type":"STDERR","data":"two"}\n',
-						{ headers: { "Content-Type": "application/jsonl" } },
-					),
-			);
-
-			const logs = [];
-			for await (const log of client.streamCommandLogs({
-				path: { sandbox_id: "sandbox-1", command_id: "command-1" },
-				query: { follow: true },
-			})) {
-				logs.push(log);
-			}
-
-			expect(logs).toEqual([
-				{ type: "STDOUT", data: "one" },
-				{ type: "STDERR", data: "two" },
-			]);
-			expect(calls).toHaveLength(1);
-			expect(calls[0]?.url).toContain("follow=true");
-		});
-
-		it("should cancel the log stream when the consumer stops early", async () => {
-			let cancelled = false;
-			const { client } = createRecordingClient(
-				() =>
-					new Response(
-						new ReadableStream({
-							start(controller) {
-								// One line, then silence - like a follow that never ends.
-								controller.enqueue(
-									new TextEncoder().encode('{"type":"STDOUT","data":"one"}\n'),
-								);
-							},
-							cancel() {
-								cancelled = true;
-							},
-						}),
-						{ headers: { "Content-Type": "application/jsonl" } },
-					),
-			);
-
-			for await (const log of client.streamCommandLogs({
-				path: { sandbox_id: "sandbox-1", command_id: "command-1" },
-				query: { follow: true },
-			})) {
-				expect(log.data).toBe("one");
-				break;
-			}
-
-			expect(cancelled).toBe(true);
 		});
 	});
 });
